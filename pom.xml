@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>org.picketlink</groupId>
-		<artifactId>picketlink-parent</artifactId>
-		<version>2.5.0-SNAPSHOT</version>
-	</parent>
-
+	<groupId>org.picketlink</groupId>
+	<version>2.5.0-SNAPSHOT</version>
 	<artifactId>picketlink-bindings-parent</artifactId>
 	<packaging>pom</packaging>
 
@@ -25,7 +22,19 @@
 		<module>build-jbas5</module>
 		<module>build-jbas7</module>
 	</modules>
-
+	
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.picketlink</groupId>
+				<artifactId>picketlink-parent</artifactId>
+				<version>${project.version}</version>
+				<scope>import</scope>
+				<type>pom</type>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	
 	<build>
 		<pluginManagement>
 			<plugins>
