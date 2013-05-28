@@ -54,7 +54,7 @@ import org.w3c.dom.Element;
 @SuppressWarnings("restriction")
 public final class PicketLinkLoggerImpl implements PicketLinkLogger {
 
-PicketLinkLoggerImpl() {
+    PicketLinkLoggerImpl() {
         
     }
 
@@ -837,7 +837,7 @@ PicketLinkLoggerImpl() {
      * @see org.picketlink.identity.federation.PicketLinkLogger#saml11MarshallError(java.lang.Throwable)
      */
     public ProcessingException samlAssertionMarshallError(Throwable t) {
-        return MESSAGES.saml11MarshallError(t);
+        return MESSAGES.samlMarshallError(t);
     }
 
     /* (non-Javadoc)
@@ -851,7 +851,7 @@ PicketLinkLoggerImpl() {
      * @see org.picketlink.identity.federation.PicketLinkLogger#saml11UnmarshallError(java.lang.Throwable)
      */
     public ProcessingException samlAssertionUnmarshallError(Throwable t) {
-        return MESSAGES.saml11UnmarshallError(t);
+        return MESSAGES.samlUnmarshallError(t);
     }
 
     /* (non-Javadoc)
