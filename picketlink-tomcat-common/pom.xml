@@ -58,7 +58,7 @@
 			<groupId>org.apache.tomcat</groupId>
 			<artifactId>coyote</artifactId>
 			<version>${catalina.version}</version>
-			<scope>test</scope>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
