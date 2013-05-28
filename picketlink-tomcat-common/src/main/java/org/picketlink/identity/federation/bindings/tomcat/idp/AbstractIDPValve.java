@@ -21,7 +21,8 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.idp;
 
-import static org.picketlink.common.util.StringUtil.isNotNull;
+import static org.picketlink.identity.federation.core.util.StringUtil.isNotNull;
+import static org.picketlink.identity.federation.core.util.StringUtil.isNullOrEmpty;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -57,27 +58,20 @@ import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.valves.ValveBase;
 import org.jboss.security.audit.AuditLevel;
-import org.picketlink.common.PicketLinkLogger;
-import org.picketlink.common.PicketLinkLoggerFactory;
-import org.picketlink.common.constants.GeneralConstants;
-import org.picketlink.common.constants.JBossSAMLURIConstants;
-import org.picketlink.common.exceptions.ConfigurationException;
-import org.picketlink.common.exceptions.ParsingException;
-import org.picketlink.common.exceptions.ProcessingException;
-import org.picketlink.common.exceptions.fed.IssuerNotTrustedException;
-import org.picketlink.common.util.DocumentUtil;
-import org.picketlink.common.util.StaxUtil;
-import org.picketlink.common.util.StringUtil;
-import org.picketlink.common.util.SystemPropertiesUtil;
-import org.picketlink.config.federation.AuthPropertyType;
-import org.picketlink.config.federation.IDPType;
-import org.picketlink.config.federation.KeyProviderType;
-import org.picketlink.config.federation.PicketLinkType;
-import org.picketlink.config.federation.handler.Handlers;
+import org.picketlink.identity.federation.PicketLinkLogger;
+import org.picketlink.identity.federation.PicketLinkLoggerFactory;
 import org.picketlink.identity.federation.bindings.tomcat.TomcatRoleGenerator;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEvent;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEventType;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditHelper;
+import org.picketlink.identity.federation.core.config.AuthPropertyType;
+import org.picketlink.identity.federation.core.config.IDPType;
+import org.picketlink.identity.federation.core.config.KeyProviderType;
+import org.picketlink.identity.federation.core.config.PicketLinkType;
+import org.picketlink.identity.federation.core.exceptions.ConfigurationException;
+import org.picketlink.identity.federation.core.exceptions.ParsingException;
+import org.picketlink.identity.federation.core.exceptions.ProcessingException;
+import org.picketlink.identity.federation.core.handler.config.Handlers;
 import org.picketlink.identity.federation.core.impl.DelegatedAttributeManager;
 import org.picketlink.identity.federation.core.interfaces.AttributeManager;
 import org.picketlink.identity.federation.core.interfaces.ProtocolContext;
@@ -88,6 +82,8 @@ import org.picketlink.identity.federation.core.saml.v1.SAML11ProtocolContext;
 import org.picketlink.identity.federation.core.saml.v1.writers.SAML11ResponseWriter;
 import org.picketlink.identity.federation.core.saml.v2.common.IDGenerator;
 import org.picketlink.identity.federation.core.saml.v2.common.SAMLDocumentHolder;
+import org.picketlink.identity.federation.core.saml.v2.constants.JBossSAMLURIConstants;
+import org.picketlink.identity.federation.core.saml.v2.exceptions.IssuerNotTrustedException;
 import org.picketlink.identity.federation.core.saml.v2.factories.SAML2HandlerChainFactory;
 import org.picketlink.identity.federation.core.saml.v2.holders.IssuerInfoHolder;
 import org.picketlink.identity.federation.core.saml.v2.impl.DefaultSAML2HandlerChainConfig;
@@ -100,10 +96,14 @@ import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerCh
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerRequest;
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerResponse;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
+import org.picketlink.identity.federation.core.saml.v2.util.DocumentUtil;
 import org.picketlink.identity.federation.core.saml.v2.util.HandlerUtil;
 import org.picketlink.identity.federation.core.saml.v2.util.XMLTimeUtil;
 import org.picketlink.identity.federation.core.sts.PicketLinkCoreSTS;
 import org.picketlink.identity.federation.core.util.CoreConfigUtil;
+import org.picketlink.identity.federation.core.util.StaxUtil;
+import org.picketlink.identity.federation.core.util.StringUtil;
+import org.picketlink.identity.federation.core.util.SystemPropertiesUtil;
 import org.picketlink.identity.federation.core.util.XMLSignatureUtil;
 import org.picketlink.identity.federation.core.wstrust.PicketLinkSTSConfiguration;
 import org.picketlink.identity.federation.saml.v1.assertion.SAML11AssertionType;
@@ -121,6 +121,7 @@ import org.picketlink.identity.federation.saml.v2.protocol.AuthnRequestType;
 import org.picketlink.identity.federation.saml.v2.protocol.RequestAbstractType;
 import org.picketlink.identity.federation.saml.v2.protocol.StatusResponseType;
 import org.picketlink.identity.federation.web.config.AbstractSAMLConfigurationProvider;
+import org.picketlink.identity.federation.web.constants.GeneralConstants;
 import org.picketlink.identity.federation.web.core.HTTPContext;
 import org.picketlink.identity.federation.web.core.IdentityParticipantStack;
 import org.picketlink.identity.federation.web.core.IdentityServer;
@@ -326,8 +327,8 @@ public abstract class AbstractIDPValve extends ValveBase {
             String samlResponseMessage = (String) session.getNote(GeneralConstants.SAML_RESPONSE_KEY);
 
             /**
-             * Since the container has finished the authentication, we can retrieve the original saml message as well as any relay
-             * state from the SP
+             * Since the container has finished the authentication, we can retrieve the original saml message as well as any
+             * relay state from the SP
              */
             String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
             String signature = (String) session.getNote(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
@@ -370,13 +371,14 @@ public abstract class AbstractIDPValve extends ValveBase {
 
     private void forwardHosted(Request request, Response response) throws ServletException, IOException {
         logger.trace("SAML 1.1::Proceeding to IDP index page");
-        RequestDispatcher dispatch = getContext().getServletContext().getRequestDispatcher("/hosted/");
+        RequestDispatcher dispatch = getContext().getServletContext()
+                .getRequestDispatcher(this.idpConfiguration.getHostedURI());
 
         recycle(response);
 
         try {
             includeResource(request, response, dispatch);
-        } catch (Exception e) {
+        } catch (ClassCastException cce) {
             // JBAS5.1 and 6 quirkiness
             includeResource(request.getRequest(), response, dispatch);
         }
@@ -395,10 +397,12 @@ public abstract class AbstractIDPValve extends ValveBase {
      * @throws ServletException
      * @throws IOException
      */
-    private void includeResource(ServletRequest request, Response response, RequestDispatcher dispatch) throws ServletException,
-            IOException {
+    private void includeResource(ServletRequest request, Response response, RequestDispatcher dispatch)
+            throws ServletException, IOException {
         dispatch.include(request, response);
-        // we need to re-configure the content length because Tomcat will truncate the output with the size of the welcome page (eg.: index.html).
+
+        // we need to re-configure the content length because Tomcat will truncate the output with the size of the welcome page
+        // (eg.: index.html).
         response.getCoyoteResponse().setContentLength(response.getContentCount());
     }
 
@@ -511,11 +515,10 @@ public abstract class AbstractIDPValve extends ValveBase {
         return userPrincipal;
     }
 
-    protected void handleSAML11(Request request, Response response) throws ServletException,
-            IOException {
+    protected void handleSAML11(Request request, Response response) throws ServletException, IOException {
         try {
             IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
-            
+
             Principal userPrincipal = request.getPrincipal();
             String contextPath = getContextPath();
 
@@ -583,8 +586,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         }
     }
 
-    protected void processSAMLRequestMessage(Request request, Response response)
-            throws IOException {
+    protected void processSAMLRequestMessage(Request request, Response response) throws IOException {
         Principal userPrincipal = request.getPrincipal();
         Session session = request.getSessionInternal();
         SAMLDocumentHolder samlDocumentHolder = null;
@@ -614,7 +616,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         String loginType = determineLoginType(isSecure);
 
         IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
-        
+
         try {
             samlDocumentHolder = webRequestUtil.getSAMLDocumentHolder(samlRequestMessage);
             samlObject = samlDocumentHolder.getSamlObject();
@@ -812,8 +814,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         return issuerPublicKey;
     }
 
-    protected void processSAMLResponseMessage(Request request, Response response)
-            throws ServletException, IOException {
+    protected void processSAMLResponseMessage(Request request, Response response) throws ServletException, IOException {
         Session session = request.getSessionInternal();
         SAMLDocumentHolder samlDocumentHolder = null;
         SAML2Object samlObject = null;
@@ -838,7 +839,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         cleanUpSessionNote(request);
 
         IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
-        
+
         try {
             samlDocumentHolder = webRequestUtil.getSAMLDocumentHolder(samlResponseMessage);
             samlObject = samlDocumentHolder.getSamlObject();
@@ -1260,6 +1261,8 @@ public abstract class AbstractIDPValve extends ValveBase {
         } catch (Exception e) {
             throw logger.samlIDPConfigurationError(e);
         }
+
+        initHostedURI();
     }
 
     /**
@@ -1381,4 +1384,18 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         return !isRequestSigned;
     }
+
+    private void initHostedURI() {
+        String hostedURI = this.idpConfiguration.getHostedURI();
+
+        if (isNullOrEmpty(hostedURI)) {
+            hostedURI = "/hosted/";
+        } else if (!hostedURI.contains(".") && !hostedURI.endsWith("/")) {
+            // make sure the hosted uri have a slash at the end if it points to a directory
+            hostedURI = hostedURI + "/";
+        }
+
+        this.idpConfiguration.setHostedURI(hostedURI);
+    }
+
 }
