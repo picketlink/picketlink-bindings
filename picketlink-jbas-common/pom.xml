@@ -28,6 +28,12 @@
 			<artifactId>picketlink-federation</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+
+        <dependency>
+            <groupId>org.picketlink</groupId>
+            <artifactId>picketlink-social</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>org.picketlink</groupId>
 			<artifactId>picketlink-tomcat-common</artifactId>
@@ -49,6 +55,12 @@
 			<version>${jbossxacml.version}</version>
 			<optional>true</optional>
 		</dependency>
+                <dependency>
+                        <groupId>org.openid4java</groupId>
+                        <artifactId>openid4java-nodeps</artifactId>
+                        <version>0.9.6</version>
+                        <optional>true</optional>
+                </dependency>
 		<dependency>
 			<groupId>org.apache.tomcat</groupId>
 			<artifactId>catalina</artifactId>
