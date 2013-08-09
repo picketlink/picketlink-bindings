@@ -523,6 +523,11 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                     // session notes to retrieve the authenticated principal and
                     // prevent reauthentication
                     String requestURI = savedRequestURL(session);
+
+                    if (requestURI == null) {
+                        requestURI = getConfiguration().getServiceURL();
+                    }
+
                     logger.trace("Redirecting back to original Request URI: " + requestURI);
                     response.sendRedirect(response.encodeRedirectURL(requestURI));
                     return false;
