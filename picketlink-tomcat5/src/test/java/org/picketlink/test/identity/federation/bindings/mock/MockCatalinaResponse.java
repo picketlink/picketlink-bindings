@@ -21,17 +21,16 @@
  */
 package org.picketlink.test.identity.federation.bindings.mock;
 
+import org.apache.catalina.connector.Response;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.catalina.connector.Response;
 
 /**
  * Mock catalina response
@@ -118,5 +117,10 @@ public class MockCatalinaResponse extends Response {
                 os.write(b);
             }
         };
+    }
+
+    @Override
+    public void reset() {
+
     }
 }
