@@ -23,17 +23,6 @@
 package org.picketlink.identity.federation;
 
 
-import static org.picketlink.identity.federation.PicketLinkLoggerMessages.ROOT_LOGGER;
-import static org.picketlink.identity.federation.PicketLinkMessages.MESSAGES;
-
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
-import javax.security.auth.login.LoginException;
-import javax.xml.crypto.dsig.XMLSignatureException;
-import javax.xml.stream.Location;
-import javax.xml.ws.WebServiceException;
-
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.exceptions.ParsingException;
@@ -47,15 +36,24 @@ import org.picketlink.common.exceptions.fed.SignatureValidationException;
 import org.picketlink.common.exceptions.fed.WSTrustException;
 import org.w3c.dom.Element;
 
+import javax.security.auth.login.LoginException;
+import javax.xml.crypto.dsig.XMLSignatureException;
+import javax.xml.stream.Location;
+import javax.xml.ws.WebServiceException;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+
+import static org.picketlink.identity.federation.PicketLinkLoggerMessages.*;
+import static org.picketlink.identity.federation.PicketLinkMessages.*;
+
 /**
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- *
  */
 @SuppressWarnings("restriction")
 public final class PicketLinkLoggerImpl implements PicketLinkLogger {
 
     PicketLinkLoggerImpl() {
-        
+
     }
 
     /* (non-Javadoc)
@@ -71,7 +69,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public IllegalArgumentException shouldNotBeTheSameError(String message) {
         return MESSAGES.shouldNotBeTheSameError(message);
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#resourceNotFound(java.lang.String)
      */
@@ -1004,7 +1002,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public ProcessingException samlHandlerFailedInResponseToVerificarionError() {
         return MESSAGES.samlHandlerFailedInResponseToVerificarionError();
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlHandlerIssuerNotTrustedError(java.lang.String)
      */
@@ -1100,9 +1098,9 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
         return MESSAGES.samlHandlerSignatureValidationError(t);
     }
 
-     /* (non-Javadoc)
-     * @see org.picketlink.identity.federation.PicketLinkLogger#error(java.lang.Throwable)
-     */
+    /* (non-Javadoc)
+    * @see org.picketlink.identity.federation.PicketLinkLogger#error(java.lang.Throwable)
+    */
     public void error(Throwable t) {
         PicketLinkLoggerMessages.ROOT_LOGGER.error(t);
     }
@@ -1203,7 +1201,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public LoginException authAssertionValidationError(Throwable t) {
         return MESSAGES.authAssertionValidationValidationError(t);
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#authFailedToParseSAMLAssertion(java.lang.Throwable)
      */
@@ -1252,7 +1250,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public LoginException authSAMLAssertionExpiredError() {
         return MESSAGES.authSAMLAssertionExpiredError();
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#authSAMLAssertionIssuingFailed(java.lang.Throwable)
      */
@@ -1361,7 +1359,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public void samlIDPHandlingSAML11Error(Throwable t) {
         PicketLinkLoggerMessages.ROOT_LOGGER.samlIDPHandlingSAML11Error(t);
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlIDPValidationCheckFailed()
      */
@@ -1389,7 +1387,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public void samlHandlerConfigurationError(Throwable t) {
         PicketLinkLoggerMessages.ROOT_LOGGER.samlHandlerConfigurationError(t);
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlIDPSettingCanonicalizationMethod(java.lang.String)
      */
@@ -1403,14 +1401,14 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public RuntimeException samlIDPConfigurationError(Throwable t) {
         return MESSAGES.samlIDPConfigurationError(t);
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#configurationFileMissing(java.lang.String)
      */
     public RuntimeException configurationFileMissing(String configFile) {
         return MESSAGES.configurationFileMissing(configFile);
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlIDPInstallingDefaultSTSConfig()
      */
@@ -1424,7 +1422,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public void warn(String message) {
         PicketLinkLoggerMessages.ROOT_LOGGER.warn(message);
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlSPFallingBackToLocalFormAuthentication()
      */
@@ -1434,7 +1432,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
 
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#unableLocalAuthentication(java.lang.Throwable)
-     */ 
+     */
     public IOException unableLocalAuthentication(Throwable t) {
         return MESSAGES.unableLocalAuthentication(t);
     }
@@ -1462,7 +1460,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
 
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlSPCouldNotDispatchToLogoutPage(java.lang.String)
-     */ 
+     */
     public void samlSPCouldNotDispatchToLogoutPage(String logOutPage) {
         PicketLinkLoggerMessages.ROOT_LOGGER.samlSPCouldNotDispatchToLogoutPage(logOutPage);
     }
@@ -1473,7 +1471,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public void usingLoggerImplementation(String className) {
         PicketLinkLoggerMessages.ROOT_LOGGER.usingLoggerImplementation(className);
     }
-    
+
     public void samlResponseFromIDPParsingFailed() {
         PicketLinkLoggerMessages.ROOT_LOGGER.samlResponseFromIDPParsingFailed();
     }
@@ -1498,7 +1496,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public IssueInstantMissingException samlIssueInstantMissingError() {
         return MESSAGES.samlIssueInstantMissingError();
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlSPResponseNotCatalinaResponse()
      */
@@ -1537,7 +1535,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public IllegalArgumentException samlInvalidProtocolBinding() {
         return MESSAGES.samlInvalidProtocolBinding();
     }
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.identity.federation.PicketLinkLogger#samlHandlerServiceProviderConfigNotFound()
      */
@@ -1559,11 +1557,11 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public IllegalArgumentException samlMetaDataFailedToCreateCacheDuration(String timeValue) {
         return MESSAGES.samlMetaDataFailedToCreateCacheDuration(timeValue);
     }
-    
+
     public ConfigurationException samlMetaDataNoIdentityProviderDefined() {
         return MESSAGES.samlMetaDataNoIdentityProviderDefined();
     }
-    
+
     public ConfigurationException samlMetaDataNoServiceProviderDefined() {
         return MESSAGES.samlMetaDataNoServiceProviderDefined();
     }
@@ -1578,6 +1576,22 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
 
     public void authorizationManagerError(ConfigurationException e) {
         ROOT_LOGGER.authorizationManagerError(e);
+    }
+
+    public IllegalStateException jbdcInitializationError(Throwable throwable) {
+        return MESSAGES.jbdcInitializationError(throwable);
+    }
+
+    public RuntimeException errorUnmarshallingToken(Throwable e) {
+        return MESSAGES.errorUnmarshallingToken(e);
+    }
+
+    public RuntimeException runtimeException(String msg, Throwable e) {
+        return MESSAGES.runtimeException(msg, e);
+    }
+
+    public IllegalStateException datasourceIsNull() {
+        return MESSAGES.datasourceIsNull();
     }
 
 }
