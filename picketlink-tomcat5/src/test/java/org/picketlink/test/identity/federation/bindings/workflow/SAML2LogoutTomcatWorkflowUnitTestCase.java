@@ -91,7 +91,7 @@ public class SAML2LogoutTomcatWorkflowUnitTestCase {
      */
     @Test
     public void testSPLogOutRequestGeneration() throws Exception {
-        System.setProperty("picketlink.schema.validate", "true");
+        System.setProperty("picketlink.schema.validate", "false");
         MockCatalinaSession session = new MockCatalinaSession();
         Principal principal = new Principal() {
             public String getName() {
@@ -139,7 +139,7 @@ public class SAML2LogoutTomcatWorkflowUnitTestCase {
     @SuppressWarnings("deprecation")
     @Test
     public void testSAML2LogOutFromIDP() throws Exception {
-        System.setProperty("picketlink.schema.validate", "true");
+        System.setProperty("picketlink.schema.validate", "false");
         MockCatalinaSession session = new MockCatalinaSession();
 
         MockCatalinaContextClassLoader mclIDP = setupTCL(profile + "/idp");

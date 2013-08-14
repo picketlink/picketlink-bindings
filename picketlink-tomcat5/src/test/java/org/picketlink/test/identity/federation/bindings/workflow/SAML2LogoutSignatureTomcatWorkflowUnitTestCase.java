@@ -83,7 +83,7 @@ public class SAML2LogoutSignatureTomcatWorkflowUnitTestCase extends AbstractSAML
      */
     @Test
     public void testSAML2LogOutFromSP() throws LifecycleException, IOException, ServletException {
-        System.setProperty("picketlink.schema.validate", "true");
+        System.setProperty("picketlink.schema.validate", "false");
         // requests a GLO logout to the Employee SP
         MockCatalinaRequest originalEmployeeLogoutRequest = createRequest(employeeHttpSession, true);
 
