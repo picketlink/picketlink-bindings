@@ -118,7 +118,7 @@ release() {
 		 exit 1;
 	fi
 
-        FLAG_PERFORM_RELEASE = "n"
+        FLAG_PERFORM_RELEASE="n"
 
 	if [ "$FLAG_PERFORM_RELEASE" == "y" ]; then
 		echo "Releasing version $RELEASE_VERSION."
