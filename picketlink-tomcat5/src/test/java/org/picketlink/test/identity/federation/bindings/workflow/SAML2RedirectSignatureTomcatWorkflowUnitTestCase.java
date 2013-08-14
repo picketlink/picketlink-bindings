@@ -102,7 +102,7 @@ public class SAML2RedirectSignatureTomcatWorkflowUnitTestCase extends AbstractSA
     }
 
     private void testWorkflow(String userAddress, String idpAddress) throws LifecycleException, IOException, ServletException {
-        System.setProperty("picketlink.schema.validate", "true");
+        System.setProperty("picketlink.schema.validate", "false");
         MockCatalinaRequest request = AuthenticatorTestUtils.createRequest(userAddress, false);
 
         // Sends a initial request to the SP. Requesting a resource ...
