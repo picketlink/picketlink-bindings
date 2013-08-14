@@ -108,6 +108,8 @@ release() {
 	echo "Done."
 	echo ""
 
+        FLAG_PERFORM_RELEASE="n"
+
 	echo "Preparing to release."
 	echo "    Executing maven-release-plugin in DryRun mode..."
 	execute_cmd mvn -DpreparationGoals="-Drelease -Prelease -DskipTests=true clean install" release:prepare	--batch-mode -DdevelopmentVersion=$DEVELOPMENT_VERSION -DreleaseVersion=$RELEASE_VERSION -Dtag=vRELEASE_VERSION	-DdryRun -DignoreSnapshots=true -Prelease
@@ -117,8 +119,6 @@ release() {
 		 echo "ERROR: Project build failed. Can not proceed with the release. Check the logs."
 		 exit 1;
 	fi
-
-        FLAG_PERFORM_RELEASE="n"
 
 	if [ "$FLAG_PERFORM_RELEASE" == "y" ]; then
 		echo "Releasing version $RELEASE_VERSION."
@@ -130,6 +130,8 @@ release() {
 			exit 1
 		fi
 	else
+                echo "Aborting release."
+                rollback
 		exit 1
 	fi
 	echo ""
