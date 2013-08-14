@@ -157,9 +157,9 @@
   </profiles>
 
   <scm>
-    <connection>scm:git:git://github.com/picketlink/picketlink.git</connection>
-    <developerConnection>scm:git:git@github.com:picketlink/picketlink.git</developerConnection>
-    <url>http://github.com/picketlink/picketlink</url>
+    <connection>scm:git:git://github.com/picketlink/picketlink-bindings.git</connection>
+    <developerConnection>scm:git:git@github.com:picketlink/picketlink-bindings.git</developerConnection>
+    <url>http://github.com/picketlink/picketlink-bindings</url>
   </scm>
 
   <distributionManagement>
