@@ -10,13 +10,35 @@
 
   <name>PicketLink Container Bindings</name>
 
+  <description>
+    PicketLink Federation bindings for different containers.
+  </description>
+
+  <url>http://www.jboss.org/picketlink</url>
+
+  <developers>
+    <developer>
+      <name>Anil Saldhana</name>
+    </developer>
+    <developer>
+      <name>Pedro Silva</name>
+    </developer>
+  </developers>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <distribution>repo</distribution>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
   <properties>
     <jboss.releases.repo.url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/
     </jboss.releases.repo.url>
     <jboss.snapshots.repo.url>https://repository.jboss.org/nexus/content/repositories/snapshots/
     </jboss.snapshots.repo.url>
   </properties>
-
 
   <modules>
     <module>picketlink-tomcat-common</module>
