@@ -130,7 +130,6 @@ release() {
 			exit 1
 		fi
 	else
-                echo "Aborting release."
                 rollback
 		exit 1
 	fi
