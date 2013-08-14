@@ -128,11 +128,6 @@ release() {
 
 	if [ "$FLAG_PERFORM_RELEASE" == "y" ]; then
 		echo "Releasing version $RELEASE_VERSION."
-		cd maven-plugins/picketlink-jdocbook-style/
-		execute_cmd perl -pi -e 's/'$DEVELOPMENT_VERSION'/'$RELEASE_VERSION'/g' `find . -name pom.xml`
-		execute_cmd mvn clean install
-		execute_cmd perl -pi -e 's/'$RELEASE_VERSION'/'$DEVELOPMENT_VERSION'/g' `find . -name pom.xml`
-		cd ../../
 		execute_cmd mvn -DpreparationGoals="-Drelease -Prelease clean install" release:prepare --batch-mode -DdevelopmentVersion=$DEVELOPMENT_VERSION -DreleaseVersion=$RELEASE_VERSION -Dtag=v$RELEASE_VERSION -Dresume=false -DignoreSnapshots=true -Prelease
 		if check_build_result; then
 			echo "Done."
