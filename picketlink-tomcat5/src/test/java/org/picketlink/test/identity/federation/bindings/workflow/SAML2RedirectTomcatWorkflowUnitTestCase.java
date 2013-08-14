@@ -60,7 +60,7 @@ public class SAML2RedirectTomcatWorkflowUnitTestCase extends TestCase {
 
     @SuppressWarnings("deprecation")
     public void testSAML2Redirect() throws Exception {
-        System.setProperty("picketlink.schema.validate", "true");
+        System.setProperty("picketlink.schema.validate", "false");
         MockCatalinaContextClassLoader mclSPEmp = setupTCL(profile + "/sp/employee");
         Thread.currentThread().setContextClassLoader(mclSPEmp);
 

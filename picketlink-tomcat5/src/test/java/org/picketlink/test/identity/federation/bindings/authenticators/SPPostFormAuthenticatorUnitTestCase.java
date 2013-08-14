@@ -41,7 +41,7 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext
 public class SPPostFormAuthenticatorUnitTestCase {
     @Test
     public void testIDPMetadataFile() throws Exception {
-        System.setProperty("picketlink.schema.validate", "true");
+        System.setProperty("picketlink.schema.validate", "false");
         MockCatalinaContext ctx = new MockCatalinaContext();
         SPPostFormAuthenticator auth = new SPPostFormAuthenticator();
         auth.setContainer(ctx);
