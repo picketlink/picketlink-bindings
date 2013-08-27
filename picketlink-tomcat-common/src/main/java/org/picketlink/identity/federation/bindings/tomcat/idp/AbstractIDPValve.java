@@ -123,12 +123,7 @@ import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -166,6 +161,10 @@ public abstract class AbstractIDPValve extends ValveBase {
      */
     protected SAMLConfigurationProvider configProvider = null;
 
+    protected int timerInterval = -1;
+
+    protected Timer timer = null;
+
     /**
      * A Lock for Handler operations in the chain
      */
@@ -179,6 +178,16 @@ public abstract class AbstractIDPValve extends ValveBase {
         if (StringUtil.isNotNull(attribList)) {
             this.attributeKeys.clear();
             this.attributeKeys.addAll(StringUtil.tokenize(attribList));
+        }
+    }
+
+    /**
+     * Set the Timer Value to reload the configuration
+     * @param value an integer value that represents timer value (in miliseconds)
+     */
+    public void setTimerInterval(String value){
+        if(StringUtil.isNotNull(value)){
+            timerInterval = Integer.parseInt(value);
         }
     }
 
@@ -1381,6 +1390,24 @@ public abstract class AbstractIDPValve extends ValveBase {
     protected void startPicketLink() throws LifecycleException {
 
         SystemPropertiesUtil.ensure();
+
+        //Introduce a timer to reload configuration if desired
+        if(timerInterval > 0 ){
+            if(timer == null){
+                timer = new Timer();
+            }
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    initIDPConfiguration();
+                    try {
+                        initKeyManager();
+                    } catch (LifecycleException e) {
+                        logger.trace(e.getMessage());
+                    }
+                }
+            }, timerInterval, timerInterval);
+        }
 
         initIDPConfiguration();
         initSTSConfiguration();
