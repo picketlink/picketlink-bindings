@@ -21,6 +21,8 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -82,6 +84,9 @@ import org.picketlink.identity.federation.web.util.ConfigurationUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
 
+import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
+import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
+
 /**
  * Base Class for Service Provider Form Authenticators
  *
@@ -107,7 +112,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     protected String issuerID = null;
 
-    protected String configFile = GeneralConstants.CONFIG_FILE_LOCATION;
+    protected String configFile;
 
     /**
      * If the service provider is configured with an IDP metadata file, then this certificate can be picked up from the metadata
@@ -423,7 +428,18 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     @SuppressWarnings("deprecation")
     protected void processConfiguration() {
         ServletContext servletContext = context.getServletContext();
-        InputStream is = servletContext.getResourceAsStream(configFile);
+        InputStream is = null;
+
+        if (isNullOrEmpty(this.configFile)) {
+            this.configFile = CONFIG_FILE_LOCATION;
+            is = servletContext.getResourceAsStream(this.configFile);
+        } else {
+            try {
+                is = new FileInputStream(this.configFile);
+            } catch (FileNotFoundException e) {
+                throw logger.samlIDPConfigurationError(e);
+            }
+        }
 
         try {
             // Work on the IDP Configuration
@@ -639,6 +655,13 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             this.initializeHandlerChain();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+
+        if (this.picketLinkConfiguration == null) {
+            this.picketLinkConfiguration = new PicketLinkType();
+
+            this.picketLinkConfiguration.setIdpOrSP(getConfiguration());
+            this.picketLinkConfiguration.setHandlers(handlers);
         }
     }
 
