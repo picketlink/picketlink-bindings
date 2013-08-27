@@ -27,10 +27,7 @@ import java.lang.reflect.Method;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -150,6 +147,11 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      */
     private boolean seekSuperRegisterMethod = true;
 
+
+    protected int timerInterval = -1;
+
+    protected Timer timer = null;
+
     public BaseFormAuthenticator() {
         super();
     }
@@ -254,6 +256,16 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     public void setLogOutPage(String logOutPage) {
         logger.warn("Option logOutPage is now configured with the PicketLinkSP element.");
 
+    }
+
+    /**
+     * Set the Timer Value to reload the configuration
+     * @param value an integer value that represents timer value (in miliseconds)
+     */
+    public void setTimerInterval(String value){
+        if(StringUtil.isNotNull(value)){
+            timerInterval = Integer.parseInt(value);
+        }
     }
 
     /**
@@ -577,6 +589,24 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     protected void startPicketLink() throws LifecycleException {
         SystemPropertiesUtil.ensure();
         Handlers handlers = null;
+
+        //Introduce a timer to reload configuration if desired
+        if(timerInterval > 0 ){
+            if(timer == null){
+                timer = new Timer();
+            }
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    processConfiguration();
+                    try {
+                        initKeyProvider(context);
+                    } catch (LifecycleException e) {
+                        logger.trace(e.getMessage());
+                    }
+                }
+            }, timerInterval, timerInterval);
+        }
 
         // Get the chain from config
         if (StringUtil.isNullOrEmpty(samlHandlerChainClass)) {
