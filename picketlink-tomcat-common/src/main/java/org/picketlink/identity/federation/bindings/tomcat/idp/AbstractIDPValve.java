@@ -114,6 +114,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -132,6 +134,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.picketlink.common.constants.GeneralConstants.*;
 import static org.picketlink.common.util.StringUtil.*;
 
 /**
@@ -167,12 +170,18 @@ public abstract class AbstractIDPValve extends ValveBase {
     protected SAMLConfigurationProvider configProvider = null;
 
     /**
+     * <p>Specifies a different location for the configuration file.</p>
+     */
+    private String configFile;
+
+    /**
      * A Lock for Handler operations in the chain
      */
     private final Lock chainLock = new ReentrantLock();
 
     private Map<String, SPSSODescriptorType> spSSOMetadataMap = new HashMap<String, SPSSODescriptorType>();
     private SSLAuthenticator sslAuthenticator;
+    private Handlers handlers;
 
     // Set a list of attributes we are interested in separated by comma
     public void setAttributeList(String attribList) {
@@ -198,6 +207,10 @@ public abstract class AbstractIDPValve extends ValveBase {
         } catch (Exception e) {
             throw new RuntimeException(logger.couldNotCreateInstance(cp, e));
         }
+    }
+
+    public void setConfigFile(final String configFile) {
+        this.configFile = configFile;
     }
 
     public void setConfigProvider(SAMLConfigurationProvider configurationProvider) {
@@ -743,18 +756,19 @@ public abstract class AbstractIDPValve extends ValveBase {
 
             logger.trace("Handlers are=" + handlers);
 
-            // the trusted domains is done by a handler
-            // webRequestUtil.isTrusted(issuer);
-
             if (handlers != null) {
                 try {
-                    chainLock.lock();
+                    if (getConfiguration().getHandlers().isLocking()) {
+                        chainLock.lock();
+                    }
                     for (SAML2Handler handler : handlers) {
                         handler.handleRequestType(saml2HandlerRequest, saml2HandlerResponse);
                         willSendRequest = saml2HandlerResponse.getSendRequest();
                     }
                 } finally {
-                    chainLock.unlock();
+                    if (getConfiguration().getHandlers().isLocking()) {
+                        chainLock.unlock();
+                    }
                 }
             }
 
@@ -824,7 +838,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             } catch (GeneralSecurityException e) {
                 logger.trace("Security Exception:", e);
             } catch (Exception e) {
-                System.out.println(e);
+                logger.error(e);
             }
         }
         return;
@@ -1125,20 +1139,18 @@ public abstract class AbstractIDPValve extends ValveBase {
      * @throws LifecycleException
      */
     protected void initHandlersChain() throws LifecycleException {
-        Handlers handlers = null;
-
         try {
             if (picketLinkConfiguration != null) {
-                handlers = picketLinkConfiguration.getHandlers();
+                this.handlers = picketLinkConfiguration.getHandlers();
             } else {
                 // Get the handlers
                 String handlerConfigFileName = GeneralConstants.HANDLER_CONFIG_FILE_LOCATION;
-                handlers = ConfigurationUtil.getHandlers(getContext().getServletContext().getResourceAsStream(
+                this.handlers = ConfigurationUtil.getHandlers(getContext().getServletContext().getResourceAsStream(
                         handlerConfigFileName));
             }
 
             // Get the chain from config
-            String handlerChainClass = handlers.getHandlerChainClass();
+            String handlerChainClass = this.handlers.getHandlerChainClass();
 
             if (StringUtil.isNullOrEmpty(handlerChainClass))
                 chain = SAML2HandlerChainFactory.createChain();
@@ -1150,7 +1162,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                 }
             }
 
-            chain.addAll(HandlerUtil.getHandlers(handlers));
+            chain.addAll(HandlerUtil.getHandlers(this.handlers));
 
             Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
             chainConfigOptions.put(GeneralConstants.ROLE_GENERATOR, roleGenerator);
@@ -1204,15 +1216,24 @@ public abstract class AbstractIDPValve extends ValveBase {
      */
     @SuppressWarnings("deprecation")
     protected void initIDPConfiguration() {
-        String configFile = GeneralConstants.CONFIG_FILE_LOCATION;
-        InputStream is = getContext().getServletContext().getResourceAsStream(configFile);
+        InputStream is = null;
+
+        if (isNullOrEmpty(this.configFile)) {
+            is = getContext().getServletContext().getResourceAsStream(CONFIG_FILE_LOCATION);
+        } else {
+            try {
+                is = new FileInputStream(this.configFile);
+            } catch (FileNotFoundException e) {
+                throw logger.samlIDPConfigurationError(e);
+            }
+        }
 
         // Work on the IDP Configuration
         if (configProvider != null) {
             try {
                 if (is == null) {
                     // Try the older version
-                    is = getContext().getServletContext().getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
+                    is = getContext().getServletContext().getResourceAsStream(DEPRECATED_CONFIG_FILE_LOCATION);
 
                     // Additionally parse the deprecated config file
                     if (is != null && configProvider instanceof AbstractSAMLConfigurationProvider) {
@@ -1247,9 +1268,9 @@ public abstract class AbstractIDPValve extends ValveBase {
 
             if (is == null) {
                 // Try the older version
-                is = getContext().getServletContext().getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
+                is = getContext().getServletContext().getResourceAsStream(DEPRECATED_CONFIG_FILE_LOCATION);
                 if (is == null)
-                    throw logger.configurationFileMissing(configFile);
+                    throw logger.configurationFileMissing(DEPRECATED_CONFIG_FILE_LOCATION);
                 try {
                     idpConfiguration = ConfigurationUtil.getIDPConfiguration(is);
                 } catch (ParsingException e) {
@@ -1379,7 +1400,6 @@ public abstract class AbstractIDPValve extends ValveBase {
     }
 
     protected void startPicketLink() throws LifecycleException {
-
         SystemPropertiesUtil.ensure();
 
         initIDPConfiguration();
@@ -1393,6 +1413,13 @@ public abstract class AbstractIDPValve extends ValveBase {
                 "facsimileTelephoneNumber" };
 
         this.attributeKeys.addAll(Arrays.asList(ak));
+
+        if (this.picketLinkConfiguration == null) {
+            this.picketLinkConfiguration = new PicketLinkType();
+
+            this.picketLinkConfiguration.setIdpOrSP(this.idpConfiguration);
+            this.picketLinkConfiguration.setHandlers(this.handlers);
+        }
     }
 
     /**
