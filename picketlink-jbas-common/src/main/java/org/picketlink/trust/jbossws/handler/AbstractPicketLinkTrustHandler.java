@@ -21,11 +21,19 @@
  */
 package org.picketlink.trust.jbossws.handler;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import org.jboss.security.SecurityConstants;
+import org.picketlink.common.PicketLinkLogger;
+import org.picketlink.common.PicketLinkLoggerFactory;
+import org.picketlink.common.exceptions.ConfigurationException;
+import org.picketlink.common.exceptions.ProcessingException;
+import org.picketlink.identity.federation.core.saml.v2.util.DocumentUtil;
+import org.picketlink.identity.federation.core.wstrust.SamlCredential;
+import org.picketlink.trust.jbossws.Constants;
+import org.picketlink.trust.jbossws.Util;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -37,36 +45,26 @@ import javax.xml.ws.handler.LogicalMessageContext;
 import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
-
-import org.jboss.security.SecurityConstants;
-import org.jboss.wsf.common.handler.GenericSOAPHandler;
-import org.picketlink.common.PicketLinkLogger;
-import org.picketlink.common.PicketLinkLoggerFactory;
-import org.picketlink.common.exceptions.ConfigurationException;
-import org.picketlink.common.exceptions.ProcessingException;
-import org.picketlink.common.util.DocumentUtil;
-import org.picketlink.identity.federation.core.wstrust.SamlCredential;
-import org.picketlink.trust.jbossws.Constants;
-import org.picketlink.trust.jbossws.Util;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * <p>Abstract base class for the PicketLink Trust Handlers</p>
- * <p>This class implements directly the {@link SOAPHandler} interface because the {@link GenericSOAPHandler} package name changes between JBossWS versions.</p>
+ * <p>This class implements directly the {@link SOAPHandler} interface because the {@link org.jboss.wsf.common.handler.GenericSOAPHandler} package name changes between JBossWS versions.</p>
  *
  * @author Anil.Saldhana@redhat.com
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- * 
+ *
  * @since Apr 11, 2011
  */
 @SuppressWarnings("rawtypes")
 public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageContext> implements SOAPHandler {
-    
+
     protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
-    
+
     protected static Set<QName> headers;
 
     protected static final String SEC_MGR_LOOKUP = SecurityConstants.JAAS_CONTEXT_ROOT;
@@ -87,7 +85,7 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
 
     /**
      * <p>Utility method to get the {@link ServletContext} from the specified {@link MessageContext}.</p>
-     * 
+     *
      * @param msgContext
      * @return
      */
@@ -97,7 +95,7 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
 
     /**
      * <p>Returns the security domain name configured for the deployment.</p>
-     * 
+     *
      * @param msgContext
      * @return
      * @throws ConfigurationException if no security domain is configured.
@@ -124,17 +122,17 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
                 }
             }
         }
-        
+
         if (this.securityDomainName == null) {
             throw logger.securityDomainNotFound();
         }
-        
+
         return this.securityDomainName;
     }
 
     /**
      * <p>Returns a {@link InputStream} for the jboss-web.xml configuration file.</p>
-     * 
+     *
      * @param context
      * @return
      */
@@ -235,14 +233,14 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
 
     /**
      * <p>Handles the incoming message and decides which method should be called: <code>handleOutbound</code> or <code>handleInbound</code></p>.
-     * 
+     *
      * @param msgContext
      * @return
      */
     public boolean handleMessage(MessageContext msgContext) {
         Boolean outbound = (Boolean)msgContext.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
         if (outbound == null)
-           throw new IllegalStateException("Cannot obtain required property: " + MessageContext.MESSAGE_OUTBOUND_PROPERTY);
+            throw new IllegalStateException("Cannot obtain required property: " + MessageContext.MESSAGE_OUTBOUND_PROPERTY);
 
         return outbound ? handleOutbound(msgContext) : handleInbound(msgContext);
     }
@@ -260,6 +258,6 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
     }
 
     public void close(MessageContext context) {
-        
+
     }
 }
