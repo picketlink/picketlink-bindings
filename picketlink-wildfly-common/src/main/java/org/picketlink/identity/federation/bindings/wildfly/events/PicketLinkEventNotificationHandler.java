@@ -23,5 +23,9 @@ package org.picketlink.identity.federation.bindings.wildfly.events;
  * @since November 04, 2013
  */
 public interface PicketLinkEventNotificationHandler {
-    void handle(PicketLinkEventNotification event);
+    /**
+     * Handle the {@link PicketLinkEventNotification}
+     * @param eventNotification the {@link PicketLinkEventNotification} that is sent
+     */
+    void handle(PicketLinkEventNotification eventNotification);
 }

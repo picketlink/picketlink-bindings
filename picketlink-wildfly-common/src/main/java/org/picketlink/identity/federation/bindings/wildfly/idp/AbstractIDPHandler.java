@@ -40,7 +40,7 @@ import java.util.Map;
  * @author Anil Saldhana
  * @since November 04, 2013
  */
-public class AbstractIDPHandler implements HttpHandler, NotificationReceiver,PicketLinkEventNotificationHandler {
+public abstract class AbstractIDPHandler implements HttpHandler, NotificationReceiver,PicketLinkEventNotificationHandler {
     //Audit Manager
     private final AuditManager auditManager = null;
 
@@ -90,7 +90,8 @@ public class AbstractIDPHandler implements HttpHandler, NotificationReceiver,Pic
     @Override
     public void handle(PicketLinkEventNotification event) {
         if(event instanceof UpdateConfigurationNotification){
-            //Update the config
+            //Reload config
+            loadConfiguration();
         }else if(event instanceof RestartNotification){
             //We need to restart this handler's state
         }
@@ -103,4 +104,9 @@ public class AbstractIDPHandler implements HttpHandler, NotificationReceiver,Pic
 
         nextHandler.handleRequest(httpServerExchange);
     }
+
+    /**
+     * Load the configuration
+     */
+    protected abstract void loadConfiguration();
 }

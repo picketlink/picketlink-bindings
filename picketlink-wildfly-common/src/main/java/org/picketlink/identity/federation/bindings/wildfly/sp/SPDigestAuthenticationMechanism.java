@@ -25,7 +25,6 @@ import io.undertow.security.impl.DigestQop;
 import java.util.List;
 
 /**
- *
  * PicketLink SP Authentication Mechanism that falls back to DIGEST
  * @author Anil Saldhana
  * @since November 04, 2013
