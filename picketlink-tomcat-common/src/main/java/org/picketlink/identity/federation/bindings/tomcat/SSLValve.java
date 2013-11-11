@@ -60,7 +60,7 @@ public class SSLValve extends ValveBase{
         // mod_header converts the '\n' into ' ' so we have to rebuild the client certificate
         String strcert0 = request.getHeader("ssl_client_cert");
 
-        if (strcert0 != null) {
+        if (isNotNull(strcert0)) {
 
             String strcert1 = strcert0.replace(' ', '\n');
             String strcert2 = strcert1.substring(28, strcert1.length()-26);
@@ -83,17 +83,21 @@ public class SSLValve extends ValveBase{
             request.setAttribute("javax.servlet.request.X509Certificate", jsseCerts);
         }
         strcert0 = request.getHeader("ssl_cipher");
-        if (strcert0 != null) {
+        if (isNotNull(strcert0)) {
             request.setAttribute("javax.servlet.request.cipher_suite", strcert0);
         }
         strcert0 = request.getHeader("ssl_session_id");
-        if (strcert0 != null) {
+        if (isNotNull(strcert0)) {
             request.setAttribute("javax.servlet.request.ssl_session", strcert0);
         }
         strcert0 = request.getHeader("ssl_cipher_usekeysize");
-        if (strcert0 != null) {
+        if (isNotNull(strcert0)) {
             request.setAttribute("javax.servlet.request.key_size", strcert0);
         }
         getNext().invoke(request, response);
+    }
+
+    private boolean isNotNull(String str) {
+        return str != null && !"".equals(str.trim());
     }
 }
