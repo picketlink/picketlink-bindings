@@ -135,7 +135,9 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
 
         // Check if there is sso id as well as sessionkey
         if (username == null || password == null) {
-            log.trace("Username is null or password(sessionkey) is null:fallback to form auth");
+            if (log.isTraceEnabled()) {
+                log.trace("Username is null or password(sessionkey) is null:fallback to form auth");
+            }
             return super.authenticate(request, response, config);
         }
         principal = realm.authenticate(username, password);
