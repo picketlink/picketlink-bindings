@@ -39,6 +39,7 @@ import javax.security.auth.login.LoginException;
 import javax.xml.crypto.dsig.XMLSignatureException;
 import javax.xml.stream.Location;
 import javax.xml.ws.WebServiceException;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
@@ -1592,4 +1593,33 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public IllegalStateException datasourceIsNull() {
         return MESSAGES.datasourceIsNull();
     }
+    
+    public IllegalArgumentException cannotParseParameterValue(String parameter, Throwable e) {
+        return MESSAGES.cannotParseParameterError(parameter , e);
+    }
+
+	public RuntimeException cannotGetFreeClientPoolKey(String key) {
+		return MESSAGES.cannotGetFreeClientPoolKey(key);
+	}
+
+	public RuntimeException cannotGetSTSConfigByKey(String key) {
+		return MESSAGES.cannotGetSTSConfigByKey(key);
+	}
+
+	public RuntimeException cannotGetUsedClientsByKey(String key) {
+		return MESSAGES.cannotGetUsedClientsByKey(key);
+	}
+
+	public RuntimeException freePoolAlreadyContainsGivenKey(String key) {
+		return MESSAGES.freePoolAlreadyContainsGivenKey(key);
+	}
+
+	public RuntimeException maximumNumberOfClientsReachedforPool(String max) {
+		return MESSAGES.maximumNumberOfClientsReachedforPool(max);
+	}
+
+	public RuntimeException removingNonExistingClientFromUsedClientsByKey(String key) {
+		return MESSAGES.removingNonExistingClientFromUsedClientsByKey(key);
+	}
+
 }
