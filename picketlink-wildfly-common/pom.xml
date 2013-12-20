@@ -13,7 +13,9 @@
    <properties>
       <jboss.servlet31-api.version>1.0.0.Final</jboss.servlet31-api.version>
       <jbossxacml.version>2.0.4</jbossxacml.version>
-      <undertow.io.version>1.0.0.Beta20</undertow.io.version>
+      <undertow.io.version>1.0.0.Beta29-SNAPSHOT</undertow.io.version>
+      <httpcomponents.version>4.2.5</httpcomponents.version>
+       <httpunit.version>1.7</httpunit.version>
    </properties>
 
    <dependencies>
@@ -42,6 +44,13 @@
          <optional>true</optional>
       </dependency>
 
+       <dependency>
+           <groupId>io.undertow</groupId>
+           <artifactId>undertow-servlet</artifactId>
+           <version>${undertow.io.version}</version>
+           <optional>true</optional>
+       </dependency>
+
       <dependency>
          <groupId>org.jboss.security</groupId>
          <artifactId>jbossxacml</artifactId>
@@ -54,5 +63,29 @@
          <artifactId>junit</artifactId>
          <scope>test</scope>
       </dependency>
+       <dependency>
+           <groupId>org.apache.httpcomponents</groupId>
+           <artifactId>httpmime</artifactId>
+           <version>${httpcomponents.version}</version>
+           <scope>test</scope>
+       </dependency>
+       <dependency>
+           <groupId>org.apache.httpcomponents</groupId>
+           <artifactId>httpclient</artifactId>
+           <version>${httpcomponents.version}</version>
+           <scope>test</scope>
+       </dependency>
+       <dependency>
+           <groupId>httpunit</groupId>
+           <artifactId>httpunit</artifactId>
+           <version>${httpunit.version}</version>
+           <scope>test</scope>
+       </dependency>
+       <dependency>
+           <groupId>rhino</groupId>
+           <artifactId>js</artifactId>
+           <version>1.6R7</version>
+           <scope>test</scope>
+       </dependency>
    </dependencies>
 </project>
