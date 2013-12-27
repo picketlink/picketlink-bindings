@@ -92,6 +92,7 @@ import static org.junit.Assert.assertTrue;
  * @since November 14, 2013
  */
 public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
+
     protected final PathHandler path = new PathHandler();
     private WebConversation webConversation = null;
     private WebResponse webResponse = null;
@@ -109,6 +110,10 @@ public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
         assertNotNull(server);
         deployIDP();
         deploySP();
+    }
+
+    protected String getContextPathShortForm(){
+        return "sp";
     }
 
     public void deployIDP() throws Exception{
@@ -176,16 +181,18 @@ public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
         LoginConfig loginConfig = new LoginConfig("FORM", "Test Realm", "/FormLoginServlet","/error.html");
         final SPFormAuthenticationMechanism spFormAuthenticationMechanism = new SPFormAuthenticationMechanism("FORM", "/FormLoginServlet", "/error.html");
 
-        SPFormAuthenticationMechanism.FACTORY.set("/sp",spFormAuthenticationMechanism );
+        SPFormAuthenticationMechanism.FACTORY.set("/" +getContextPathShortForm(),spFormAuthenticationMechanism );
+
+        ResourceManager resourceManager = new TestResourceManager(getContextPathShortForm());
 
         DeploymentInfo deploymentInfo = new DeploymentInfo()
                 .setClassLoader(SPInitiatedSSOWorkflowTestCase.class.getClassLoader())
-                .setContextPath("/sp")
-                .setDeploymentName("sp.war")
+                .setContextPath("/"+getContextPathShortForm())
+                .setDeploymentName(getContextPathShortForm() + ".war")
                 .setClassIntrospecter(TestClassIntrospector.INSTANCE)
                 .setIdentityManager(identityManager)
                 .setLoginConfig(loginConfig)
-                .setResourceManager(new TestResourceManager("sp"))
+                .setResourceManager(resourceManager)
                 .addServlets(regularServletInfo, formServletInfo)
                 .addAuthenticationMechanism("FORM", SPFormAuthenticationMechanism.FACTORY);
 
@@ -320,7 +327,7 @@ public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
 
     @Test
     public void testSSO() throws Exception{
-        String spURI = "http://localhost:8080/sp/secured/test";
+        String spURI = "http://localhost:8080/"+ getContextPathShortForm() + "/secured/test";
         WebRequest serviceRequest1 = new GetMethodWebRequest(spURI);
         webConversation = new WebConversation();
         HttpUnitOptions.setLoggingHttpHeaders(true);

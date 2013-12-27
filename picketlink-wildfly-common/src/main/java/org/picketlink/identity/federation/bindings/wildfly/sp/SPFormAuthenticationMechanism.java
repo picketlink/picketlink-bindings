@@ -304,7 +304,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
      */
     private AuthenticationMechanismOutcome generalUserRequest(HttpServerExchange httpServerExchange, SecurityContext securityContext) throws IOException{
         ServiceProviderSAMLWorkflow serviceProviderSAMLWorkflow = new ServiceProviderSAMLWorkflow();
-        serviceProviderSAMLWorkflow.setRedirectionHandler(new UndertowRedirectHander(httpServerExchange));
+        serviceProviderSAMLWorkflow.setRedirectionHandler(new UndertowRedirectionHandler(httpServerExchange));
 
         final ServletRequestContext servletRequestContext = httpServerExchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
         ServletContext servletContext = servletRequestContext.getCurrentServetContext();
@@ -355,7 +355,6 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
             try {
                 if (saveRestoreRequest) {
                     storeInitialLocation(httpServerExchange);
-                    this.saveRequest(request, session);
                 }
                 if (enableAudit) {
                     PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
@@ -381,14 +380,6 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
     protected void register(final SecurityContext securityContext, Account account) {
         securityContext.authenticationComplete(account, "FORM", false);
-    }
-
-    protected boolean restoreRequest(HttpServletRequest request, HttpSession httpSession) {
-        return false; // assume this is a fresh request
-    }
-
-    protected void saveRequest(HttpServletRequest request, HttpSession session){
-
     }
 
     /**
@@ -976,86 +967,5 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
     }
 
-    public class UndertowRedirectHander extends ServiceProviderSAMLWorkflow.RedirectionHandler{
-        private HttpServerExchange httpServerExchange = null;
 
-        public UndertowRedirectHander(HttpServerExchange httpServerExchange){
-            this.httpServerExchange = httpServerExchange;
-        }
-
-        @Override
-        public void sendPost(DestinationInfoHolder holder, HttpServletResponse response, boolean willSendRequest) throws IOException {
-            String key = willSendRequest ? GeneralConstants.SAML_REQUEST_KEY : GeneralConstants.SAML_RESPONSE_KEY;
-
-            String relayState = holder.getRelayState();
-            String destination = holder.getDestination();
-            String samlMessage = holder.getSamlMessage();
-
-            if (destination == null) {
-                throw logger.nullValueError("Destination is null");
-            }
-
-            response.setContentType("text/html");
-            commonForPost();
-            StringBuilder builder = new StringBuilder();
-
-            builder.append("<HTML>");
-            builder.append("<HEAD>");
-
-            if (willSendRequest)
-                builder.append("<TITLE>HTTP Post Binding (Request)</TITLE>");
-            else
-                builder.append("<TITLE>HTTP Post Binding Response (Response)</TITLE>");
-
-            builder.append("</HEAD>");
-            builder.append("<BODY Onload=\"document.forms[0].submit()\">");
-
-            builder.append("<FORM METHOD=\"POST\" ACTION=\"" + destination + "\">");
-            builder.append("<INPUT TYPE=\"HIDDEN\" NAME=\"" + key + "\"" + " VALUE=\"" + samlMessage + "\"/>");
-
-            if (isNotNull(relayState)) {
-                builder.append("<INPUT TYPE=\"HIDDEN\" NAME=\"RelayState\" " + "VALUE=\"" + relayState + "\"/>");
-            }
-
-            builder.append("<NOSCRIPT>");
-            builder.append("<P>JavaScript is disabled. We strongly recommend to enable it. Click the button below to continue.</P>");
-            builder.append("<INPUT TYPE=\"SUBMIT\" VALUE=\"CONTINUE\" />");
-            builder.append("</NOSCRIPT>");
-
-            builder.append("</FORM></BODY></HTML>");
-
-            String str = builder.toString();
-
-            logger.trace(str);
-
-            OutputStream outputStream = httpServerExchange.getOutputStream();
-
-            outputStream.write(str.getBytes("UTF-8"));
-            outputStream.close();
-        }
-
-        @Override
-        public void sendRedirectForRequestor(String destination, HttpServletResponse response) throws IOException {
-            commonForRedirect(destination);
-            httpServerExchange.getResponseHeaders().put(Headers.CACHE_CONTROL, "no-cache, no-store");
-        }
-
-        @Override
-        public void sendRedirectForResponder(String destination, HttpServletResponse response) throws IOException {
-            commonForRedirect(destination);
-            httpServerExchange.getResponseHeaders().put(Headers.CACHE_CONTROL, "no-cache, no-store, must-revalidate,private");
-        }
-
-        private void commonForRedirect(String destination) throws IOException{
-            httpServerExchange.getResponseHeaders().put(Headers.CONTENT_ENCODING, "UTF-8");
-            httpServerExchange.getResponseHeaders().put(Headers.PRAGMA, "no-cache");
-            httpServerExchange.getResponseHeaders().put(Headers.LOCATION, destination);
-        }
-
-        private void commonForPost(){
-            httpServerExchange.getResponseHeaders().put(Headers.CONTENT_ENCODING, "UTF-8");
-            httpServerExchange.getResponseHeaders().put(Headers.PRAGMA, "no-cache");
-            httpServerExchange.getResponseHeaders().put(Headers.CACHE_CONTROL, "no-cache, no-store");
-        }
-    }
 }
