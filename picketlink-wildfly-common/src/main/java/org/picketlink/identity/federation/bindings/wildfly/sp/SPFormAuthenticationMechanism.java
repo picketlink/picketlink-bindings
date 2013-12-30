@@ -22,15 +22,12 @@ import io.undertow.security.api.AuthenticationMechanismFactory;
 import io.undertow.security.api.SecurityContext;
 import io.undertow.security.idm.Account;
 import io.undertow.security.idm.IdentityManager;
-import io.undertow.security.idm.PasswordCredential;
-import io.undertow.security.impl.FormAuthenticationMechanism;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.form.FormParserFactory;
+import io.undertow.servlet.api.Deployment;
 import io.undertow.servlet.handlers.ServletRequestContext;
 import io.undertow.servlet.handlers.security.ServletFormAuthenticationMechanism;
-import io.undertow.servlet.spec.HttpServletResponseImpl;
-import io.undertow.util.Headers;
-import io.undertow.util.StatusCodes;
+import io.undertow.servlet.spec.ServletContextImpl;
 import org.jboss.security.audit.AuditLevel;
 import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.PicketLinkLogger;
@@ -49,13 +46,13 @@ import org.picketlink.config.federation.PicketLinkType;
 import org.picketlink.config.federation.SPType;
 import org.picketlink.config.federation.handler.Handlers;
 import org.picketlink.identity.federation.api.saml.v2.metadata.MetaDataExtractor;
+import org.picketlink.identity.federation.bindings.wildfly.ServiceProviderSAMLContext;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEvent;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEventType;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditHelper;
 import org.picketlink.identity.federation.core.interfaces.TrustKeyManager;
 import org.picketlink.identity.federation.core.parsers.saml.SAMLParser;
 import org.picketlink.identity.federation.core.saml.v2.factories.SAML2HandlerChainFactory;
-import org.picketlink.identity.federation.core.saml.v2.holders.DestinationInfoHolder;
 import org.picketlink.identity.federation.core.saml.v2.impl.DefaultSAML2HandlerChainConfig;
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2Handler;
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerChain;
@@ -78,12 +75,12 @@ import org.picketlink.identity.federation.web.process.ServiceProviderSAMLRespons
 import org.picketlink.identity.federation.web.util.ConfigurationUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
+import org.wildfly.extension.undertow.security.AccountImpl;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.annotation.WebListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -93,7 +90,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
@@ -105,7 +101,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -178,6 +173,10 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     protected TrustKeyManager keyManager;
 
     public static final SPAuthenticationMechanismFactory FACTORY = new SPAuthenticationMechanismFactory();
+
+    public SPFormAuthenticationMechanism() {
+        super(null, null, null);
+    }
 
     public SPFormAuthenticationMechanism(String name, String loginPage, String errorPage) {
         super(name, loginPage, errorPage);
@@ -539,23 +538,14 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                     logger.trace("Roles determined for username=" + username + "=" + Arrays.toString(roles.toArray()));
                 }
 
+                ServiceProviderSAMLContext.push(username, roles);
+
                 //TODO: figure out getting the principal via authentication
                 IdentityManager identityManager = securityContext.getIdentityManager();
 
                 final Principal userPrincipal = principal;
 
-                Account account = new Account() {
-                    @Override
-                    public Principal getPrincipal() {
-                        return userPrincipal;
-                    }
-
-                    @Override
-                    public Set<String> getRoles() {
-                        HashSet<String> hashSet = new HashSet<String>(roles);
-                        return hashSet;
-                    }
-                };
+                Account account = new AccountImpl(userPrincipal, new HashSet<String>(roles), password);
 
                 account = identityManager.verify(account);
 
@@ -602,6 +592,8 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         } catch (Exception e) {
             logger.samlSPHandleRequestError(e);
             throw logger.samlSPProcessingExceptionError(e);
+        } finally {
+            ServiceProviderSAMLContext.clear();
         }
 
         return localAuthentication(httpServerExchange,securityContext);
@@ -960,6 +952,17 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     @Override
     public void contextInitialized(ServletContextEvent servletContextEvent) {
         theServletContext = servletContextEvent.getServletContext();
+
+        ServletContextImpl servletContext1 = (ServletContextImpl) theServletContext;
+        Deployment deployment = servletContext1.getDeployment();
+
+        deployment.getDeploymentInfo().addAuthenticationMechanism("FORM", new AuthenticationMechanismFactory() {
+            @Override
+            public AuthenticationMechanism create(String mechanismName, FormParserFactory formParserFactory, Map<String, String> properties) {
+                return SPFormAuthenticationMechanism.this;
+            }
+        });
+
         startPicketLink();
     }
 
