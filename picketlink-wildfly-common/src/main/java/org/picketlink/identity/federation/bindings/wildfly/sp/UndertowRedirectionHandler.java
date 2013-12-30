@@ -34,7 +34,7 @@ import static org.picketlink.common.util.StringUtil.isNotNull;
 /**
  * Implementation of {@link org.picketlink.identity.federation.core.saml.workflow.ServiceProviderSAMLWorkflow.RedirectionHandler}
  * for Undertow
- * 
+ *
  * @author Anil Saldhana
  * @since December 27, 2013
  */
