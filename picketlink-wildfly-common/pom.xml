@@ -37,6 +37,13 @@
          <optional>true</optional>
       </dependency>
 
+     <dependency>
+       <groupId>org.wildfly</groupId>
+       <artifactId>wildfly-undertow</artifactId>
+       <version>8.0.0.CR1</version>
+       <scope>provided</scope>
+     </dependency>
+
       <dependency>
          <groupId>io.undertow</groupId>
          <artifactId>undertow-core</artifactId>
