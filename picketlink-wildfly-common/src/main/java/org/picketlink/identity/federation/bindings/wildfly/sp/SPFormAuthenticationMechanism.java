@@ -18,16 +18,13 @@
 package org.picketlink.identity.federation.bindings.wildfly.sp;
 
 import io.undertow.security.api.AuthenticationMechanism;
-import io.undertow.security.api.AuthenticationMechanismFactory;
 import io.undertow.security.api.SecurityContext;
 import io.undertow.security.idm.Account;
 import io.undertow.security.idm.IdentityManager;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.form.FormParserFactory;
-import io.undertow.servlet.api.Deployment;
 import io.undertow.servlet.handlers.ServletRequestContext;
 import io.undertow.servlet.handlers.security.ServletFormAuthenticationMechanism;
-import io.undertow.servlet.spec.ServletContextImpl;
 import org.jboss.security.audit.AuditLevel;
 import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.PicketLinkLogger;
@@ -78,8 +75,6 @@ import org.w3c.dom.Document;
 import org.wildfly.extension.undertow.security.AccountImpl;
 
 import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebListener;
 import javax.servlet.http.HttpServletRequest;
@@ -115,12 +110,12 @@ import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
  * @since November 04, 2013
  */
 @WebListener
-public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMechanism implements ServletContextListener {
+public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMechanism {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
     protected transient String samlHandlerChainClass = null;
 
-    protected ServletContext theServletContext = null;
+    protected ServletContext servletContext = null;
 
     protected Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
     /**
@@ -170,27 +165,10 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     protected PicketLinkAuditHelper auditHelper = null;
     protected TrustKeyManager keyManager;
 
-    public static final SPAuthenticationMechanismFactory FACTORY = new SPAuthenticationMechanismFactory();
-
-    public SPFormAuthenticationMechanism() {
-        super(null, null, null);
-    }
-
-    public SPFormAuthenticationMechanism(String name, String loginPage, String errorPage) {
-        super(name, loginPage, errorPage);
-    }
-
-    public SPFormAuthenticationMechanism(String name, String loginPage, String errorPage, String postLocation) {
-        super(name, loginPage, errorPage, postLocation);
-    }
-
-    public SPFormAuthenticationMechanism(FormParserFactory formParserFactory, String name, String loginPage, String errorPage) {
-        super(formParserFactory, name, loginPage, errorPage);
-    }
-
-    public SPFormAuthenticationMechanism(FormParserFactory formParserFactory, String name, String loginPage, String errorPage,
-            String postLocation) {
-        super(formParserFactory, name, loginPage, errorPage, postLocation);
+    public SPFormAuthenticationMechanism(FormParserFactory parserFactory, String name, String loginPage, String errorPage, ServletContext servletContext) {
+        super(parserFactory, name, loginPage, errorPage);
+        this.servletContext = servletContext;
+        startPicketLink();
     }
 
     public void setAuditHelper(PicketLinkAuditHelper auditHelper) {
@@ -639,7 +617,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                 @Override
                 public void run() {
                     processConfiguration();
-                    initKeyProvider(theServletContext);
+                    initKeyProvider(servletContext);
                 }
             }, timerInterval, timerInterval);
         }
@@ -663,12 +641,12 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
             } else {
                 // Get the handlers
                 String handlerConfigFileName = GeneralConstants.HANDLER_CONFIG_FILE_LOCATION;
-                handlers = ConfigurationUtil.getHandlers(theServletContext.getResourceAsStream(handlerConfigFileName));
+                handlers = ConfigurationUtil.getHandlers(servletContext.getResourceAsStream(handlerConfigFileName));
             }
 
             chain.addAll(HandlerUtil.getHandlers(handlers));
 
-            this.initKeyProvider(theServletContext);
+            this.initKeyProvider(servletContext);
             this.populateChainConfig();
             this.initializeHandlerChain();
         } catch (Exception e) {
@@ -757,7 +735,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
         if (isNullOrEmpty(this.configFile)) {
             this.configFile = CONFIG_FILE_LOCATION;
-            is = theServletContext.getResourceAsStream(this.configFile);
+            is = servletContext.getResourceAsStream(this.configFile);
         } else {
             try {
                 is = new FileInputStream(this.configFile);
@@ -772,7 +750,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                 try {
                     if (is == null) {
                         // Try the older version
-                        is = theServletContext.getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
+                        is = servletContext.getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
 
                         // Additionally parse the deprecated config file
                         if (is != null && configProvider instanceof AbstractSAMLConfigurationProvider) {
@@ -802,7 +780,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                         throw logger.samlSPConfigurationError(e);
                     }
                 } else {
-                    is = theServletContext.getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
+                    is = servletContext.getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
                     if (is == null)
                         throw logger.configurationFileMissing(configFile);
                     spConfiguration = ConfigurationUtil.getSPConfiguration(is);
@@ -822,7 +800,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
                 if (enableAudit) {
                     if (auditHelper == null) {
-                        String securityDomainName = PicketLinkAuditHelper.getSecurityDomainName(theServletContext);
+                        String securityDomainName = PicketLinkAuditHelper.getSecurityDomainName(servletContext);
 
                         auditHelper = new PicketLinkAuditHelper(securityDomainName);
                     }
@@ -849,7 +827,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
      * Attempt to process a metadata file available locally
      */
     protected void processIDPMetadataFile(String idpMetadataFile) {
-        InputStream is = theServletContext.getResourceAsStream(idpMetadataFile);
+        InputStream is = servletContext.getResourceAsStream(idpMetadataFile);
         if (is == null)
             return;
 
@@ -943,27 +921,6 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                 chainConfigOptions.put(GeneralConstants.X509CERTIFICATE, keyManager.getCertificate(certificateAlias));
             }
         }
-    }
-
-    @Override
-    public void contextInitialized(ServletContextEvent servletContextEvent) {
-        theServletContext = servletContextEvent.getServletContext();
-
-        ServletContextImpl servletContext1 = (ServletContextImpl) theServletContext;
-        Deployment deployment = servletContext1.getDeployment();
-
-        deployment.getDeploymentInfo().addAuthenticationMechanism("FORM", new AuthenticationMechanismFactory() {
-            @Override
-            public AuthenticationMechanism create(String mechanismName, FormParserFactory formParserFactory, Map<String, String> properties) {
-                return SPFormAuthenticationMechanism.this;
-            }
-        });
-
-        startPicketLink();
-    }
-
-    @Override
-    public void contextDestroyed(ServletContextEvent servletContextEvent) {
     }
 
     private boolean isGlobalLogout(HttpServletRequest request) {

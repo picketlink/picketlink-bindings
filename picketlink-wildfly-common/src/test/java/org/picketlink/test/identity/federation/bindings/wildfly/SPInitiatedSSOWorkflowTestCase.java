@@ -24,11 +24,6 @@ import com.meterware.httpunit.WebConversation;
 import com.meterware.httpunit.WebForm;
 import com.meterware.httpunit.WebRequest;
 import com.meterware.httpunit.WebResponse;
-import io.undertow.Undertow;
-import io.undertow.security.idm.Account;
-import io.undertow.security.idm.Credential;
-import io.undertow.security.idm.IdentityManager;
-import io.undertow.security.idm.PasswordCredential;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.resource.Resource;
@@ -38,29 +33,15 @@ import io.undertow.server.handlers.resource.URLResource;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.FilterInfo;
-import io.undertow.servlet.api.InstanceFactory;
-import io.undertow.servlet.api.InstanceHandle;
-import io.undertow.servlet.api.ListenerInfo;
 import io.undertow.servlet.api.LoginConfig;
 import io.undertow.servlet.api.ServletContainer;
 import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSecurityInfo;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.picketlink.identity.federation.bindings.wildfly.idp.PicketLinkUndertowPrincipal;
-import org.picketlink.identity.federation.bindings.wildfly.sp.SPAuthenticationMechanismFactory;
-import org.picketlink.identity.federation.bindings.wildfly.sp.SPFormAuthenticationMechanism;
+import org.picketlink.identity.federation.bindings.wildfly.sp.SPServletExtension;
 import org.picketlink.identity.federation.web.filters.IDPFilter;
 
 import javax.servlet.DispatcherType;
@@ -68,22 +49,14 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.URL;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EventListener;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import static junit.framework.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -179,9 +152,6 @@ public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
         identityManager.addUser("user1", "password1", "role1");
 
         LoginConfig loginConfig = new LoginConfig("FORM", "Test Realm", "/FormLoginServlet","/error.html");
-        final SPFormAuthenticationMechanism spFormAuthenticationMechanism = new SPFormAuthenticationMechanism("FORM", "/FormLoginServlet", "/error.html");
-
-        SPFormAuthenticationMechanism.FACTORY.set("/" +getContextPathShortForm(),spFormAuthenticationMechanism );
 
         ResourceManager resourceManager = new TestResourceManager(getContextPathShortForm());
 
@@ -194,24 +164,7 @@ public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
                 .setLoginConfig(loginConfig)
                 .setResourceManager(resourceManager)
                 .addServlets(regularServletInfo, formServletInfo)
-                .addAuthenticationMechanism("FORM", SPFormAuthenticationMechanism.FACTORY);
-
-        ListenerInfo listenerInfo = new ListenerInfo(SPFormAuthenticationMechanism.class, new InstanceFactory<EventListener>() {
-            @Override
-            public InstanceHandle<EventListener> createInstance() throws InstantiationException {
-                return new InstanceHandle<EventListener>() {
-                    @Override
-                    public EventListener getInstance() {
-                        return spFormAuthenticationMechanism;
-                    }
-
-                    @Override
-                    public void release() {
-                    }
-                };
-            }
-        });
-        deploymentInfo.addListener(listenerInfo);
+                .addServletExtension(new SPServletExtension());
 
         DeploymentManager manager = container.addDeployment(deploymentInfo);
         manager.deploy();
