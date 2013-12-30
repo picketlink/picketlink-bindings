@@ -143,8 +143,6 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     public static final String FORM_ACCOUNT_NOTE = "picketlink.form.account";
     public static final String FORM_REQUEST_NOTE = "picketlink.REQUEST";
 
-    public static final String logoutPage = "/logout.html"; // get from configuration
-
     protected transient SAML2HandlerChain chain = null;
 
     protected SPType spConfiguration = null;
@@ -225,8 +223,6 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
             Account savedAccount = (Account) session.getAttribute(FORM_ACCOUNT_NOTE);
             if(savedAccount != null){
                 register(securityContext, savedAccount);
-
-                return AuthenticationMechanismOutcome.AUTHENTICATED;
             }
         }
         ServiceProviderSAMLWorkflow serviceProviderSAMLWorkflow = new ServiceProviderSAMLWorkflow();
@@ -236,7 +232,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
         if (localLogout) {
             try {
-                serviceProviderSAMLWorkflow.sendToLogoutPage(request, response, session, servletContext, logoutPage);
+                serviceProviderSAMLWorkflow.sendToLogoutPage(request, response, session, servletContext, this.spConfiguration.getLogOutPage());
             } catch (ServletException e) {
                 logger.samlLogoutError(e);
                 throw new RuntimeException(e);
@@ -254,9 +250,9 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
         try {
         // If we have already authenticated the user and there is no request from IDP or logout from user
-        if (principal != null
-                && !(serviceProviderSAMLWorkflow.isLocalLogoutRequest(request) || isNotNull(samlRequest) || isNotNull(samlResponse)))
-            return AuthenticationMechanismOutcome.AUTHENTICATED;
+            if (principal != null
+                    && !(serviceProviderSAMLWorkflow.isLocalLogoutRequest(request) || isGlobalLogout(request) || isNotNull(samlRequest) || isNotNull(samlResponse)))
+                return AuthenticationMechanismOutcome.AUTHENTICATED;
 
         // General User Request
         if (!isNotNull(samlRequest) && !isNotNull(samlResponse)) {
@@ -522,7 +518,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                 boolean sessionValidity = sessionIsValid(session);
 
                 if (!sessionValidity) {
-                    serviceProviderSAMLWorkflow.sendToLogoutPage(request, response, session, servletContext, logoutPage);
+                    serviceProviderSAMLWorkflow.sendToLogoutPage(request, response, session, servletContext, this.spConfiguration.getLogOutPage());
                     return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
                 }
 
@@ -970,5 +966,8 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
     }
 
-
+    private boolean isGlobalLogout(HttpServletRequest request) {
+        String gloStr = request.getParameter(GeneralConstants.GLOBAL_LOGOUT);
+        return isNotNull(gloStr) && "true".equalsIgnoreCase(gloStr);
+    }
 }
