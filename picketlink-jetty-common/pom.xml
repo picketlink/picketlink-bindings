@@ -1,0 +1,121 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+   <parent>
+      <groupId>org.picketlink</groupId>
+      <artifactId>picketlink-bindings-parent</artifactId>
+      <version>2.5.3-SNAPSHOT</version>
+      <relativePath>../pom.xml</relativePath>
+   </parent>
+   <modelVersion>4.0.0</modelVersion>
+   <artifactId>picketlink-jetty-common</artifactId>
+   <packaging>jar</packaging>
+   <name>PicketLink Common Server Bindings for Jetty</name>
+
+   <properties>
+      <jboss.servlet31-api.version>1.0.0.Final</jboss.servlet31-api.version>
+      <jbossxacml.version>2.0.4</jbossxacml.version>
+      <jetty.version>9.1.0.v20131115</jetty.version>
+      <httpcomponents.version>4.2.5</httpcomponents.version>
+       <httpunit.version>1.7</httpunit.version>
+   </properties>
+
+   <dependencies>
+      <dependency>
+         <groupId>org.picketlink</groupId>
+         <artifactId>picketlink-federation</artifactId>
+         <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+         <groupId>org.jboss.logging</groupId>
+         <artifactId>jboss-logging</artifactId>
+      </dependency>
+
+       <!--<dependency>
+           <groupId>org.jboss.spec.javax.servlet</groupId>
+           <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+           <version>${jboss.servlet31-api.version}</version>
+       </dependency>-->
+
+       <dependency>
+           <groupId>org.eclipse.jetty</groupId>
+           <artifactId>jetty-server</artifactId>
+           <version>${jetty.version}</version>
+       </dependency>
+
+       <dependency>
+           <groupId>org.eclipse.jetty</groupId>
+           <artifactId>jetty-jaas</artifactId>
+           <version>${jetty.version}</version>
+       </dependency>
+
+       <dependency>
+           <groupId>org.eclipse.jetty</groupId>
+           <artifactId>jetty-util</artifactId>
+           <version>${jetty.version}</version>
+       </dependency>
+
+       <dependency>
+           <groupId>org.eclipse.jetty</groupId>
+           <artifactId>jetty-webapp</artifactId>
+           <version>${jetty.version}</version>
+       </dependency>
+
+       <dependency>
+           <groupId>org.eclipse.jetty</groupId>
+           <artifactId>jetty-security</artifactId>
+           <version>${jetty.version}</version>
+       </dependency>
+
+       <dependency>
+           <groupId>org.eclipse.jetty</groupId>
+           <artifactId>jetty-servlet</artifactId>
+           <version>${jetty.version}</version>
+       </dependency>
+
+      <dependency>
+         <groupId>org.jboss.security</groupId>
+         <artifactId>jbossxacml</artifactId>
+         <version>${jbossxacml.version}</version>
+         <optional>true</optional>
+      </dependency>
+
+      <dependency>
+         <groupId>junit</groupId>
+         <artifactId>junit</artifactId>
+         <scope>test</scope>
+      </dependency>
+
+
+       <dependency>
+           <groupId>org.apache.httpcomponents</groupId>
+           <artifactId>httpmime</artifactId>
+           <version>${httpcomponents.version}</version>
+           <scope>test</scope>
+       </dependency>
+       <dependency>
+           <groupId>org.apache.httpcomponents</groupId>
+           <artifactId>httpclient</artifactId>
+           <version>${httpcomponents.version}</version>
+           <scope>test</scope>
+       </dependency>
+       <dependency>
+           <groupId>httpunit</groupId>
+           <artifactId>httpunit</artifactId>
+           <version>${httpunit.version}</version>
+           <scope>test</scope>
+           <exclusions>
+               <exclusion>
+                   <groupId>javax.servlet</groupId>
+                   <artifactId>servlet-api</artifactId>
+               </exclusion>
+           </exclusions>
+       </dependency>
+
+       <dependency>
+           <groupId>rhino</groupId>
+           <artifactId>js</artifactId>
+           <version>1.6R7</version>
+           <scope>test</scope>
+       </dependency>
+   </dependencies>
+</project>

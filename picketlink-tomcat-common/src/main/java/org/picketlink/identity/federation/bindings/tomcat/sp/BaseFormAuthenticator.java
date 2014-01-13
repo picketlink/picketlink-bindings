@@ -21,16 +21,15 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -85,6 +84,9 @@ import org.picketlink.identity.federation.web.util.ConfigurationUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
 
+import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
+import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
+
 /**
  * Base Class for Service Provider Form Authenticators
  *
@@ -110,7 +112,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     protected String issuerID = null;
 
-    protected String configFile = GeneralConstants.CONFIG_FILE_LOCATION;
+    protected String configFile;
 
     /**
      * If the service provider is configured with an IDP metadata file, then this certificate can be picked up from the metadata
@@ -149,6 +151,11 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * method that conforms to the servlet3 spec changes
      */
     private boolean seekSuperRegisterMethod = true;
+
+
+    protected int timerInterval = -1;
+
+    protected Timer timer = null;
 
     public BaseFormAuthenticator() {
         super();
@@ -254,6 +261,16 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     public void setLogOutPage(String logOutPage) {
         logger.warn("Option logOutPage is now configured with the PicketLinkSP element.");
 
+    }
+
+    /**
+     * Set the Timer Value to reload the configuration
+     * @param value an integer value that represents timer value (in miliseconds)
+     */
+    public void setTimerInterval(String value){
+        if(StringUtil.isNotNull(value)){
+            timerInterval = Integer.parseInt(value);
+        }
     }
 
     /**
@@ -411,7 +428,18 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     @SuppressWarnings("deprecation")
     protected void processConfiguration() {
         ServletContext servletContext = context.getServletContext();
-        InputStream is = servletContext.getResourceAsStream(configFile);
+        InputStream is = null;
+
+        if (isNullOrEmpty(this.configFile)) {
+            this.configFile = CONFIG_FILE_LOCATION;
+            is = servletContext.getResourceAsStream(this.configFile);
+        } else {
+            try {
+                is = new FileInputStream(this.configFile);
+            } catch (FileNotFoundException e) {
+                throw logger.samlIDPConfigurationError(e);
+            }
+        }
 
         try {
             // Work on the IDP Configuration
@@ -578,6 +606,24 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         SystemPropertiesUtil.ensure();
         Handlers handlers = null;
 
+        //Introduce a timer to reload configuration if desired
+        if(timerInterval > 0 ){
+            if(timer == null){
+                timer = new Timer();
+            }
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    processConfiguration();
+                    try {
+                        initKeyProvider(context);
+                    } catch (LifecycleException e) {
+                        logger.trace(e.getMessage());
+                    }
+                }
+            }, timerInterval, timerInterval);
+        }
+
         // Get the chain from config
         if (StringUtil.isNullOrEmpty(samlHandlerChainClass)) {
             chain = SAML2HandlerChainFactory.createChain();
@@ -609,6 +655,13 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             this.initializeHandlerChain();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+
+        if (this.picketLinkConfiguration == null) {
+            this.picketLinkConfiguration = new PicketLinkType();
+
+            this.picketLinkConfiguration.setIdpOrSP(getConfiguration());
+            this.picketLinkConfiguration.setHandlers(handlers);
         }
     }
 

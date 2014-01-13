@@ -395,9 +395,8 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
         try {
             ServiceProviderSAMLRequestProcessor requestProcessor = new ServiceProviderSAMLRequestProcessor(
-                    request.getMethod().equals("POST"), this.serviceURL);
+                    request.getMethod().equals("POST"), this.serviceURL, this.picketLinkConfiguration);
             requestProcessor.setTrustKeyManager(keyManager);
-            requestProcessor.setConfiguration(spConfiguration);
             boolean result = requestProcessor.process(samlRequest, httpContext, handlers, chainLock);
 
             if (enableAudit) {
@@ -446,8 +445,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
         // deal with SAML response from IDP
         try {
-            ServiceProviderSAMLResponseProcessor responseProcessor = new ServiceProviderSAMLResponseProcessor(request.getMethod().equals("POST"), serviceURL);
-            responseProcessor.setConfiguration(spConfiguration);
+            ServiceProviderSAMLResponseProcessor responseProcessor = new ServiceProviderSAMLResponseProcessor(request.getMethod().equals("POST"), serviceURL, this.picketLinkConfiguration);
             if(auditHelper !=  null){
                 responseProcessor.setAuditHelper(auditHelper);   
             }
@@ -595,14 +593,13 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         // So this is a user request
         SAML2HandlerResponse saml2HandlerResponse = null;
         try {
-            ServiceProviderBaseProcessor baseProcessor = new ServiceProviderBaseProcessor(postBinding, serviceURL);
+            ServiceProviderBaseProcessor baseProcessor = new ServiceProviderBaseProcessor(postBinding, serviceURL, this.picketLinkConfiguration);
             if (issuerID != null)
                 baseProcessor.setIssuer(issuerID);
 
             baseProcessor.setIdentityURL(identityURL);
             baseProcessor.setAuditHelper(auditHelper);
-            baseProcessor.setConfiguration(this.spConfiguration);
-            
+
             saml2HandlerResponse = baseProcessor.process(httpContext, handlers, chainLock);
         } catch (ProcessingException pe) {
             logger.samlSPHandleRequestError(pe);

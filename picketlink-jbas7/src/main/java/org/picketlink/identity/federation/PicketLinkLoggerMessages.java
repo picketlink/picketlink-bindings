@@ -290,7 +290,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @Message(id = 258, value = "Exception in processing authentication")
     void samlHandlerAuthenticationError(@Cause Throwable t);
     
-    @LogMessage(level = Level.ERROR)
+    @LogMessage(level = Level.DEBUG)
     @Message(id = 259, value = "The provider %s could not be added")
     void jceProviderCouldNotBeLoaded(String name, @Cause Throwable t);
 

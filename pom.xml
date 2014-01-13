@@ -3,11 +3,34 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.picketlink</groupId>
-  <version>2.5.0-SNAPSHOT</version>
+  <version>2.5.3-SNAPSHOT</version>
   <artifactId>picketlink-bindings-parent</artifactId>
   <packaging>pom</packaging>
 
   <name>PicketLink Container Bindings</name>
+
+  <description>
+    PicketLink Federation bindings for different containers.
+  </description>
+
+  <url>http://www.jboss.org/picketlink</url>
+
+  <developers>
+    <developer>
+      <name>Anil Saldhana</name>
+    </developer>
+    <developer>
+      <name>Pedro Silva</name>
+    </developer>
+  </developers>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <distribution>repo</distribution>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
 
   <properties>
     <jboss.releases.repo.url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/
@@ -16,7 +39,6 @@
     </jboss.snapshots.repo.url>
   </properties>
 
-
   <modules>
     <module>picketlink-tomcat-common</module>
     <module>picketlink-tomcat5</module>
@@ -24,6 +46,7 @@
     <module>picketlink-jbas-common</module>
     <module>picketlink-jbas5</module>
     <module>picketlink-jbas7</module>
+    <module>picketlink-wildfly-common</module>
     <module>build-tomcat5</module>
     <module>build-tomcat7</module>
     <module>build-jbas5</module>
@@ -60,6 +83,16 @@
               </configuration>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.sonatype.plugins</groupId>
+          <artifactId>nexus-maven-plugin</artifactId>
+          <version>1.7</version>
+          <configuration>
+            <auto>true</auto>
+            <nexusUrl>https://repository.jboss.org/nexus</nexusUrl>
+            <serverAuthId>jboss-releases-repository</serverAuthId>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

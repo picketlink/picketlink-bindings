@@ -114,6 +114,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -122,16 +124,13 @@ import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.security.PublicKey;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.picketlink.common.constants.GeneralConstants.*;
 import static org.picketlink.common.util.StringUtil.*;
 
 /**
@@ -166,6 +165,15 @@ public abstract class AbstractIDPValve extends ValveBase {
      */
     protected SAMLConfigurationProvider configProvider = null;
 
+    protected int timerInterval = -1;
+
+    protected Timer timer = null;
+
+    /**
+     * <p>Specifies a different location for the configuration file.</p>
+     */
+    private String configFile;
+
     /**
      * A Lock for Handler operations in the chain
      */
@@ -173,12 +181,23 @@ public abstract class AbstractIDPValve extends ValveBase {
 
     private Map<String, SPSSODescriptorType> spSSOMetadataMap = new HashMap<String, SPSSODescriptorType>();
     private SSLAuthenticator sslAuthenticator;
+    private Handlers handlers;
 
     // Set a list of attributes we are interested in separated by comma
     public void setAttributeList(String attribList) {
         if (StringUtil.isNotNull(attribList)) {
             this.attributeKeys.clear();
             this.attributeKeys.addAll(StringUtil.tokenize(attribList));
+        }
+    }
+
+    /**
+     * Set the Timer Value to reload the configuration
+     * @param value an integer value that represents timer value (in miliseconds)
+     */
+    public void setTimerInterval(String value){
+        if(StringUtil.isNotNull(value)){
+            timerInterval = Integer.parseInt(value);
         }
     }
 
@@ -198,6 +217,10 @@ public abstract class AbstractIDPValve extends ValveBase {
         } catch (Exception e) {
             throw new RuntimeException(logger.couldNotCreateInstance(cp, e));
         }
+    }
+
+    public void setConfigFile(final String configFile) {
+        this.configFile = configFile;
     }
 
     public void setConfigProvider(SAMLConfigurationProvider configurationProvider) {
@@ -743,18 +766,19 @@ public abstract class AbstractIDPValve extends ValveBase {
 
             logger.trace("Handlers are=" + handlers);
 
-            // the trusted domains is done by a handler
-            // webRequestUtil.isTrusted(issuer);
-
             if (handlers != null) {
                 try {
-                    chainLock.lock();
+                    if (getConfiguration().getHandlers().isLocking()) {
+                        chainLock.lock();
+                    }
                     for (SAML2Handler handler : handlers) {
                         handler.handleRequestType(saml2HandlerRequest, saml2HandlerResponse);
                         willSendRequest = saml2HandlerResponse.getSendRequest();
                     }
                 } finally {
-                    chainLock.unlock();
+                    if (getConfiguration().getHandlers().isLocking()) {
+                        chainLock.unlock();
+                    }
                 }
             }
 
@@ -824,7 +848,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             } catch (GeneralSecurityException e) {
                 logger.trace("Security Exception:", e);
             } catch (Exception e) {
-                System.out.println(e);
+                logger.error(e);
             }
         }
         return;
@@ -1125,20 +1149,18 @@ public abstract class AbstractIDPValve extends ValveBase {
      * @throws LifecycleException
      */
     protected void initHandlersChain() throws LifecycleException {
-        Handlers handlers = null;
-
         try {
             if (picketLinkConfiguration != null) {
-                handlers = picketLinkConfiguration.getHandlers();
+                this.handlers = picketLinkConfiguration.getHandlers();
             } else {
                 // Get the handlers
                 String handlerConfigFileName = GeneralConstants.HANDLER_CONFIG_FILE_LOCATION;
-                handlers = ConfigurationUtil.getHandlers(getContext().getServletContext().getResourceAsStream(
+                this.handlers = ConfigurationUtil.getHandlers(getContext().getServletContext().getResourceAsStream(
                         handlerConfigFileName));
             }
 
             // Get the chain from config
-            String handlerChainClass = handlers.getHandlerChainClass();
+            String handlerChainClass = this.handlers.getHandlerChainClass();
 
             if (StringUtil.isNullOrEmpty(handlerChainClass))
                 chain = SAML2HandlerChainFactory.createChain();
@@ -1150,13 +1172,19 @@ public abstract class AbstractIDPValve extends ValveBase {
                 }
             }
 
-            chain.addAll(HandlerUtil.getHandlers(handlers));
+            chain.addAll(HandlerUtil.getHandlers(this.handlers));
 
             Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
             chainConfigOptions.put(GeneralConstants.ROLE_GENERATOR, roleGenerator);
             chainConfigOptions.put(GeneralConstants.CONFIGURATION, idpConfiguration);
-            if (this.keyManager != null)
+            if (this.keyManager != null) {
                 chainConfigOptions.put(GeneralConstants.KEYPAIR, keyManager.getSigningKeyPair());
+                // If there is a need for X509Data in signedinfo
+                String certificateAlias = (String) keyManager.getAdditionalOption(GeneralConstants.X509CERTIFICATE);
+                if (certificateAlias != null) {
+                    chainConfigOptions.put(GeneralConstants.X509CERTIFICATE, keyManager.getCertificate(certificateAlias));
+                }
+            }
 
             SAML2HandlerChainConfig handlerChainConfig = new DefaultSAML2HandlerChainConfig(chainConfigOptions);
 
@@ -1184,6 +1212,17 @@ public abstract class AbstractIDPValve extends ValveBase {
                 List<AuthPropertyType> authProperties = CoreConfigUtil.getKeyProviderProperties(keyProvider);
                 keyManager.setAuthProperties(authProperties);
                 keyManager.setValidatingAlias(keyProvider.getValidatingAlias());
+                // Special case when you need X509Data in SignedInfo
+                if (authProperties != null) {
+                    for (AuthPropertyType authPropertyType : authProperties) {
+                        String key = authPropertyType.getKey();
+                        if (GeneralConstants.X509CERTIFICATE.equals(key)) {
+                            // we need X509Certificate in SignedInfo. The value is the alias name
+                            keyManager.addAdditionalOption(GeneralConstants.X509CERTIFICATE, authPropertyType.getValue());
+                            break;
+                        }
+                    }
+                }
             } catch (Exception e) {
                 logger.trustKeyManagerCreationError(e);
                 throw new LifecycleException(e.getLocalizedMessage());
@@ -1204,15 +1243,24 @@ public abstract class AbstractIDPValve extends ValveBase {
      */
     @SuppressWarnings("deprecation")
     protected void initIDPConfiguration() {
-        String configFile = GeneralConstants.CONFIG_FILE_LOCATION;
-        InputStream is = getContext().getServletContext().getResourceAsStream(configFile);
+        InputStream is = null;
+
+        if (isNullOrEmpty(this.configFile)) {
+            is = getContext().getServletContext().getResourceAsStream(CONFIG_FILE_LOCATION);
+        } else {
+            try {
+                is = new FileInputStream(this.configFile);
+            } catch (FileNotFoundException e) {
+                throw logger.samlIDPConfigurationError(e);
+            }
+        }
 
         // Work on the IDP Configuration
         if (configProvider != null) {
             try {
                 if (is == null) {
                     // Try the older version
-                    is = getContext().getServletContext().getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
+                    is = getContext().getServletContext().getResourceAsStream(DEPRECATED_CONFIG_FILE_LOCATION);
 
                     // Additionally parse the deprecated config file
                     if (is != null && configProvider instanceof AbstractSAMLConfigurationProvider) {
@@ -1247,9 +1295,9 @@ public abstract class AbstractIDPValve extends ValveBase {
 
             if (is == null) {
                 // Try the older version
-                is = getContext().getServletContext().getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
+                is = getContext().getServletContext().getResourceAsStream(DEPRECATED_CONFIG_FILE_LOCATION);
                 if (is == null)
-                    throw logger.configurationFileMissing(configFile);
+                    throw logger.configurationFileMissing(DEPRECATED_CONFIG_FILE_LOCATION);
                 try {
                     idpConfiguration = ConfigurationUtil.getIDPConfiguration(is);
                 } catch (ParsingException e) {
@@ -1379,8 +1427,25 @@ public abstract class AbstractIDPValve extends ValveBase {
     }
 
     protected void startPicketLink() throws LifecycleException {
-
         SystemPropertiesUtil.ensure();
+
+        //Introduce a timer to reload configuration if desired
+        if(timerInterval > 0 ){
+            if(timer == null){
+                timer = new Timer();
+            }
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    initIDPConfiguration();
+                    try {
+                        initKeyManager();
+                    } catch (LifecycleException e) {
+                        logger.trace(e.getMessage());
+                    }
+                }
+            }, timerInterval, timerInterval);
+        }
 
         initIDPConfiguration();
         initSTSConfiguration();
@@ -1393,6 +1458,13 @@ public abstract class AbstractIDPValve extends ValveBase {
                 "facsimileTelephoneNumber" };
 
         this.attributeKeys.addAll(Arrays.asList(ak));
+
+        if (this.picketLinkConfiguration == null) {
+            this.picketLinkConfiguration = new PicketLinkType();
+
+            this.picketLinkConfiguration.setIdpOrSP(this.idpConfiguration);
+            this.picketLinkConfiguration.setHandlers(this.handlers);
+        }
     }
 
     /**
