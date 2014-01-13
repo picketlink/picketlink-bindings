@@ -124,6 +124,7 @@ import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.security.PublicKey;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -1176,8 +1177,14 @@ public abstract class AbstractIDPValve extends ValveBase {
             Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
             chainConfigOptions.put(GeneralConstants.ROLE_GENERATOR, roleGenerator);
             chainConfigOptions.put(GeneralConstants.CONFIGURATION, idpConfiguration);
-            if (this.keyManager != null)
+            if (this.keyManager != null) {
                 chainConfigOptions.put(GeneralConstants.KEYPAIR, keyManager.getSigningKeyPair());
+                // If there is a need for X509Data in signedinfo
+                String certificateAlias = (String) keyManager.getAdditionalOption(GeneralConstants.X509CERTIFICATE);
+                if (certificateAlias != null) {
+                    chainConfigOptions.put(GeneralConstants.X509CERTIFICATE, keyManager.getCertificate(certificateAlias));
+                }
+            }
 
             SAML2HandlerChainConfig handlerChainConfig = new DefaultSAML2HandlerChainConfig(chainConfigOptions);
 
@@ -1205,6 +1212,17 @@ public abstract class AbstractIDPValve extends ValveBase {
                 List<AuthPropertyType> authProperties = CoreConfigUtil.getKeyProviderProperties(keyProvider);
                 keyManager.setAuthProperties(authProperties);
                 keyManager.setValidatingAlias(keyProvider.getValidatingAlias());
+                // Special case when you need X509Data in SignedInfo
+                if (authProperties != null) {
+                    for (AuthPropertyType authPropertyType : authProperties) {
+                        String key = authPropertyType.getKey();
+                        if (GeneralConstants.X509CERTIFICATE.equals(key)) {
+                            // we need X509Certificate in SignedInfo. The value is the alias name
+                            keyManager.addAdditionalOption(GeneralConstants.X509CERTIFICATE, authPropertyType.getValue());
+                            break;
+                        }
+                    }
+                }
             } catch (Exception e) {
                 logger.trustKeyManagerCreationError(e);
                 throw new LifecycleException(e.getLocalizedMessage());
