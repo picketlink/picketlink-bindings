@@ -101,7 +101,7 @@ public class SAML2RedirectSignatureTomcatWorkflowUnitTestCase extends AbstractSA
         testWorkflow("192.168.1.3", "192.168.1.1");
     }
 
-    private void testWorkflow(String userAddress, String idpAddress) throws LifecycleException, IOException, ServletException {
+    protected void testWorkflow(String userAddress, String idpAddress) throws Exception {
         System.setProperty("picketlink.schema.validate", "false");
         MockCatalinaRequest request = AuthenticatorTestUtils.createRequest(userAddress, false);
 
@@ -129,7 +129,7 @@ public class SAML2RedirectSignatureTomcatWorkflowUnitTestCase extends AbstractSA
     }
 
     @SuppressWarnings("deprecation")
-    private MockCatalinaResponse sendIDPRequest(MockCatalinaRequest request) throws LifecycleException, IOException,
+    protected MockCatalinaResponse sendIDPRequest(MockCatalinaRequest request) throws LifecycleException, IOException,
             ServletException {
         IDPWebBrowserSSOValve idp = createIdentityProvider();
         idp.setStrictPostBinding(false);
@@ -144,7 +144,7 @@ public class SAML2RedirectSignatureTomcatWorkflowUnitTestCase extends AbstractSA
         return response;
     }
 
-    private MockCatalinaResponse sendSPRequest(MockCatalinaRequest request, boolean validateAuthentication, String idpAddress)
+    protected MockCatalinaResponse sendSPRequest(MockCatalinaRequest request, boolean validateAuthentication, String idpAddress)
             throws LifecycleException, IOException {
 
         MockCatalinaResponse response = new MockCatalinaResponse();

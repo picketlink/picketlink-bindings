@@ -42,7 +42,7 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession
 
 /**
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- * 
+ *
  */
 public class AuthenticatorTestUtils {
 
@@ -63,7 +63,7 @@ public class AuthenticatorTestUtils {
 
         return idpWebBrowserSSOValve;
     }
-    
+
     public static MockCatalinaContextClassLoader createContextClassLoader(String resource) {
         URL[] urls = new URL[]
 
@@ -76,7 +76,7 @@ public class AuthenticatorTestUtils {
 
         return mcl;
     }
-    
+
     public static MockCatalinaRequest createRequest(String userAddress, boolean withUserPrincipal) {
         MockCatalinaRequest request = new MockCatalinaRequest();
 
@@ -92,7 +92,7 @@ public class AuthenticatorTestUtils {
 
         return request;
     }
-    
+
     public static GenericPrincipal createPrincipal() {
         MockCatalinaRealm realm = new MockCatalinaRealm("user", "user", new Principal() {
             public String getName() {
@@ -108,7 +108,7 @@ public class AuthenticatorTestUtils {
 
         return new GenericPrincipal(realm, "user", "user", roles);
     }
-    
+
     public static void populateParametersWithQueryString(String queryString, MockCatalinaRequest request) {
         String samlParameter = null;
         String samlParameterValue = null;
@@ -120,7 +120,7 @@ public class AuthenticatorTestUtils {
             samlParameter = GeneralConstants.SAML_RESPONSE_KEY;
             samlParameterValue = getSAMLResponse(queryString);
         }
-        
+
         try {
             request.setParameter(samlParameter, RedirectBindingUtil.urlDecode(samlParameterValue));
 
@@ -136,20 +136,20 @@ public class AuthenticatorTestUtils {
             request.setParameter(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY,
                     RedirectBindingUtil.urlDecode(getSAMLSignature(queryString)));
 
-            request.setQueryString(queryString.toString());        
-            
+            request.setQueryString(queryString.toString());
+
         } catch (Exception e) {
             Assert.fail("Erro while populating request with SAML parameters.");
         }
     }
-    
-    private static final  String getSAMLResponse(String queryString) {
+
+    public static final  String getSAMLResponse(String queryString) {
         int endIndex = queryString.indexOf("&SigAlg=");
-        
+
         if (queryString.contains("&RelayState=")) {
             endIndex = queryString.indexOf("&RelayState=");
         }
-        
+
         // no signature info
         if (endIndex == -1) {
             endIndex = queryString.length();
@@ -159,28 +159,28 @@ public class AuthenticatorTestUtils {
                 + (GeneralConstants.SAML_RESPONSE_KEY + "=").length(), endIndex);
     }
 
-    private static final  String getSAMLSignature(String queryString) {
+    public static final  String getSAMLSignature(String queryString) {
         return queryString.substring(queryString.indexOf("&Signature=") + "&Signature=".length());
     }
 
-    private static final  String getSAMLRelayState(String queryString) {
+    public static final  String getSAMLRelayState(String queryString) {
         return queryString.substring(queryString.indexOf("&RelayState=") + "&RelayState=".length(),
                 queryString.lastIndexOf("&SigAlg="));
     }
 
-    private static final  String getSAMLSigAlg(String queryString) {
+    public static final  String getSAMLSigAlg(String queryString) {
         int indexOfSigAlg = queryString.indexOf("&SigAlg=");
-        
+
         // no signature info
         if (indexOfSigAlg == -1) {
             return "";
         }
-        
+
         return queryString.substring(indexOfSigAlg + "&SigAlg=".length(),
                 queryString.lastIndexOf("&Signature="));
     }
 
-    private static final  String getSAMLRequest(String queryString) {
+    public static final  String getSAMLRequest(String queryString) {
         int endIndex = queryString.indexOf("&SigAlg=");
 
         if (queryString.contains("&RelayState=")) {
@@ -190,6 +190,6 @@ public class AuthenticatorTestUtils {
         return queryString.substring(queryString.indexOf(GeneralConstants.SAML_REQUEST_KEY + "=")
                 + (GeneralConstants.SAML_REQUEST_KEY + "=").length(), endIndex);
     }
-    
+
 
 }
