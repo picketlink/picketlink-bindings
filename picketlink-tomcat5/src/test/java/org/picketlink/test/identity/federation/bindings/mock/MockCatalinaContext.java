@@ -73,6 +73,8 @@ import org.apache.tomcat.util.http.mapper.Mapper;
 public class MockCatalinaContext implements Context, Container, ServletContext {
     private Realm realm;
     private String forwardPage;
+    private String path;
+    private LoginConfig loginConfig;
 
     public void addChild(Container arg0) {
     }
@@ -270,7 +272,7 @@ public class MockCatalinaContext implements Context, Container, ServletContext {
     }
 
     public SecurityConstraint[] findConstraints() {
-        throw new RuntimeException("NYI");
+        return new SecurityConstraint[]{};
     }
 
     public ErrorPage findErrorPage(int arg0) {
@@ -430,8 +432,10 @@ public class MockCatalinaContext implements Context, Container, ServletContext {
     }
 
     public LoginConfig getLoginConfig() {
-        LoginConfig loginConfig = new LoginConfig();
-        loginConfig.setAuthMethod("BASIC");
+        if(loginConfig == null){
+            loginConfig = new LoginConfig();
+            loginConfig.setAuthMethod("BASIC");
+        }
         return loginConfig;
     }
 
@@ -448,7 +452,7 @@ public class MockCatalinaContext implements Context, Container, ServletContext {
     }
 
     public String getPath() {
-        throw new RuntimeException("NYI");
+        return this.path;
     }
 
     public boolean getPrivileged() {
@@ -589,6 +593,7 @@ public class MockCatalinaContext implements Context, Container, ServletContext {
     }
 
     public void setLoginConfig(LoginConfig arg0) {
+        this.loginConfig = arg0;
     }
 
     public void setNamingResources(NamingResources arg0) {
@@ -597,7 +602,8 @@ public class MockCatalinaContext implements Context, Container, ServletContext {
     public void setOverride(boolean arg0) {
     }
 
-    public void setPath(String arg0) {
+    public void setPath(String path) {
+        this.path = path;
     }
 
     public void setPrivileged(boolean arg0) {
@@ -771,7 +777,11 @@ public class MockCatalinaContext implements Context, Container, ServletContext {
     public void setAttribute(String arg0, Object arg1) {
         this.attribs.put(arg0, arg1);
     }
-    
+
+    public void setForwardPage(String page){
+        this.forwardPage = page;
+    }
+
     public String getForwardPage() {
         return forwardPage;
     }

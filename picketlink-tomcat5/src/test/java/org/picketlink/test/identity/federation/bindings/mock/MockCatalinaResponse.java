@@ -100,11 +100,11 @@ public class MockCatalinaResponse extends Response {
     @Override
     public void recycle() {
     }
-    
+
     @Override
     public void resetBuffer() {
     }
-    
+
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
         return this.os;
@@ -121,6 +121,14 @@ public class MockCatalinaResponse extends Response {
 
     @Override
     public void reset() {
+    }
 
+    @Override
+    public void addHeader(String name, String value) {
+        this.headers.put(name,value);
+    }
+
+    @Override
+    public void sendAcknowledgement() throws IOException {
     }
 }

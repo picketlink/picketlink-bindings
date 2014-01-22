@@ -45,6 +45,8 @@ import org.apache.catalina.SessionListener;
  */
 @SuppressWarnings({ "deprecation", "unchecked", "rawtypes" })
 public class MockCatalinaSession implements Session, HttpSession {
+    private Principal principal;
+
     private Map<String, Object> notes = new HashMap<String, Object>();
 
     public void setMaxInactiveInterval(int arg0) {
@@ -91,7 +93,7 @@ public class MockCatalinaSession implements Session, HttpSession {
     }
 
     public Principal getPrincipal() {
-        throw new RuntimeException("NYI");
+        return this.principal;
     }
 
     public HttpSession getSession() {
@@ -130,7 +132,8 @@ public class MockCatalinaSession implements Session, HttpSession {
         this.notes.put(arg0, arg1);
     }
 
-    public void setPrincipal(Principal arg0) {
+    public void setPrincipal(Principal principal) {
+        this.principal = principal;
     }
 
     public void setValid(boolean arg0) {
