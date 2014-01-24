@@ -24,7 +24,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
@@ -60,7 +63,7 @@ public class AccountChooserWorkflowUnitTestCase{
     public void testAccountChoosingforDomainA() throws Exception{
         AccountChooserValve accountChooserValve = new AccountChooserValve();
         accountChooserValve.setDomainName(domainName);
-        accountChooserValve.setIdentityProviderMap("DomainA=http://idp1;DomainB=http://idp2");
+        accountChooserValve.setAccountIDPMapProvider(MyAccountMapProvider.class.getName());
 
         MockCatalinaSession mockCatalinaSession = new MockCatalinaSession();
 
@@ -127,7 +130,7 @@ public class AccountChooserWorkflowUnitTestCase{
     public void testAccountChoosingforDomainB() throws Exception{
         AccountChooserValve accountChooserValve = new AccountChooserValve();
         accountChooserValve.setDomainName(domainName);
-        accountChooserValve.setIdentityProviderMap("DomainA=http://idp1;DomainB=http://idp2");
+        accountChooserValve.setAccountIDPMapProvider(MyAccountMapProvider.class.getName());
 
         MockCatalinaSession mockCatalinaSession = new MockCatalinaSession();
 
@@ -226,11 +229,28 @@ public class AccountChooserWorkflowUnitTestCase{
     }
 
     private class NoopValve extends ValveBase{
-
         @Override
         public void invoke(Request request, Response response) throws IOException, ServletException {
             MockCatalinaRequest mockCatalinaRequest = (MockCatalinaRequest) request;
             mockCatalinaRequest.setAttribute("NEED_AUTH", "true");
+        }
+    }
+
+    public static class MyAccountMapProvider implements AbstractAccountChooserValve.AccountIDPMapProvider{
+        @Override
+        public void setServletContext(ServletContext servletContext) {
+        }
+
+        @Override
+        public void setClassLoader(ClassLoader classLoader) {
+        }
+
+        @Override
+        public Map<String, String> getIDPMap() throws IOException {
+            Map<String,String> map = new HashMap<String, String>();
+            map.put("DomainA","http://idp1");
+            map.put("DomainB","http://idp2");
+            return map;
         }
     }
 }

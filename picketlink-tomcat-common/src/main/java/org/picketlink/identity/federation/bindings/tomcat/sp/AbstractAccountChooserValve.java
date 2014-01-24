@@ -18,7 +18,11 @@
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
 import org.apache.catalina.Context;
+import org.apache.catalina.Lifecycle;
+import org.apache.catalina.LifecycleException;
+import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.Session;
+import org.apache.catalina.Valve;
 import org.apache.catalina.authenticator.Constants;
 import org.apache.catalina.authenticator.SavedRequest;
 import org.apache.catalina.connector.Request;
@@ -28,16 +32,22 @@ import org.apache.coyote.ActionCode;
 import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.buf.MessageBytes;
 import org.apache.tomcat.util.http.MimeHeaders;
+import org.picketlink.common.PicketLinkLogger;
+import org.picketlink.common.PicketLinkLoggerFactory;
 import org.picketlink.common.util.StringUtil;
+import org.picketlink.identity.federation.bindings.tomcat.sp.plugins.PropertiesAccountMapProvider;
 
 import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.Security;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -46,37 +56,95 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Anil Saldhana
  * @since January 21, 2014
  */
-public abstract class AbstractAccountChooserValve extends ValveBase {
+public abstract class AbstractAccountChooserValve extends ValveBase{
+    protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
+
     public static final String ACCOUNT_CHOOSER_COOKIE_NAME = "picketlink.account.name";
 
     public static final String ACCOUNT_PARAMETER = "idp";
 
+    public static final String AUTHENTICATING = "AUTHENTICATING";
+
+    /**
+     * Domain Name to be used in the cookie that is sent out
+     */
     protected String domainName;
 
-    protected String accountHtml = "/accountChooser.html";
+    protected String accountChooserPage = "/accountChooser.html";
 
     protected ConcurrentHashMap<String, String> idpMap = new ConcurrentHashMap<String, String>();
 
+    protected AccountIDPMapProvider accountIDPMapProvider = new PropertiesAccountMapProvider();
+
+    /**
+     * Set the domain name for the cookie to be sent to the browser
+     * There is no default.
+     *
+     * Setting the domain name for the cookie is optional.
+     *
+     * @param domainName
+     */
     public void setDomainName(String domainName) {
         this.domainName = domainName;
     }
 
-    public void setIdentityProviderMap(String csv) {
-        String[] keyValues = StringUtil.split(csv, ";");
-        for (String keyValue : keyValues) {
-            String[] idpPair = StringUtil.split(keyValue, "=");
-            idpMap.put(idpPair[0], idpPair[1]);
+    /**
+     * Set the fully qualified name of the implementation of
+     * {@link org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve.AccountIDPMapProvider}
+     *
+     * Default: {@link org.picketlink.identity.federation.bindings.tomcat.sp.plugins.PropertiesAccountMapProvider}
+     * @param idpMapProviderName
+     */
+    public void setAccountIDPMapProvider(String idpMapProviderName){
+        if(StringUtil.isNotNull(idpMapProviderName)){
+            Class<?> clazz = SecurityActions.loadClass(getClass(),idpMapProviderName);
+            try {
+                accountIDPMapProvider = (AccountIDPMapProvider) clazz.newInstance();
+            } catch (InstantiationException e) {
+                logger.processingError(e);
+            } catch (IllegalAccessException e) {
+                logger.processingError(e);
+            }
         }
     }
 
-    public void setAccountHtml(String html) {
-        this.accountHtml = html;
+    /**
+     * Set the name of the html or jsp page that has the accounts for the
+     * user to choose.
+     * Default: "/accountChooser.html" is used
+     *
+     * @param pageName
+     */
+    public void setAccountChooserPage(String pageName) {
+        this.accountChooserPage = pageName;
+    }
+
+
+    @Override
+    public void setNext(Valve valve) {
+        super.setNext(valve);
+        //Let us populate the IDP Provider Map
+        try {
+            Context context = (Context) getContainer();
+            accountIDPMapProvider.setServletContext(context.getServletContext());
+            idpMap.putAll(accountIDPMapProvider.getIDPMap());
+        } catch (IOException e) {
+            logger.processingError(e);
+        }
     }
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
+        Session session = request.getSessionInternal();
+
+        if(idpMap.isEmpty()){
+            idpMap.putAll(accountIDPMapProvider.getIDPMap());
+        }
+
+        String sessionState = (String) session.getNote("STATE");
+
         String cookieValue = cookieValue(request);
-        if (cookieValue != null) {
+        if (cookieValue != null || AUTHENTICATING.equals(sessionState)) {
             proceedToAuthentication(request, response, cookieValue);
         } else {
             String idpChosenKey = request.getParameter(ACCOUNT_PARAMETER);
@@ -84,13 +152,17 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
                 String chosenIDP = idpMap.get(idpChosenKey);
                 if (chosenIDP != null) {
                     request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+                    session.setNote("STATE",AUTHENTICATING);
                     proceedToAuthentication(request, response, idpChosenKey);
+                }else {
+                    logger.configurationFileMissing(":IDP Mapping");
+                    throw new ServletException();
                 }
             } else {
                 // redirect to provided html
                 saveRequest(request, request.getSessionInternal());
                 Context context = (Context) getContainer();
-                RequestDispatcher requestDispatcher = context.getServletContext().getRequestDispatcher(accountHtml);
+                RequestDispatcher requestDispatcher = context.getServletContext().getRequestDispatcher(accountChooserPage);
                 if(requestDispatcher != null){
                     requestDispatcher.forward(request,response);
                 }
@@ -103,11 +175,22 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         try {
             getNext().invoke(request, response);
         } finally {
-            // Send back a cookie
-            Cookie cookie = new Cookie(ACCOUNT_CHOOSER_COOKIE_NAME, cookieValue);
-            cookie.setDomain(domainName);
-            cookie.setMaxAge(-1);
-            response.addCookie(cookie);
+            Session session = request.getSessionInternal();
+
+            String state = (String) session.getNote("STATE");
+
+            //If we are authenticated and registered at the service provider
+            if(request.getUserPrincipal() != null && StringUtil.isNotNull(state)){
+                session.removeNote("STATE");
+                // Send back a cookie
+                Context context = (Context) getContainer();
+                String contextpath = context.getPath();
+
+                Cookie cookie = new Cookie(ACCOUNT_CHOOSER_COOKIE_NAME, cookieValue);
+                cookie.setPath(contextpath);
+                cookie.setMaxAge(-1);
+                response.addCookie(cookie);
+            }
         }
     }
 
@@ -115,9 +198,20 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if (cookie.getDomain().equalsIgnoreCase(domainName)) {
+                String cookieName = cookie.getName();
+                String cookieDomain = cookie.getDomain();
+                if (cookieDomain != null && cookieDomain.equalsIgnoreCase(domainName)) {
                     // Found a cookie with the same domain name
-                    String cookieName = cookie.getName();
+                    if (ACCOUNT_CHOOSER_COOKIE_NAME.equals(cookieName)) {
+                        // Found cookie
+                        String cookieValue = cookie.getValue();
+                        String chosenIDP = idpMap.get(cookieValue);
+                        if (chosenIDP != null) {
+                            request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+                            return cookieValue;
+                        }
+                    }
+                }else{
                     if (ACCOUNT_CHOOSER_COOKIE_NAME.equals(cookieName)) {
                         // Found cookie
                         String cookieValue = cookie.getValue();
@@ -150,4 +244,25 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
      * @param session The session containing the saved information
      */
     protected abstract boolean restoreRequest(Request request, Session session) throws IOException;
+
+    /**
+     * Interface for obtaining the Identity Provider Mapping
+     */
+    public interface AccountIDPMapProvider{
+        /**
+         * Set the servlet context for resources on web classpath
+         * @param servletContext
+         */
+        void setServletContext(ServletContext servletContext);
+        /**
+         * Set a {@link java.lang.ClassLoader} for the Provider
+         * @param classLoader
+         */
+        void setClassLoader(ClassLoader classLoader);
+        /**
+         * Get a map of AccountName versus IDP URLs
+         * @return
+         */
+        Map<String,String> getIDPMap() throws IOException;
+    }
 }
