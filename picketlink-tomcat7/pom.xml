@@ -13,7 +13,7 @@
 	<properties>
 		<jboss-servlet-api_3.0_spec.version>1.0.0.Final</jboss-servlet-api_3.0_spec.version>
 		<jbossxacml.version>2.0.4</jbossxacml.version>
-		<catalina.version>7.0.27</catalina.version>
+		<catalina.version>7.0.50</catalina.version>
 	</properties>
 
 	<dependencies>
@@ -42,6 +42,12 @@
 		<dependency>
 			<groupId>org.apache.tomcat</groupId>
 			<artifactId>tomcat-catalina</artifactId>
+			<version>${catalina.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-coyote</artifactId>
 			<version>${catalina.version}</version>
 			<optional>true</optional>
 		</dependency>
