@@ -37,6 +37,7 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.valves.ValveBase;
+import org.jboss.security.SimplePrincipal;
 import org.junit.Test;
 import org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve;
 import org.picketlink.identity.federation.bindings.tomcat.sp.AccountChooserValve;
@@ -122,6 +123,12 @@ public class AccountChooserWorkflowUnitTestCase{
         //Ensure that the SP is trying to redirect to idp1 which is the equivalent for DomainA
         assertTrue(spResponse.contains("http://idp1"));
 
+        //Let us assume that the IDP interaction succeeds and we have a principal now
+        catalinaRequest.setUserPrincipal(new SimplePrincipal("anil"));
+
+        //Let us invoke to get back a cookie
+        accountChooserValve.invoke(catalinaRequest,catalinaResponse);
+
         //Also ensure that we do have a local cookie set by the SP
         assertEquals("DomainA", cookieValue(catalinaResponse));
     }
@@ -190,6 +197,13 @@ public class AccountChooserWorkflowUnitTestCase{
         //Ensure that the SP is trying to redirect to idp2 which is the equivalent for DomainB
         assertTrue(spResponse.contains("http://idp2"));
 
+
+        //Let us assume that the IDP interaction succeeds and we have a principal now
+        catalinaRequest.setUserPrincipal(new SimplePrincipal("anil"));
+
+        //Let us invoke to get back a cookie
+        accountChooserValve.invoke(catalinaRequest,catalinaResponse);
+
         //Also ensure that we do have a local cookie set by the SP
         assertEquals("DomainB",cookieValue(catalinaResponse));
     }
@@ -215,13 +229,10 @@ public class AccountChooserWorkflowUnitTestCase{
         Cookie[] cookies = response.getCookies();
         if(cookies != null){
             for (Cookie cookie : cookies) {
-                if (cookie.getDomain().equalsIgnoreCase(domainName)) {
-                    // Found a cookie with the same domain name
-                    String cookieName = cookie.getName();
-                    if (AbstractAccountChooserValve.ACCOUNT_CHOOSER_COOKIE_NAME.equals(cookieName)) {
-                        // Found cookie
-                        return cookie.getValue();
-                    }
+                String cookieName = cookie.getName();
+                if (AbstractAccountChooserValve.ACCOUNT_CHOOSER_COOKIE_NAME.equals(cookieName)) {
+                    // Found cookie
+                    return cookie.getValue();
                 }
             }
         }
