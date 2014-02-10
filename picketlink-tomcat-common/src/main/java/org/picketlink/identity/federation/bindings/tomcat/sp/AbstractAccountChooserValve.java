@@ -186,6 +186,10 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
                 Context context = (Context) getContainer();
                 String contextpath = context.getPath();
 
+                if(cookieValue == null){
+                    cookieValue = request.getParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER);
+                }
+
                 Cookie cookie = new Cookie(ACCOUNT_CHOOSER_COOKIE_NAME, cookieValue);
                 cookie.setPath(contextpath);
                 cookie.setMaxAge(-1);
