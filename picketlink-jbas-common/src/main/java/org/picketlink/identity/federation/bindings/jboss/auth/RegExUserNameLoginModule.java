@@ -37,6 +37,7 @@ import org.picketlink.common.util.StringUtil;
  * @since February 10, 2014
  */
 public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
+    private static final String REGEX_MODULE_OPTION = "regex";
 
     /** The login identity */
     private Principal identity;
@@ -47,11 +48,11 @@ public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
 
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
-        this.addValidOptions(new String[] {"regex"});
+        this.addValidOptions(new String[] {REGEX_MODULE_OPTION});
         super.initialize(subject, callbackHandler, sharedState, options);
 
         //The format is in the options
-        String regex = (String) options.get("regex");
+        String regex = (String) options.get(REGEX_MODULE_OPTION);
         if(regex == null){
             log.error("regex module option not found");
         }
