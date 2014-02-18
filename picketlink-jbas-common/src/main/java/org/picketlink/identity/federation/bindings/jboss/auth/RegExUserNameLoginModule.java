@@ -19,13 +19,16 @@ package org.picketlink.identity.federation.bindings.jboss.auth;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 
-import org.jboss.security.ErrorCodes;
 import org.jboss.security.auth.spi.UsernamePasswordLoginModule;
+import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.util.StringUtil;
 
 /**
@@ -40,27 +43,39 @@ public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
     /** The proof of login identity */
     private char[] credential;
 
+    private Pattern pattern;
+
+    @Override
+    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+        this.addValidOptions(new String[] {"regex"});
+        super.initialize(subject, callbackHandler, sharedState, options);
+
+        //The format is in the options
+        String regex = (String) options.get("regex");
+        if(regex == null){
+            log.error("regex module option not found");
+        }
+        pattern = Pattern.compile(regex);
+    }
+
     @Override
     public boolean login() throws LoginException {
         // Setup our view of the user
         Object username = sharedState.get("javax.security.auth.login.name");
 
         if(username == null){
-            throw new LoginException(ErrorCodes.PROCESSING_FAILED  + ": No username");
+            throw new LoginException(ErrorCodes.NULL_ARGUMENT  + ": No username");
         }
 
         if( username instanceof Principal){
             identity = (Principal) username;
 
             String extractedUserName = extractUserName(identity.getName());
-            try
-            {
+            try{
                 identity = createIdentity(extractedUserName);
             }
-            catch(Exception e)
-            {
+            catch(Exception e){
                 log.debug("Failed to create principal", e);
-
             }
         }
         else
@@ -68,21 +83,19 @@ public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
             String name = username.toString();
 
             name = extractUserName(name);
-            try
-            {
+            try{
                 identity = createIdentity(name);
             }
-            catch(Exception e)
-            {
+            catch(Exception e){
                 log.debug("Failed to create principal", e);
-                throw new LoginException(ErrorCodes.PROCESSING_FAILED  + "Failed to create principal: "+ e.getMessage());
+                throw new LoginException(ErrorCodes.PROCESSING_EXCEPTION + "Failed to create principal: "+ e.getMessage());
             }
         }
         Object password = sharedState.get("javax.security.auth.login.password");
-        if( password instanceof char[] )
+        if( password instanceof char[] ){
             credential = (char[]) password;
-        else if( password != null )
-        {
+        }
+        else if( password != null ) {
             String tmp = password.toString();
             credential = tmp.toCharArray();
         }
@@ -103,19 +116,12 @@ public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
         return new Group[0];
     }
 
-    protected String extractUserName(String theName){
-        //The format is in the options
-        String regex = (String) options.get("regex");
-        if(StringUtil.isNotNull(regex)){
-            Pattern pattern = Pattern.compile(regex);
+    protected String extractUserName(String theName) {
+        Matcher matcher = pattern.matcher(theName);
 
-            Matcher matcher = pattern.matcher(theName);
-
-            while(matcher.find()){
-                return matcher.group(1);
-            }
+        if (matcher.find() && matcher.groupCount() > 0) {
+            return matcher.group(1);
         }
-
         return theName;
     }
 }
