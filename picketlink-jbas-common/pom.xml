@@ -12,7 +12,7 @@
 	
 	<properties>
 		<jbossws-common.version>1.4.1.GA</jbossws-common.version>
-		<jboss-logging-spi.version>2.1.0.GA</jboss-logging-spi.version>
+		<jboss-logging.version>3.1.0.GA</jboss-logging.version>
 		<jbossxacml.version>2.0.4</jbossxacml.version>
 		<catalina.version>6.0.18</catalina.version>
 	</properties>
@@ -45,8 +45,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.jboss.logging</groupId>
-			<artifactId>jboss-logging-spi</artifactId>
-			<version>${jboss-logging-spi.version}</version>
+			<artifactId>jboss-logging</artifactId>
+			<version>${jboss-logging.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
