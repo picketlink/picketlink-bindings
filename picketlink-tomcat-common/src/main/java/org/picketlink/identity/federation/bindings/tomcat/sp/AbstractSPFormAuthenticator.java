@@ -561,7 +561,6 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
                     logger.trace("Redirecting back to original Request URI: " + requestURI);
                     response.sendRedirect(response.encodeRedirectURL(requestURI));
-                    return false;
                 }
 
                 register(request, response, principal, Constants.FORM_METHOD, username, password);
@@ -686,7 +685,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
         if (destination != null && samlResponseDocument != null) {
             try {
-                if (saveRestoreRequest) {
+                if (saveRestoreRequest && !isGlobalLogout(request)) {
                     this.saveRequest(request, session);
                 }
                 if (enableAudit) {
