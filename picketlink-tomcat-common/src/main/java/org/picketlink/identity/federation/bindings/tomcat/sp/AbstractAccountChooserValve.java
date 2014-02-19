@@ -164,7 +164,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
                 Context context = (Context) getContainer();
                 RequestDispatcher requestDispatcher = context.getServletContext().getRequestDispatcher(accountChooserPage);
                 if(requestDispatcher != null){
-                    requestDispatcher.forward(request,response);
+                    requestDispatcher.forward(request.getRequest(),response);
                 }
             }
         }
