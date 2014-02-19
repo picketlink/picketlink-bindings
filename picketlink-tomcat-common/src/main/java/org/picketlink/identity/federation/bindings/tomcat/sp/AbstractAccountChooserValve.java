@@ -77,6 +77,12 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
     protected AccountIDPMapProvider accountIDPMapProvider = new PropertiesAccountMapProvider();
 
     /**
+     * Sets the account chooser cookie expiry. By default, we choose -1 which means
+     * cookie exists for the remainder of the browser session.
+     */
+    protected int cookieExpiry = -1;
+
+    /**
      * Set the domain name for the cookie to be sent to the browser
      * There is no default.
      *
@@ -88,6 +94,19 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
         this.domainName = domainName;
     }
 
+    /**
+     * Set the cookie expiry in seconds.
+     * Default value is -1
+     * @param value
+     */
+    public void setCookieExpiry(String value){
+        try{
+            int expiry = Integer.parseInt(value);
+            cookieExpiry = expiry;
+        }catch(NumberFormatException nfe){
+            logger.processingError(nfe);
+        }
+    }
     /**
      * Set the fully qualified name of the implementation of
      * {@link org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve.AccountIDPMapProvider}
@@ -192,7 +211,10 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
 
                 Cookie cookie = new Cookie(ACCOUNT_CHOOSER_COOKIE_NAME, cookieValue);
                 cookie.setPath(contextpath);
-                cookie.setMaxAge(-1);
+                cookie.setMaxAge(cookieExpiry);
+                if(domainName != null){
+                    cookie.setDomain(domainName);
+                }
                 response.addCookie(cookie);
             }
         }
