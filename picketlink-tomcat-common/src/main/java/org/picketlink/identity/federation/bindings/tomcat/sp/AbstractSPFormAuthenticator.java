@@ -32,6 +32,7 @@ import org.apache.catalina.deploy.LoginConfig;
 import org.jboss.security.audit.AuditLevel;
 import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.constants.GeneralConstants;
+import org.picketlink.common.constants.JBossSAMLConstants;
 import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.exceptions.ParsingException;
 import org.picketlink.common.exceptions.ProcessingException;
@@ -59,10 +60,12 @@ import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
 import org.picketlink.identity.federation.web.util.RedirectBindingUtil.RedirectBindingUtilDestHolder;
 import org.picketlink.identity.federation.web.util.ServerDetector;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.Principal;
@@ -70,7 +73,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import static org.picketlink.common.util.StringUtil.*;
+import static org.picketlink.common.util.StringUtil.isNotNull;
+import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
+import static org.picketlink.identity.federation.bindings.tomcat.sp.AbstractSAML11SPRedirectFormAuthenticator.handleSAML11UnsolicitedResponse;
 
 /**
  * <p>
@@ -420,6 +425,25 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         return localAuthentication(request, response, loginConfig);
     }
 
+    private Document toSAMLResponseDocument(String samlResponse, boolean isPostBinding) throws ParsingException {
+        InputStream dataStream = null;
+
+        if (isPostBinding) {
+            // deal with SAML response from IDP
+            dataStream = PostBindingUtil.base64DecodeAsStream(samlResponse);
+        } else {
+            // deal with SAML response from IDP
+            dataStream = RedirectBindingUtil.base64DeflateDecode(samlResponse);
+        }
+
+        try {
+            return DocumentUtil.getDocument(dataStream);
+        } catch (Exception e) {
+            logger.samlResponseFromIDPParsingFailed();
+            throw new ParsingException("", e);
+        }
+    }
+
     /**
      * Handle IDP Response
      *
@@ -430,20 +454,29 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
      * @throws IOException
      */
     private boolean handleSAMLResponse(Request request, Response response, LoginConfig loginConfig) throws IOException {
+        if (!super.validate(request)) {
+            throw new IOException(ErrorCodes.VALIDATION_CHECK_FAILED);
+        }
+
+        String samlVersion = getSAMLVersion(request);
+
+        if (!JBossSAMLConstants.VERSION_2_0.get().equals(samlVersion)) {
+            return handleSAML11UnsolicitedResponse(request, response, loginConfig, this);
+        }
+
+        return handleSAML2Response(request, response, loginConfig);
+    }
+
+    private boolean handleSAML2Response(Request request, Response response, LoginConfig loginConfig) throws IOException {
         Session session = request.getSessionInternal(true);
         String samlResponse = request.getParameter(GeneralConstants.SAML_RESPONSE_KEY);
-
-        boolean willSendRequest = false;
         HTTPContext httpContext = new HTTPContext(request, response, context.getServletContext());
         Set<SAML2Handler> handlers = chain.handlers();
 
         Principal principal = request.getUserPrincipal();
 
-        if (!super.validate(request)) {
-            throw new IOException(ErrorCodes.VALIDATION_CHECK_FAILED);
-        }
+        boolean willSendRequest;// deal with SAML response from IDP
 
-        // deal with SAML response from IDP
         try {
             ServiceProviderSAMLResponseProcessor responseProcessor = new ServiceProviderSAMLResponseProcessor(request.getMethod().equals("POST"), serviceURL, this.picketLinkConfiguration);
             if(auditHelper !=  null){
@@ -528,7 +561,6 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
                     logger.trace("Redirecting back to original Request URI: " + requestURI);
                     response.sendRedirect(response.encodeRedirectURL(requestURI));
-                    return false;
                 }
 
                 register(request, response, principal, Constants.FORM_METHOD, username, password);
@@ -555,6 +587,31 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         }
 
         return localAuthentication(request, response, loginConfig);
+    }
+
+    private String getSAMLVersion(Request request) {
+        String samlResponse = request.getParameter(GeneralConstants.SAML_RESPONSE_KEY);
+        String version;
+
+        try {
+            Document samlDocument = toSAMLResponseDocument(samlResponse, "POST".equalsIgnoreCase(request.getMethod()));
+            Element element = samlDocument.getDocumentElement();
+
+            // let's try SAML 2.0 Version attribute first
+            version = element.getAttribute("Version");
+
+            if (isNullOrEmpty(version)) {
+                // fallback to SAML 1.1 Minor and Major attributes
+                String minorVersion = element.getAttribute("MinorVersion");
+                String majorVersion = element.getAttribute("MajorVersion");
+
+                version = minorVersion + "." + majorVersion;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Could not extract version from SAML Response.", e);
+        }
+
+        return version;
     }
 
     protected boolean isPOSTBindingResponse() {
@@ -628,7 +685,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
         if (destination != null && samlResponseDocument != null) {
             try {
-                if (saveRestoreRequest) {
+                if (saveRestoreRequest && !isGlobalLogout(request)) {
                     this.saveRequest(request, session);
                 }
                 if (enableAudit) {
@@ -659,9 +716,13 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         return getBinding().equalsIgnoreCase("POST");
     }
 
-
-    protected Context getContext() {
+    public Context getContext() {
         return (Context) getContainer();
+    }
+
+    @Override
+    public boolean restoreRequest(Request request, Session session) throws IOException {
+        return super.restoreRequest(request, session);
     }
 
     /**
@@ -674,4 +735,5 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
     protected Principal getGenericPrincipal(Request request, String username, List<String> roles){
         return (new SPUtil()).createGenericPrincipal(request, username, roles);
     }
+
 }
