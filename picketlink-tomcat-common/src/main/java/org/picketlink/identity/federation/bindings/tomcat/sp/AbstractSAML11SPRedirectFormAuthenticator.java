@@ -1,13 +1,5 @@
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
-import static org.picketlink.common.util.StringUtil.isNotNull;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Session;
 import org.apache.catalina.authenticator.Constants;
@@ -27,15 +19,33 @@ import org.picketlink.identity.federation.saml.v1.protocol.SAML11ResponseType;
 import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
 import org.picketlink.identity.federation.web.util.ServerDetector;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.picketlink.common.util.StringUtil.isNotNull;
+
 /**
  * Authenticator for SAML 1.1 processing at the Service Provider
  * @author anil saldhana
  * @since Jul 7, 2011
  */
 public abstract class AbstractSAML11SPRedirectFormAuthenticator extends AbstractSPFormAuthenticator {
-    
+
     @Override
     public boolean authenticate(Request request, Response response, LoginConfig loginConfig) throws IOException {
+        if (handleSAML11UnsolicitedResponse(request, response, loginConfig, this)) {
+            return true;
+        }
+
+        logger.trace("Falling back on local Form Authentication if available");
+        // fallback
+        return super.authenticate(request, response, loginConfig);
+    }
+
+    public static boolean handleSAML11UnsolicitedResponse(Request request, Response response, LoginConfig loginConfig, AbstractSPFormAuthenticator formAuthenticator) throws IOException {
         String samlResponse = request.getParameter(GeneralConstants.SAML_RESPONSE_KEY);
 
         Principal principal = request.getUserPrincipal();
@@ -50,7 +60,7 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
         if (isNotNull(samlResponse)) {
             boolean isValid = false;
             try {
-                isValid = this.validate(request);
+                isValid = formAuthenticator.validate(request);
             } catch (Exception e) {
                 logger.samlSPHandleRequestError(e);
                 throw new IOException();
@@ -86,10 +96,10 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
                 String password = ServiceProviderSAMLContext.EMPTY_PASSWORD;
 
                 // Map to JBoss specific principal
-                if ((new ServerDetector()).isJboss() || jbossEnv) {
+                if ((new ServerDetector()).isJboss() || formAuthenticator.jbossEnv) {
                     // Push a context
                     ServiceProviderSAMLContext.push(username, roles);
-                    principal = context.getRealm().authenticate(username, password);
+                    principal = formAuthenticator.getContext().getRealm().authenticate(username, password);
                     ServiceProviderSAMLContext.clear();
                 } else {
                     // tomcat env
@@ -101,10 +111,10 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
                 session.setNote(Constants.SESS_PASSWORD_NOTE, password);
                 request.setUserPrincipal(principal);
 
-                if (saveRestoreRequest) {
-                    this.restoreRequest(request, session);
+                if (formAuthenticator.saveRestoreRequest) {
+                    formAuthenticator.restoreRequest(request, session);
                 }
-                register(request, response, principal, Constants.FORM_METHOD, username, password);
+                formAuthenticator.register(request, response, principal, Constants.FORM_METHOD, username, password);
 
                 return true;
             } catch (Exception e) {
@@ -112,11 +122,9 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
             }
         }
 
-        logger.trace("Falling back on local Form Authentication if available");
-        // fallback
-        return super.authenticate(request, response, loginConfig);
+        return false;
     }
-    
+
     protected void startPicketLink() throws LifecycleException{
         super.startPicketLink();
         this.spConfiguration.setBindingType("REDIRECT");
