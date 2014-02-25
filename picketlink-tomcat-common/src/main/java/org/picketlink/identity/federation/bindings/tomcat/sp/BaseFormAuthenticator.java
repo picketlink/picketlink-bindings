@@ -615,6 +615,10 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
+                    //Clear the configuration
+                    picketLinkConfiguration = null;
+                    spConfiguration = null;
+
                     processConfiguration();
                     try {
                         initKeyProvider(context);
