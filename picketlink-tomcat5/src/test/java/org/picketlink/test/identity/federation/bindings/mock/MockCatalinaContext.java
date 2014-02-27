@@ -40,6 +40,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.catalina.Cluster;
 import org.apache.catalina.Container;
@@ -717,12 +718,17 @@ public class MockCatalinaContext implements Context, Container, ServletContext {
             public void include(ServletRequest arg0, ServletResponse arg1) throws ServletException, IOException {
             }
 
-            public void forward(ServletRequest arg0, ServletResponse arg1) throws ServletException, IOException {
+            public void forward(ServletRequest servletRequest, ServletResponse servletResponse) throws ServletException, IOException {
                 forwardPage = path;
-                if (arg0 instanceof MockCatalinaRequest) {
-                    MockCatalinaRequest mockRequest = (MockCatalinaRequest) arg0;
+                MockCatalinaRequest mockCatalinaRequest = null;
 
-                    mockRequest.setForwardPath(path);
+                if (servletRequest instanceof MockCatalinaRequest) {
+                    mockCatalinaRequest = (MockCatalinaRequest) servletRequest;
+
+                    mockCatalinaRequest.setForwardPath(path);
+                }else if(servletRequest instanceof HttpServletRequest){
+                    HttpServletRequest requestFacade = (HttpServletRequest) servletRequest;
+                    requestFacade.setAttribute("FORWARD_PATH",path);
                 }
             }
         };
