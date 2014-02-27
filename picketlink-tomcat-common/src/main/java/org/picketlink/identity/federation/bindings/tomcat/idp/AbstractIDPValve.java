@@ -1513,6 +1513,10 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         logger.trace("Issuer: " + spIssuer + ", isRequestSigned: " + isRequestSigned);
 
+        if(isRequestSigned == null){
+            isRequestSigned = Boolean.FALSE;
+        }
+
         return !isRequestSigned;
     }
 
