@@ -39,6 +39,7 @@ import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.valves.ValveBase;
 import org.jboss.security.SimplePrincipal;
 import org.junit.Test;
+import org.picketlink.common.util.StringUtil;
 import org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve;
 import org.picketlink.identity.federation.bindings.tomcat.sp.AccountChooserValve;
 import org.picketlink.identity.federation.bindings.tomcat.sp.SPPostFormAuthenticator;
@@ -106,7 +107,11 @@ public class AccountChooserWorkflowUnitTestCase{
         accountChooserValve.invoke(catalinaRequest,catalinaResponse);
 
         //Ensure that the account chooser page was set as the forward path
-        assertTrue(catalinaRequest.getForwardPath().contains("account"));
+        String forwardPath = catalinaRequest.getForwardPath();
+        if(StringUtil.isNullOrEmpty(forwardPath)){
+            forwardPath = (String) catalinaRequest.getAttribute("FORWARD_PATH");
+        }
+        assertTrue(forwardPath.contains("account"));
 
         //Assume user chose DomainA
         catalinaRequest.setParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER, "DomainA");
@@ -180,7 +185,11 @@ public class AccountChooserWorkflowUnitTestCase{
         accountChooserValve.invoke(catalinaRequest,catalinaResponse);
 
         //Ensure that the account chooser page was set as the forward path
-        assertTrue(catalinaRequest.getForwardPath().contains("account"));
+        String forwardPath = catalinaRequest.getForwardPath();
+        if(StringUtil.isNullOrEmpty(forwardPath)){
+            forwardPath = (String) catalinaRequest.getAttribute("FORWARD_PATH");
+        }
+        assertTrue(forwardPath.contains("account"));
 
         //Assume user chose DomainB
         catalinaRequest.setParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER, "DomainB");
