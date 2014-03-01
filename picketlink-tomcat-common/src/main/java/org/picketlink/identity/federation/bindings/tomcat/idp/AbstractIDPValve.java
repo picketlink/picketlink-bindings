@@ -469,6 +469,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         String signature = request.getParameter(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
         String sigAlg = request.getParameter(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
         String relayState = request.getParameter(GeneralConstants.RELAY_STATE);
+        String samlBinding = request.getMethod();
 
         if (isNotNull(relayState)) {
             relayState = RedirectBindingUtil.urlDecode(relayState);
@@ -488,6 +489,8 @@ public abstract class AbstractIDPValve extends ValveBase {
                 session.setNote(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY, signature.trim());
             if (isNotNull(sigAlg))
                 session.setNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY, sigAlg.trim());
+            if (isNotNull(samlBinding))
+            	session.setNote(GeneralConstants.SAML_BINDING, samlBinding);
         }
     }
 
@@ -716,6 +719,8 @@ public abstract class AbstractIDPValve extends ValveBase {
         String samlRequestMessage = (String) session.getNote(GeneralConstants.SAML_REQUEST_KEY);
 
         String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
+        
+        String samlBinding = (String) session.getNote(GeneralConstants.SAML_BINDING);
 
         String contextPath = getContextPath();
 
@@ -729,7 +734,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         boolean isSecure = request.isSecure();
         String loginType = determineLoginType(isSecure);
 
-        IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
+        IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(samlBinding, request, idpConfiguration, keyManager);
         SAMLDocumentHolder samlDocumentHolder = null;
         SAML2Object samlObject = null;
 
@@ -1098,7 +1103,8 @@ public abstract class AbstractIDPValve extends ValveBase {
         String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
         String signature = (String) session.getNote(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
         String sigAlg = (String) session.getNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
-
+        String samlBinding = (String) session.getNote(GeneralConstants.SAML_BINDING);
+        
         if (logger.isTraceEnabled()) {
             StringBuilder builder = new StringBuilder();
             builder.append("Retrieved saml messages and relay state from session");
@@ -1107,6 +1113,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             builder.append(samlResponseMessage).append(":").append("relay state=").append(relayState);
 
             builder.append("Signature=").append(signature).append("::sigAlg=").append(sigAlg);
+            builder.append(" SamlBinding=").append(samlBinding);
             logger.trace(builder.toString());
         }
 
@@ -1122,6 +1129,8 @@ public abstract class AbstractIDPValve extends ValveBase {
             session.removeNote(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
         if (isNotNull(sigAlg))
             session.removeNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
+        if (isNotNull(samlBinding))
+        	session.removeNote(GeneralConstants.SAML_BINDING);
     }
 
     protected void sendErrorResponseToSP(String referrer, Response response, String relayState, IDPWebRequestUtil webRequestUtil)
