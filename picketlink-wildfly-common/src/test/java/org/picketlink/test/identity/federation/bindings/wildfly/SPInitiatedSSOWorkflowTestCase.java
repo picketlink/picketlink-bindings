@@ -211,6 +211,17 @@ public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
 
         @Override
         protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
+            writeLoginForm(resp);
+
+        }
+
+        @Override
+        protected void doPost(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
+            writeLoginForm(resp);
+
+        }
+
+        private void writeLoginForm(HttpServletResponse resp) throws IOException {
             Writer writer = resp.getWriter();
             writer.write("Login Page");
             writer.write("<form id=\"login_form\" name=\"login_form\" method=\"post\"\n" +
@@ -230,7 +241,6 @@ public class SPInitiatedSSOWorkflowTestCase extends UndertowTestCase {
                     "                                </center>\n" +
                     "                        </div>\n" +
                     "                </form>");
-
         }
     }
 

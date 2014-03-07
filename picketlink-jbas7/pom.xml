@@ -12,7 +12,7 @@
 	
 	<properties>
 		<picketbox.version>4.0.7.Final</picketbox.version>
-		<jbossweb.version>7.4.0.Beta3</jbossweb.version>
+		<jbossweb.version>7.0.13.Final</jbossweb.version>
 		<cxf-api.version>2.4.6</cxf-api.version>
 	</properties>
 	
