@@ -113,15 +113,16 @@ import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMechanism {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
+
     protected transient String samlHandlerChainClass = null;
 
-    protected ServletContext servletContext = null;
+    protected final ServletContext servletContext;
 
     protected Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
     /**
      * The user can inject a fully qualified name of a {@link org.picketlink.identity.federation.web.util.SAMLConfigurationProvider}
      */
-    protected SAMLConfigurationProvider configProvider = null;
+    protected SAMLConfigurationProvider configProvider;
     /**
      * If the service provider is configured with an IDP metadata file, then this certificate can be picked up from the metadata
      */
@@ -129,7 +130,6 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     protected int timerInterval = -1;
 
     protected Timer timer = null;
-
 
     public static final String EMPTY_PASSWORD = "EMPTY_STR";
 
@@ -162,17 +162,15 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
     protected String canonicalizationMethod = CanonicalizationMethod.EXCLUSIVE_WITH_COMMENTS;
 
-    protected PicketLinkAuditHelper auditHelper = null;
+    protected PicketLinkAuditHelper auditHelper;
     protected TrustKeyManager keyManager;
 
-    public SPFormAuthenticationMechanism(FormParserFactory parserFactory, String name, String loginPage, String errorPage, ServletContext servletContext) {
+    public SPFormAuthenticationMechanism(FormParserFactory parserFactory, String name, String loginPage, String errorPage, ServletContext servletContext, SAMLConfigurationProvider configProvider, PicketLinkAuditHelper auditHelper) {
         super(parserFactory, name, loginPage, errorPage);
         this.servletContext = servletContext;
-        startPicketLink();
-    }
-
-    public void setAuditHelper(PicketLinkAuditHelper auditHelper) {
+        this.configProvider = configProvider;
         this.auditHelper = auditHelper;
+        startPicketLink();
     }
 
     @Override
@@ -188,7 +186,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         // Get the session
 
         final ServletRequestContext servletRequestContext = exchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
-        ServletContext servletContext = servletRequestContext.getCurrentServetContext();
+        ServletContext servletContext = servletRequestContext.getCurrentServletContext();
         HttpServletRequest request = (HttpServletRequest) servletRequestContext.getServletRequest();
         HttpServletResponse response = (HttpServletResponse) servletRequestContext.getServletResponse();
 
@@ -280,7 +278,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         serviceProviderSAMLWorkflow.setRedirectionHandler(new UndertowRedirectionHandler(httpServerExchange));
 
         final ServletRequestContext servletRequestContext = httpServerExchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
-        ServletContext servletContext = servletRequestContext.getCurrentServetContext();
+        ServletContext servletContext = servletRequestContext.getCurrentServletContext();
         HttpServletRequest request = (HttpServletRequest) servletRequestContext.getServletRequest();
         HttpServletResponse response = (HttpServletResponse) servletRequestContext.getServletResponse();
 
@@ -366,7 +364,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     protected AuthenticationMechanismOutcome localAuthentication(HttpServerExchange httpServerExchange, SecurityContext securityContext) throws IOException {
 
         final ServletRequestContext servletRequestContext = httpServerExchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
-        ServletContext servletContext = servletRequestContext.getCurrentServetContext();
+        ServletContext servletContext = servletRequestContext.getCurrentServletContext();
         HttpServletRequest request = (HttpServletRequest) servletRequestContext.getServletRequest();
         HttpServletResponse response = (HttpServletResponse) servletRequestContext.getServletResponse();
 
@@ -401,7 +399,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
      */
     private AuthenticationMechanismOutcome handleSAMLRequest(HttpServerExchange httpServerExchange, SecurityContext securityContext) throws IOException {
         final ServletRequestContext servletRequestContext = httpServerExchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
-        ServletContext servletContext = servletRequestContext.getCurrentServetContext();
+        ServletContext servletContext = servletRequestContext.getCurrentServletContext();
         HttpServletRequest request = (HttpServletRequest) servletRequestContext.getServletRequest();
         HttpServletResponse response = (HttpServletResponse) servletRequestContext.getServletResponse();
 
@@ -448,7 +446,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         ServiceProviderSAMLWorkflow serviceProviderSAMLWorkflow = new ServiceProviderSAMLWorkflow();
 
         final ServletRequestContext servletRequestContext = httpServerExchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
-        ServletContext servletContext = servletRequestContext.getCurrentServetContext();
+        ServletContext servletContext = servletRequestContext.getCurrentServletContext();
         HttpServletRequest request = (HttpServletRequest) servletRequestContext.getServletRequest();
         HttpServletResponse response = (HttpServletResponse) servletRequestContext.getServletResponse();
 

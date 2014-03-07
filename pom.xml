@@ -51,6 +51,7 @@
     <module>build-tomcat7</module>
     <module>build-jbas5</module>
     <module>build-jbas7</module>
+    <module>build-wildfly8</module>
   </modules>
 
   <dependencyManagement>
