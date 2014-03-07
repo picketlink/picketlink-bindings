@@ -26,6 +26,8 @@ import io.undertow.security.api.AuthenticationMechanismFactory;
 import io.undertow.server.handlers.form.FormParserFactory;
 import io.undertow.servlet.ServletExtension;
 import io.undertow.servlet.api.DeploymentInfo;
+import org.picketlink.identity.federation.core.audit.PicketLinkAuditHelper;
+import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -42,14 +44,28 @@ import java.util.Map;
  */
 public class SPServletExtension implements ServletExtension {
 
+    private final SAMLConfigurationProvider configurationProvider;
+    private final PicketLinkAuditHelper auditHelper;
+
+    public SPServletExtension(SAMLConfigurationProvider configurationProvider, PicketLinkAuditHelper auditHelper) {
+        this.configurationProvider = configurationProvider;
+        this.auditHelper = auditHelper;
+    }
+
+    public SPServletExtension() {
+        this(null, null);
+    }
+
     @Override
     public void handleDeployment(DeploymentInfo deploymentInfo, final ServletContext servletContext) {
         deploymentInfo.addAuthenticationMechanism(HttpServletRequest.FORM_AUTH, new AuthenticationMechanismFactory() {
             @Override
             public AuthenticationMechanism create(String mechanismName, FormParserFactory formParserFactory, Map<String, String> properties) {
-                return new SPFormAuthenticationMechanism(formParserFactory, mechanismName, properties.get(LOGIN_PAGE), properties.get(ERROR_PAGE), servletContext);
+                SPFormAuthenticationMechanism authenticationMechanism = new SPFormAuthenticationMechanism(formParserFactory, mechanismName, properties
+                    .get(LOGIN_PAGE), properties.get(ERROR_PAGE), servletContext, configurationProvider, auditHelper);
+
+                return authenticationMechanism;
             }
         });
-
     }
 }

@@ -15,7 +15,7 @@
     <jboss.servlet31-api.version>1.0.0.Final</jboss.servlet31-api.version>
     <jbossxacml.version>2.0.4</jbossxacml.version>
     <wildfly.version>8.0.0.CR1</wildfly.version>
-    <undertow.io.version>1.0.0.Beta30</undertow.io.version>
+    <undertow.io.version>1.0.1.Final</undertow.io.version>
     <httpcomponents.version>4.2.5</httpcomponents.version>
     <httpunit.version>1.7</httpunit.version>
   </properties>
