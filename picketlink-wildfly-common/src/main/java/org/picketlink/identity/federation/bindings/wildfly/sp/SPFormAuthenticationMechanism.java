@@ -30,6 +30,7 @@ import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 import org.picketlink.common.constants.GeneralConstants;
+import org.picketlink.common.constants.JBossSAMLConstants;
 import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.exceptions.ParsingException;
 import org.picketlink.common.exceptions.ProcessingException;
@@ -44,6 +45,7 @@ import org.picketlink.config.federation.SPType;
 import org.picketlink.config.federation.handler.Handlers;
 import org.picketlink.identity.federation.api.saml.v2.metadata.MetaDataExtractor;
 import org.picketlink.identity.federation.bindings.wildfly.ServiceProviderSAMLContext;
+import org.picketlink.identity.federation.core.SerializablePrincipal;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEvent;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEventType;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditHelper;
@@ -55,10 +57,16 @@ import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2Handler;
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerChain;
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerChainConfig;
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerResponse;
+import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.core.saml.v2.util.HandlerUtil;
 import org.picketlink.identity.federation.core.saml.workflow.ServiceProviderSAMLWorkflow;
 import org.picketlink.identity.federation.core.util.CoreConfigUtil;
 import org.picketlink.identity.federation.core.util.XMLSignatureUtil;
+import org.picketlink.identity.federation.saml.v1.assertion.SAML11AssertionType;
+import org.picketlink.identity.federation.saml.v1.assertion.SAML11AuthenticationStatementType;
+import org.picketlink.identity.federation.saml.v1.assertion.SAML11StatementAbstractType;
+import org.picketlink.identity.federation.saml.v1.assertion.SAML11SubjectType;
+import org.picketlink.identity.federation.saml.v1.protocol.SAML11ResponseType;
 import org.picketlink.identity.federation.saml.v2.metadata.EndpointType;
 import org.picketlink.identity.federation.saml.v2.metadata.EntitiesDescriptorType;
 import org.picketlink.identity.federation.saml.v2.metadata.EntityDescriptorType;
@@ -70,8 +78,11 @@ import org.picketlink.identity.federation.web.process.ServiceProviderBaseProcess
 import org.picketlink.identity.federation.web.process.ServiceProviderSAMLRequestProcessor;
 import org.picketlink.identity.federation.web.process.ServiceProviderSAMLResponseProcessor;
 import org.picketlink.identity.federation.web.util.ConfigurationUtil;
+import org.picketlink.identity.federation.web.util.PostBindingUtil;
+import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.wildfly.extension.undertow.security.AccountImpl;
 
 import javax.servlet.ServletContext;
@@ -88,6 +99,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -263,6 +275,20 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
             }
         }
 
+    }
+
+    private AuthenticationMechanismOutcome handleSAMLResponse(HttpServerExchange exchange, SecurityContext securityContext) throws IOException {
+        ServletRequestContext request = exchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
+        HttpServletRequest httpServletRequest = (HttpServletRequest) request.getServletRequest();
+        HttpServletResponse response = (HttpServletResponse) request.getServletResponse();
+
+        String samlVersion = getSAMLVersion(httpServletRequest);
+
+        if (!JBossSAMLConstants.VERSION_2_0.get().equals(samlVersion)) {
+            return handleSAML11UnsolicitedResponse(httpServletRequest, response, securityContext);
+        }
+
+        return handleSAML2Response(exchange, securityContext);
     }
 
     /**
@@ -442,7 +468,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
      * @return
      * @throws IOException
      */
-    private AuthenticationMechanismOutcome handleSAMLResponse(HttpServerExchange httpServerExchange, SecurityContext securityContext) throws IOException {
+    private AuthenticationMechanismOutcome handleSAML2Response(HttpServerExchange httpServerExchange, SecurityContext securityContext) throws IOException {
         ServiceProviderSAMLWorkflow serviceProviderSAMLWorkflow = new ServiceProviderSAMLWorkflow();
 
         final ServletRequestContext servletRequestContext = httpServerExchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
@@ -925,4 +951,121 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         String gloStr = request.getParameter(GeneralConstants.GLOBAL_LOGOUT);
         return isNotNull(gloStr) && "true".equalsIgnoreCase(gloStr);
     }
+
+    private String getSAMLVersion(HttpServletRequest request) {
+        String samlResponse = request.getParameter(GeneralConstants.SAML_RESPONSE_KEY);
+        String version;
+
+        try {
+            Document samlDocument = toSAMLResponseDocument(samlResponse, "POST".equalsIgnoreCase(request.getMethod()));
+            Element element = samlDocument.getDocumentElement();
+
+            // let's try SAML 2.0 Version attribute first
+            version = element.getAttribute("Version");
+
+            if (isNullOrEmpty(version)) {
+                // fallback to SAML 1.1 Minor and Major attributes
+                String minorVersion = element.getAttribute("MinorVersion");
+                String majorVersion = element.getAttribute("MajorVersion");
+
+                version = minorVersion + "." + majorVersion;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Could not extract version from SAML Response.", e);
+        }
+
+        return version;
+    }
+
+    private Document toSAMLResponseDocument(String samlResponse, boolean isPostBinding) throws ParsingException {
+        InputStream dataStream = null;
+
+        if (isPostBinding) {
+            // deal with SAML response from IDP
+            dataStream = PostBindingUtil.base64DecodeAsStream(samlResponse);
+        } else {
+            // deal with SAML response from IDP
+            dataStream = RedirectBindingUtil.base64DeflateDecode(samlResponse);
+        }
+
+        try {
+            return DocumentUtil.getDocument(dataStream);
+        } catch (Exception e) {
+            logger.samlResponseFromIDPParsingFailed();
+            throw new ParsingException("", e);
+        }
+    }
+
+    public AuthenticationMechanismOutcome handleSAML11UnsolicitedResponse(HttpServletRequest request, HttpServletResponse response, SecurityContext securityContext) {
+        String samlResponse = request.getParameter(GeneralConstants.SAML_RESPONSE_KEY);
+
+        Principal principal = request.getUserPrincipal();
+
+        // See if we got a response from IDP
+        if (isNotNull(samlResponse)) {
+            try {
+                InputStream base64DecodedResponse = RedirectBindingUtil.base64DeflateDecode(samlResponse);
+                SAMLParser parser = new SAMLParser();
+                SAML11ResponseType saml11Response = (SAML11ResponseType) parser.parse(base64DecodedResponse);
+
+                List<SAML11AssertionType> assertions = saml11Response.get();
+
+                if (assertions.size() > 1) {
+                    logger.trace("More than one assertion from IDP. Considering the first one.");
+                }
+
+                List<String> roles = new ArrayList<String>();
+                SAML11AssertionType assertion = assertions.get(0);
+
+                if (assertion != null) {
+                    // Get the subject
+                    List<SAML11StatementAbstractType> statements = assertion.getStatements();
+                    for (SAML11StatementAbstractType statement : statements) {
+                        if (statement instanceof SAML11AuthenticationStatementType) {
+                            SAML11AuthenticationStatementType subStat = (SAML11AuthenticationStatementType) statement;
+                            SAML11SubjectType subject = subStat.getSubject();
+                            principal = new SerializablePrincipal(subject.getChoice().getNameID().getValue());
+                        }
+                    }
+                    roles = AssertionUtil.getRoles(assertion, null);
+                }
+
+                String username = principal.getName();
+                String password = EMPTY_PASSWORD;
+
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Roles determined for username=" + username + "=" + Arrays.toString(roles.toArray()));
+                }
+
+                ServiceProviderSAMLContext.push(username, roles);
+
+                //TODO: figure out getting the principal via authentication
+                IdentityManager identityManager = securityContext.getIdentityManager();
+
+                final Principal userPrincipal = principal;
+
+                Account account = new AccountImpl(userPrincipal, new HashSet<String>(roles), password);
+
+                account = identityManager.verify(account);
+
+                //Register the principal with the request
+                register(securityContext, account);
+
+                if (enableAudit) {
+                    PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
+                    auditEvent.setType(PicketLinkAuditEventType.RESPONSE_FROM_IDP);
+                    auditEvent.setSubjectName(username);
+                    auditEvent.setWhoIsAuditing(servletContext.getContextPath());
+                    auditHelper.audit(auditEvent);
+                }
+
+                return AuthenticationMechanismOutcome.AUTHENTICATED;
+            } catch (Exception e) {
+                logger.samlSPHandleRequestError(e);
+            }
+        }
+
+        return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
+    }
+
 }
