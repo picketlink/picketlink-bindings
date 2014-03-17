@@ -17,7 +17,6 @@
  */
 package org.picketlink.identity.federation.bindings.wildfly.sp;
 
-import io.undertow.security.api.AuthenticationMechanism;
 import io.undertow.security.api.SecurityContext;
 import io.undertow.security.idm.Account;
 import io.undertow.security.idm.IdentityManager;
@@ -187,7 +186,11 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
     @Override
     public ChallengeResult sendChallenge(HttpServerExchange exchange, SecurityContext securityContext) {
-        return new AuthenticationMechanism.ChallengeResult(true, 302);
+        if (exchange.isResponseComplete()) {
+            return new ChallengeResult(true);
+        }
+
+        return new ChallengeResult(true, HttpServletResponse.SC_FOUND);
     }
 
     @Override
