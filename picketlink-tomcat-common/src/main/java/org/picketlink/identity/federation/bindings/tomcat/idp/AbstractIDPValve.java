@@ -110,7 +110,6 @@ import org.w3c.dom.Document;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -331,12 +330,18 @@ public abstract class AbstractIDPValve extends ValveBase {
         // first, we populate all required parameters sent into session for later retrieval. If they exists.
         populateSessionWithSAMLParameters(request);
 
+        // Check is user is already authorized. If not, then the next valve will
+        // be called by getUserPrincipal and does not need to be called in
+        // handleSAMLMessage. Otherwise, for authenticated users and for
+        // requests other than SAML or Hosted page, just call the valve sequence.
+        boolean wasAuthorized = (request.getPrincipal() != null);
+        
         // get an authenticated user or tries to authenticate if this is a authentication request
         Principal userPrincipal = getUserPrincipal(request, response);
 
         // we only handle SAML messages for authenticated users.
         if (userPrincipal != null) {
-            handleSAMLMessage(request, response);
+            handleSAMLMessage(request, response, wasAuthorized);
         }
     }
 
@@ -350,7 +355,7 @@ public abstract class AbstractIDPValve extends ValveBase {
      * @throws IOException
      * @throws ServletException
      */
-    private void handleSAMLMessage(Request request, Response response) throws IOException, ServletException {
+    private void handleSAMLMessage(Request request, Response response, boolean wasAuthorized) throws IOException, ServletException {
         if (isUnsolicitedResponse(request)) {
             String samlVersion = request.getParameter(JBossSAMLConstants.UNSOLICITED_RESPONSE_SAML_VERSION.get());
 
@@ -395,6 +400,9 @@ public abstract class AbstractIDPValve extends ValveBase {
             } else if (request.getRequestURI().equals(request.getContextPath() + "/")) {
                 // no SAML processing and the request is asking for /.
                 forwardHosted(request, response);
+            } else if (wasAuthorized) {
+                // call next valve if user was authorized (for unauthorized next valve is called in getUserPrincipal)
+                getNext().invoke(request, response);
             }
         }
     }
@@ -418,35 +426,14 @@ public abstract class AbstractIDPValve extends ValveBase {
                 .getRequestDispatcher(this.idpConfiguration.getHostedURI());
 
         recycle(response);
+        response.reset();
 
         try {
-            includeResource(request, response, dispatch);
+            dispatch.forward(request, response);
         } catch (ClassCastException cce) {
             // JBAS5.1 and 6 quirkiness
-            includeResource(request.getRequest(), response, dispatch);
+            dispatch.forward(request.getRequest(), response);
         }
-    }
-
-    /**
-     * <p>
-     * Before forwarding we need to know the content length of the target resource in order to configure the response properly.
-     * This is necessary because the valve already have written to the response, and we want to override with the target
-     * resource data.
-     * </p>
-     *
-     * @param request
-     * @param response
-     * @param dispatch
-     * @throws ServletException
-     * @throws IOException
-     */
-    private void includeResource(ServletRequest request, Response response, RequestDispatcher dispatch)
-            throws ServletException, IOException {
-        dispatch.include(request, response);
-
-        // we need to re-configure the content length because Tomcat will truncate the output with the size of the welcome page
-        // (eg.: index.html).
-        response.getCoyoteResponse().setContentLength(response.getContentCount());
     }
 
     /**
