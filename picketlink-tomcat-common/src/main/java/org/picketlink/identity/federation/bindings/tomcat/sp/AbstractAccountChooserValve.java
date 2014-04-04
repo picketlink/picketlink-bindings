@@ -162,11 +162,15 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
 
         String sessionState = (String) session.getNote("STATE");
 
+        String idpChosenKey = request.getParameter(ACCOUNT_PARAMETER);
         String cookieValue = cookieValue(request);
         if (cookieValue != null || AUTHENTICATING.equals(sessionState)) {
+            if(idpChosenKey != null){
+                String chosenIDP = idpMap.get(idpChosenKey);
+                request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+            }
             proceedToAuthentication(request, response, cookieValue);
         } else {
-            String idpChosenKey = request.getParameter(ACCOUNT_PARAMETER);
             if (idpChosenKey != null) {
                 String chosenIDP = idpMap.get(idpChosenKey);
                 if (chosenIDP != null) {
@@ -194,9 +198,9 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
         try {
             getNext().invoke(request, response);
         } finally {
-            Session session = request.getSessionInternal();
+            Session session = request.getSessionInternal(false);
 
-            String state = (String) session.getNote("STATE");
+            String state = session != null ? (String) session.getNote("STATE"): null;
 
             //If we are authenticated and registered at the service provider
             if(request.getUserPrincipal() != null && StringUtil.isNotNull(state)){
