@@ -192,6 +192,8 @@ public abstract class AbstractIDPValve extends ValveBase {
     private SSLAuthenticator sslAuthenticator;
     private Handlers handlers;
 
+    private Boolean passUserPrincipalToAttributeManager = false;
+
     // Set a list of attributes we are interested in separated by comma
     public void setAttributeList(String attribList) {
         if (StringUtil.isNotNull(attribList)) {
@@ -298,6 +300,15 @@ public abstract class AbstractIDPValve extends ValveBase {
     public void setSignOutgoingMessages(Boolean signOutgoingMessages) {
         logger.warn("Option signOutgoingMessages is used for signing of error messages. Normal SAML messages are "
                 + "signed by SAML2SignatureGenerationHandler.");
+    }
+
+    /**
+     * IDP should get the user principal from Request.getUserPrincipal() and send that to the attribute manager
+     *
+     * @param passUserPrincipalToAttributeManager
+     */
+    public void setPassUserPrincipalToAttributeManager(Boolean passUserPrincipalToAttributeManager) {
+        this.passUserPrincipalToAttributeManager = passUserPrincipalToAttributeManager;
     }
 
     /**
@@ -792,7 +803,11 @@ public abstract class AbstractIDPValve extends ValveBase {
                 List<String> roles = roleGenerator.generateRoles(userPrincipal);
                 session.getSession().setAttribute(GeneralConstants.ROLES_ID, roles);
 
-                Map<String, Object> attribs = this.attribManager.getAttributes(userPrincipal, attributeKeys);
+                Map<String, Object> attribs = this.attribManager.getAttributes(
+                                     passUserPrincipalToAttributeManager == true 
+                                         ?  request.getUserPrincipal() 
+                                         : userPrincipal, 
+                                     attributeKeys);
                 requestOptions.put(GeneralConstants.ATTRIBUTES, attribs);
             }
 
