@@ -17,38 +17,25 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
-import org.apache.catalina.Context;
-import org.apache.catalina.Lifecycle;
-import org.apache.catalina.LifecycleException;
-import org.apache.catalina.LifecycleListener;
-import org.apache.catalina.Session;
-import org.apache.catalina.Valve;
-import org.apache.catalina.authenticator.Constants;
-import org.apache.catalina.authenticator.SavedRequest;
-import org.apache.catalina.connector.Request;
-import org.apache.catalina.connector.Response;
-import org.apache.catalina.valves.ValveBase;
-import org.apache.coyote.ActionCode;
-import org.apache.tomcat.util.buf.ByteChunk;
-import org.apache.tomcat.util.buf.MessageBytes;
-import org.apache.tomcat.util.http.MimeHeaders;
-import org.picketlink.common.PicketLinkLogger;
-import org.picketlink.common.PicketLinkLoggerFactory;
-import org.picketlink.common.util.StringUtil;
-import org.picketlink.identity.federation.bindings.tomcat.sp.plugins.PropertiesAccountMapProvider;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.Security;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.catalina.Context;
+import org.apache.catalina.Session;
+import org.apache.catalina.Valve;
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
+import org.apache.catalina.valves.ValveBase;
+import org.picketlink.common.PicketLinkLogger;
+import org.picketlink.common.PicketLinkLoggerFactory;
+import org.picketlink.common.util.StringUtil;
+import org.picketlink.identity.federation.bindings.tomcat.sp.plugins.PropertiesAccountMapProvider;
 
 /**
  * PLINK-344: Account Chooser At the Service Provider to enable redirection to the appropriate IDP
@@ -162,11 +149,15 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
 
         String sessionState = (String) session.getNote("STATE");
 
+        String idpChosenKey = request.getParameter(ACCOUNT_PARAMETER);
         String cookieValue = cookieValue(request);
         if (cookieValue != null || AUTHENTICATING.equals(sessionState)) {
+            if(idpChosenKey != null){
+                String chosenIDP = idpMap.get(idpChosenKey);
+                request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+            }
             proceedToAuthentication(request, response, cookieValue);
         } else {
-            String idpChosenKey = request.getParameter(ACCOUNT_PARAMETER);
             if (idpChosenKey != null) {
                 String chosenIDP = idpMap.get(idpChosenKey);
                 if (chosenIDP != null) {
@@ -194,9 +185,9 @@ public abstract class AbstractAccountChooserValve extends ValveBase{
         try {
             getNext().invoke(request, response);
         } finally {
-            Session session = request.getSessionInternal();
+            Session session = request.getSessionInternal(false);
 
-            String state = (String) session.getNote("STATE");
+            String state = session != null ? (String) session.getNote("STATE"): null;
 
             //If we are authenticated and registered at the service provider
             if(request.getUserPrincipal() != null && StringUtil.isNotNull(state)){
