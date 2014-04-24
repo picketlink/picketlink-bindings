@@ -555,12 +555,10 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                     // prevent reauthentication
                     String requestURI = savedRequestURL(session);
 
-                    if (requestURI == null) {
-                        requestURI = getConfiguration().getServiceURL();
+                    if (requestURI != null) {
+                        logger.trace("Redirecting back to original Request URI: " + requestURI);
+                        response.sendRedirect(response.encodeRedirectURL(requestURI));
                     }
-
-                    logger.trace("Redirecting back to original Request URI: " + requestURI);
-                    response.sendRedirect(response.encodeRedirectURL(requestURI));
                 }
 
                 register(request, response, principal, Constants.FORM_METHOD, username, password);
