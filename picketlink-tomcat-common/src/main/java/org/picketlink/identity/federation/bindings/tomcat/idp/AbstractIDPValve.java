@@ -104,7 +104,6 @@ import org.picketlink.identity.federation.web.core.IdentityServer;
 import org.picketlink.identity.federation.web.util.ConfigurationUtil;
 import org.picketlink.identity.federation.web.util.IDPWebRequestUtil;
 import org.picketlink.identity.federation.web.util.IDPWebRequestUtil.WebRequestUtilHolder;
-import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
 
@@ -671,6 +670,12 @@ public abstract class AbstractIDPValve extends ValveBase {
             holder.setResponseDoc(samlResponse).setDestination(target).setRelayState("").setAreWeSendingRequest(false)
                     .setPrivateKey(null).setSupportSignature(false).setServletResponse(response);
 
+            String requestedBinding = request.getParameter(JBossSAMLConstants.UNSOLICITED_RESPONSE_SAML_BINDING.get());
+
+            if ("POST".equalsIgnoreCase(requestedBinding)) {
+                holder.setPostBindingRequested(true);
+            }
+
             if (enableAudit) {
                 PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                 auditEvent.setType(PicketLinkAuditEventType.RESPONSE_TO_SP);
@@ -679,7 +684,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                 auditHelper.audit(auditEvent);
             }
 
-            response.getCoyoteResponse().recycle();
+            recycle(response);
 
             webRequestUtil.send(holder);
         } catch (GeneralSecurityException e) {
@@ -697,9 +702,14 @@ public abstract class AbstractIDPValve extends ValveBase {
         try {
             AuthnRequestType authn = samlRequest.createAuthnRequestType(id, assertionConsumerURL, assertionConsumerURL, assertionConsumerURL);
 
-            authn.setProtocolBinding(URI.create(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.get()));
+            String requestedBinding = request.getParameter(JBossSAMLConstants.UNSOLICITED_RESPONSE_SAML_BINDING.get());
 
-            request.setMethod("POST");
+            if ("POST".equalsIgnoreCase(requestedBinding)) {
+                authn.setProtocolBinding(URI.create(JBossSAMLURIConstants.SAML_HTTP_POST_BINDING.get()));
+                request.setMethod("POST");
+            } else {
+                authn.setProtocolBinding(URI.create(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.get()));
+            }
 
             processSAMLRequestMessage(request, response, authn, true);
         } catch (Exception e) {
