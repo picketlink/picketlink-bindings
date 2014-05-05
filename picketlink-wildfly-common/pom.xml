@@ -13,6 +13,7 @@
 
   <properties>
     <jboss.servlet31-api.version>1.0.0.Final</jboss.servlet31-api.version>
+    <jboss.jaxrs2.version>1.0.0.Alpha1</jboss.jaxrs2.version>
     <jbossxacml.version>2.0.4</jbossxacml.version>
     <wildfly.version>8.0.0.CR1</wildfly.version>
     <undertow.io.version>1.0.1.Final</undertow.io.version>
@@ -36,6 +37,13 @@
       <groupId>org.jboss.spec.javax.servlet</groupId>
       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
       <version>${jboss.servlet31-api.version}</version>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.spec.javax.ws.rs</groupId>
+      <artifactId>jboss-jaxrs-api_2.0_spec</artifactId>
+      <version>${jboss.jaxrs2.version}</version>
       <optional>true</optional>
     </dependency>
 
