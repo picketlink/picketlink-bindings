@@ -42,12 +42,17 @@ import java.util.List;
  * @since Sep 17, 2011
  */
 public class OpenIDConsumerAuthenticator extends FormAuthenticator {
+
     protected static Logger log = Logger.getLogger(OpenIDConsumerAuthenticator.class);
     protected boolean trace = log.isTraceEnabled();
 
     private enum STATES {
-        AUTH, AUTHZ, FINISH
-    };
+        AUTH,
+        AUTHZ,
+        FINISH
+    }
+
+    ;
 
     public static ThreadLocal<Principal> cachedPrincipal = new ThreadLocal<Principal>();
 
@@ -92,8 +97,9 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
      * @param roleStr
      */
     public void setRoleString(String roleStr) {
-        if (roleStr == null)
+        if (roleStr == null) {
             throw new RuntimeException("Role String is null in configuration");
+        }
         List<String> tokens = StringUtil.tokenize(roleStr);
         for (String token : tokens) {
             roles.add(token);
@@ -101,11 +107,13 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
     }
 
     public boolean authenticate(HttpServletRequest request, HttpServletResponse response, LoginConfig loginConfig)
-            throws IOException {
-        if (request instanceof Request == false)
+        throws IOException {
+        if (request instanceof Request == false) {
             throw new IOException("Not of type Catalina request");
-        if (response instanceof Response == false)
+        }
+        if (response instanceof Response == false) {
             throw new IOException("Not of type Catalina response");
+        }
         return authenticate((Request) request, (Response) response, loginConfig);
     }
 
@@ -115,9 +123,11 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
      * @param request
      * @param response
      * @param config
+     *
      * @return
+     *
      * @throws java.io.IOException
-     * @throws {@link RuntimeException} when the response is not of type catalina response object
+     * @throws {@link              RuntimeException} when the response is not of type catalina response object
      */
     public boolean authenticate(Request request, HttpServletResponse response, LoginConfig config) throws IOException {
         if (response instanceof Response) {
@@ -128,13 +138,15 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
     }
 
     public boolean authenticate(Request request, Response response, LoginConfig loginConfig) throws IOException {
-        if (processor == null)
+        if (processor == null) {
             processor = new OpenIDProcessor(returnURL, requiredAttributes, optionalAttributes);
+        }
 
         Principal userPrincipal = request.getUserPrincipal();
         if (userPrincipal != null) {
-            if (trace)
+            if (trace) {
                 log.trace("Logged in as:" + userPrincipal);
+            }
             return true;
         }
 
@@ -148,11 +160,13 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
 
         HttpSession httpSession = request.getSession();
         String state = (String) httpSession.getAttribute("STATE");
-        if (trace)
+        if (trace) {
             log.trace("state=" + state);
+        }
 
-        if (STATES.FINISH.name().equals(state))
+        if (STATES.FINISH.name().equals(state)) {
             return true;
+        }
 
         if (state == null || state.isEmpty()) {
             return processor.prepareAndSendAuthRequest(request, response);
@@ -165,8 +179,9 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
             }
 
             Principal principal = processor.processIncomingAuthResult(request, response, context.getRealm());
-            if (principal == null)
+            if (principal == null) {
                 throw new RuntimeException("Principal was null. Maybe login modules need to be configured properly.");
+            }
             String principalName = principal.getName();
             request.getSessionInternal().setNote(Constants.SESS_USERNAME_NOTE, principalName);
             request.getSessionInternal().setNote(Constants.SESS_PASSWORD_NOTE, "");
@@ -176,8 +191,9 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
                 this.restoreRequest(request, request.getSessionInternal());
             }
 
-            if (trace)
+            if (trace) {
                 log.trace("Logged in as:" + principal);
+            }
 
             registerWithAuthenticatorBase(request, response, principal, principalName);
 
@@ -192,15 +208,14 @@ public class OpenIDConsumerAuthenticator extends FormAuthenticator {
             register(request, response, principal, Constants.FORM_METHOD, userName, "");
         } catch (NoSuchMethodError nse) {
             if (theSuperRegisterMethod == null) {
-                Class<?>[] args = new Class[] { Request.class, HttpServletResponse.class, Principal.class, String.class,
-                        String.class, String.class };
+                Class<?>[] args = new Class[]{Request.class, HttpServletResponse.class, Principal.class, String.class,
+                    String.class, String.class};
                 Class<?> superClass = getClass().getSuperclass();
                 theSuperRegisterMethod = SecurityActions.getMethod(superClass, "register", args);
-
             }
             if (theSuperRegisterMethod != null) {
-                Object[] objectArgs = new Object[] { request, response.getResponse(), principal, Constants.FORM_METHOD,
-                        userName, OpenIDProcessor.EMPTY_PASSWORD };
+                Object[] objectArgs = new Object[]{request, response.getResponse(), principal, Constants.FORM_METHOD,
+                    userName, OpenIDProcessor.EMPTY_PASSWORD};
                 try {
                     theSuperRegisterMethod.invoke(this, objectArgs);
                 } catch (Exception e) {

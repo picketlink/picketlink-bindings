@@ -21,16 +21,6 @@
  */
 package org.picketlink.trust.jbossws.jaas;
 
-import java.io.ByteArrayInputStream;
-import java.security.Principal;
-import java.security.acl.Group;
-import java.util.List;
-import java.util.Set;
-
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.NameCallback;
-import javax.security.auth.login.LoginException;
-
 import org.jboss.security.SecurityConstants;
 import org.jboss.security.SimpleGroup;
 import org.jboss.security.SimplePrincipal;
@@ -43,24 +33,29 @@ import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.core.wstrust.SamlCredential;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
 
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.NameCallback;
+import javax.security.auth.login.LoginException;
+import java.io.ByteArrayInputStream;
+import java.security.Principal;
+import java.security.acl.Group;
+import java.util.List;
+import java.util.Set;
+
 /**
- * <p>
- * A login module that extracts the roles from the SAML assertion that has been set in the Subject. This module is always a
- * follow up to other modules such as {@code JBWSTokenIssuingLoginModule}
- * </p>
+ * <p> A login module that extracts the roles from the SAML assertion that has been set in the Subject. This module is always a
+ * follow up to other modules such as {@code JBWSTokenIssuingLoginModule} </p>
  *
- * <p>
- * This login module checks the {@code Subject} for a {@code SamlCredential} in the public credentials section. From the
- * credential, we extract the assertion. The assertion should contain the roles.
- * </p>
+ * <p> This login module checks the {@code Subject} for a {@code SamlCredential} in the public credentials section. From the
+ * credential, we extract the assertion. The assertion should contain the roles. </p>
  *
  * @author Anil.Saldhana@redhat.com
  * @since Jun 6, 2011
  */
 public class SAMLRoleLoginModule extends AbstractServerLoginModule {
-    
+
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
-    
+
     @Override
     public boolean commit() throws LoginException {
         super.loginOk = true;
@@ -72,24 +67,26 @@ public class SAMLRoleLoginModule extends AbstractServerLoginModule {
      */
     @Override
     protected Principal getIdentity() {
-        
+
         Object sharedName = sharedState.get("javax.security.auth.login.name");
-        // check if sharedState contains String name instead of Principal 
+        // check if sharedState contains String name instead of Principal
         if (sharedName != null && sharedName instanceof String) {
-            return new SimplePrincipal((String)sharedName);
+            return new SimplePrincipal((String) sharedName);
         }
-        
+
         Principal principal = (Principal) sharedName;
-        if (principal != null)
+        if (principal != null) {
             return principal;
+        }
 
         // Lets try the cbh
         NameCallback nameCallback = new NameCallback("UserName:");
         try {
-            callbackHandler.handle(new Callback[] { nameCallback });
+            callbackHandler.handle(new Callback[]{nameCallback});
             String userName = nameCallback.getName();
-            if (StringUtil.isNotNull(userName))
+            if (StringUtil.isNotNull(userName)) {
                 return new SimplePrincipal(userName);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -114,13 +111,15 @@ public class SAMLRoleLoginModule extends AbstractServerLoginModule {
                 break;
             }
         }
-        if (samlCredential == null)
+        if (samlCredential == null) {
             throw logger.authSAMLCredentialNotAvailable();
+        }
 
         try {
             String assertionStr = samlCredential.getAssertionAsString();
-            if (StringUtil.isNullOrEmpty(assertionStr))
+            if (StringUtil.isNullOrEmpty(assertionStr)) {
                 throw logger.authSAMLAssertionNullOrEmpty();
+            }
 
             SAMLParser parser = new SAMLParser();
             AssertionType assertion = (AssertionType) parser.parse(new ByteArrayInputStream(assertionStr.getBytes()));
@@ -129,7 +128,7 @@ public class SAMLRoleLoginModule extends AbstractServerLoginModule {
             for (String role : roles) {
                 roleGroup.addMember(new SimplePrincipal(role));
             }
-            return new Group[] { roleGroup };
+            return new Group[]{roleGroup};
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

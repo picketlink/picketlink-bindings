@@ -52,12 +52,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * <p>Abstract base class for the PicketLink Trust Handlers</p>
- * <p>This class implements directly the {@link SOAPHandler} interface because the {@link org.jboss.wsf.common.handler.GenericSOAPHandler} package name changes between JBossWS versions.</p>
+ * <p>Abstract base class for the PicketLink Trust Handlers</p> <p>This class implements directly the {@link SOAPHandler} interface
+ * because the {@link org.jboss.wsf.common.handler.GenericSOAPHandler} package name changes between JBossWS versions.</p>
  *
  * @author Anil.Saldhana@redhat.com
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- *
  * @since Apr 11, 2011
  */
 @SuppressWarnings("rawtypes")
@@ -87,6 +86,7 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
      * <p>Utility method to get the {@link ServletContext} from the specified {@link MessageContext}.</p>
      *
      * @param msgContext
+     *
      * @return
      */
     protected ServletContext getServletContext(MessageContext msgContext) {
@@ -97,7 +97,9 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
      * <p>Returns the security domain name configured for the deployment.</p>
      *
      * @param msgContext
+     *
      * @return
+     *
      * @throws ConfigurationException if no security domain is configured.
      */
     protected String getSecurityDomainName(MessageContext msgContext) throws ConfigurationException {
@@ -110,7 +112,7 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
                 if (is != null) {
                     Document document = DocumentUtil.getDocument(is);
                     securityDomainName = DocumentUtil.getChildElement(document.getDocumentElement(),
-                            new javax.xml.namespace.QName("security-domain")).getTextContent();
+                        new javax.xml.namespace.QName("security-domain")).getTextContent();
                 }
             } catch (Exception e) {
             } finally {
@@ -134,20 +136,22 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
      * <p>Returns a {@link InputStream} for the jboss-web.xml configuration file.</p>
      *
      * @param context
+     *
      * @return
      */
     private InputStream getJBossWeb(ServletContext context) {
-        if (context == null)
+        if (context == null) {
             throw logger.nullValueError("Servlet Context");
+        }
 
         return context.getResourceAsStream("/WEB-INF/jboss-web.xml");
     }
-
 
     /**
      * Given a {@link Document}, create the WSSE element
      *
      * @param document
+     *
      * @return
      */
     protected Element getSecurityHeaderElement(Document document) {
@@ -174,6 +178,7 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
      * Given the NameID {@link Element}, return the user name
      *
      * @param nameID
+     *
      * @return
      */
     protected String getUsername(final Element nameID) {
@@ -232,15 +237,18 @@ public abstract class AbstractPicketLinkTrustHandler<C extends LogicalMessageCon
     }
 
     /**
-     * <p>Handles the incoming message and decides which method should be called: <code>handleOutbound</code> or <code>handleInbound</code></p>.
+     * <p>Handles the incoming message and decides which method should be called: <code>handleOutbound</code> or
+     * <code>handleInbound</code></p>.
      *
      * @param msgContext
+     *
      * @return
      */
     public boolean handleMessage(MessageContext msgContext) {
-        Boolean outbound = (Boolean)msgContext.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
-        if (outbound == null)
+        Boolean outbound = (Boolean) msgContext.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
+        if (outbound == null) {
             throw new IllegalStateException("Cannot obtain required property: " + MessageContext.MESSAGE_OUTBOUND_PROPERTY);
+        }
 
         return outbound ? handleOutbound(msgContext) : handleInbound(msgContext);
     }

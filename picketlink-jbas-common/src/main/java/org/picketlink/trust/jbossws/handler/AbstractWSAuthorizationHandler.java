@@ -21,23 +21,6 @@
  */
 package org.picketlink.trust.jbossws.handler;
 
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.security.auth.Subject;
-import javax.servlet.ServletContext;
-import javax.xml.namespace.QName;
-import javax.xml.soap.SOAPBody;
-import javax.xml.soap.SOAPException;
-import javax.xml.soap.SOAPMessage;
-import javax.xml.ws.handler.MessageContext;
-import javax.xml.ws.handler.soap.SOAPMessageContext;
-
 import org.jboss.security.AuthorizationManager;
 import org.jboss.security.SecurityConstants;
 import org.jboss.security.SecurityContext;
@@ -49,16 +32,32 @@ import org.picketlink.trust.jbossws.util.JBossWSNativeStackUtil;
 import org.picketlink.trust.jbossws.util.JBossWSSERoleExtractor;
 import org.w3c.dom.Node;
 
+import javax.security.auth.Subject;
+import javax.servlet.ServletContext;
+import javax.xml.namespace.QName;
+import javax.xml.soap.SOAPBody;
+import javax.xml.soap.SOAPException;
+import javax.xml.soap.SOAPMessage;
+import javax.xml.ws.handler.MessageContext;
+import javax.xml.ws.handler.soap.SOAPMessageContext;
+import java.io.InputStream;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * <p>Base class for authorization handlers for POJO Web services based on the Authorize Operation on the JBossWS Native stack</p>
  *
  * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
  * @author Anil.Saldhana@redhat.com
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- * 
  * @since Apr 11, 2011
  */
 public abstract class AbstractWSAuthorizationHandler extends AbstractPicketLinkTrustHandler {
+
     public static final String UNCHECKED = "unchecked";
 
     // A simple hashmap that reduces the reparsing of jboss-wsse.xml for the same keys
@@ -68,29 +67,34 @@ public abstract class AbstractWSAuthorizationHandler extends AbstractPicketLinkT
     protected boolean handleInbound(MessageContext msgContext) {
 
         logger.trace("Handling Inbound Message");
-        
+
         trace(msgContext);
-        
+
         ServletContext context = getServletContext(msgContext);
         // Read the jboss-wsse.xml file
         InputStream is = getWSSE(context);
-        if (is == null)
+        if (is == null) {
             throw logger.jbossWSUnableToLoadJBossWSSEConfigError();
+        }
 
         QName portName = (QName) msgContext.get(MessageContext.WSDL_PORT);
         QName opName = (QName) msgContext.get(MessageContext.WSDL_OPERATION);
 
-        if (portName == null)
+        if (portName == null) {
             portName = JBossWSNativeStackUtil.getPortNameViaReflection(getClass(), msgContext);
+        }
 
-        if (portName == null)
+        if (portName == null) {
             throw logger.nullValueError("port name from the message context");
+        }
 
-        if (opName == null)
+        if (opName == null) {
             opName = getOperationName(msgContext);
+        }
 
-        if (opName == null)
+        if (opName == null) {
             throw logger.nullValueError("operation name from the message context");
+        }
 
         List<String> roles = null;
 
@@ -110,16 +114,16 @@ public abstract class AbstractWSAuthorizationHandler extends AbstractPicketLinkT
 
         if (!roles.contains(UNCHECKED)) {
             AuthorizationManager authorizationManager = null;
-            
+
             try {
                 authorizationManager = getAuthorizationManager(msgContext);
             } catch (ConfigurationException e) {
                 logger.authorizationManagerError(e);
                 throw new RuntimeException(e);
             }
- 
+
             Subject subject = SecurityActions.getAuthenticatedSubject();
-            
+
             Set<Principal> expectedRoles = rolesSet(roles);
             if (!authorizationManager.doesUserHaveRole(null, expectedRoles)) {
                 SecurityContext sc = SecurityActions.getSecurityContext();
@@ -144,8 +148,9 @@ public abstract class AbstractWSAuthorizationHandler extends AbstractPicketLinkT
     }
 
     protected InputStream getWSSE(ServletContext context) {
-        if (context == null)
+        if (context == null) {
             throw logger.nullValueError("Servlet Context");
+        }
 
         InputStream is = context.getResourceAsStream("/WEB-INF/jboss-wsse.xml");
         return is;
@@ -154,8 +159,9 @@ public abstract class AbstractWSAuthorizationHandler extends AbstractPicketLinkT
     protected InputStream load(ClassLoader cl) {
         InputStream is = null;
         is = cl.getResourceAsStream("WEB-INF/jboss-wsse.xml");
-        if (is == null)
+        if (is == null) {
             is = cl.getResourceAsStream("/WEB-INF/jboss-wsse.xml");
+        }
         return is;
     }
 
@@ -174,12 +180,14 @@ public abstract class AbstractWSAuthorizationHandler extends AbstractPicketLinkT
         }
         return null;
     }
-    
+
     /**
      * <p>Returns the {@link AuthorizationManager} associated with the application's security domain. </p>
-     * 
+     *
      * @param msgContext
+     *
      * @return
+     *
      * @throws ConfigurationException
      */
     protected AuthorizationManager getAuthorizationManager(MessageContext msgContext) throws ConfigurationException {

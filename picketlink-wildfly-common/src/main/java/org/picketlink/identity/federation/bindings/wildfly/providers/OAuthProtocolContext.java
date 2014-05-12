@@ -29,8 +29,8 @@ import javax.xml.namespace.QName;
  * @since April 29, 2014
  */
 public class OAuthProtocolContext implements ProtocolContext {
-    public final static String OAUTH_2_0_NS = "urn:oauth:2:0";
-    public final static QName QNAME = new QName(OAUTH_2_0_NS);
+    public static final String OAUTH_2_0_NS = "urn:oauth:2:0";
+    public static final QName QNAME = new QName(OAUTH_2_0_NS);
 
     private String token;
 

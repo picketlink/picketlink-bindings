@@ -21,15 +21,16 @@
  */
 package org.picketlink.trust.jbossws;
 
-import javax.xml.namespace.QName;
-
 import org.apache.xml.security.utils.EncryptionConstants;
+
+import javax.xml.namespace.QName;
 
 /**
  * @author Jason T. Greene
  * @author Anil Saldhana
  */
 public class Constants {
+
     public static final String WSS_SOAP_NS = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0";
 
     public static final String WSSE_LOCAL = "Security";
@@ -58,7 +59,7 @@ public class Constants {
     public static final String XML_ENCRYPTION_NS = EncryptionConstants.EncryptionSpecNS;
 
     public static final String XML_ENCRYPTION_PREFIX = "ds"; // xmlsec 1.4.2 requires this to be "ds" to correctly create
-                                                             // KeyInfo elements
+    // KeyInfo elements
 
     public static final String ID = "Id";
 

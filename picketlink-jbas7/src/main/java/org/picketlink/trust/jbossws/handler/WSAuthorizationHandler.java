@@ -21,7 +21,6 @@
  */
 package org.picketlink.trust.jbossws.handler;
 
-
 /**
  * An authorization handler for the POJO Web services Based on the Authorize Operation on the JBossWS Native stack
  *

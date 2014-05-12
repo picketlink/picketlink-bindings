@@ -34,9 +34,10 @@ import javax.xml.namespace.QName;
  * @since Jan 20, 2011
  */
 public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implements SecurityTokenProvider {
-    public final static String OPENID_1_0_NS = "urn:openid:1:0";
-    public final static String OPENID_1_1_NS = "urn:openid:1:1";
-    public final static String OPENID_2_0_NS = "urn:openid:2:0";
+
+    public static final String OPENID_1_0_NS = "urn:openid:1:0";
+    public static final String OPENID_1_1_NS = "urn:openid:1:1";
+    public static final String OPENID_2_0_NS = "urn:openid:2:0";
 
     protected static OpenIDProviderManager serverManager = null; // Will be initialized the first time of access
 
@@ -69,13 +70,14 @@ public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implement
     }
 
     /**
-     *
      * @param context
+     *
      * @throws ProcessingException
      */
     public void issueToken(ProtocolContext context) throws ProcessingException {
-        if (context instanceof OpenIDProtocolContext == false)
+        if (context instanceof OpenIDProtocolContext == false) {
             return;
+        }
 
         check();
 
@@ -105,11 +107,12 @@ public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implement
                 case CHECK_ID_SETUP:
                 case CHECK_ID_IMMEDIATE:
                     OpenIDProtocolContext.AUTH_HOLDER authHolder = openIDProtoCtx.getAuthenticationHolder();
-                    if (authHolder == null)
+                    if (authHolder == null) {
                         throw new ProcessingException("Authentication Holder is null");
+                    }
 
                     responsem = serverManager.processAuthenticationRequest(requestp, authHolder.getUserSelectedId(),
-                            authHolder.getUserSelectedClaimedId(), authHolder.isAuthenticatedAndApproved());
+                        authHolder.getUserSelectedClaimedId(), authHolder.isAuthenticatedAndApproved());
                     break;
                 default:
                     throw new ProcessingException("Unknown mode");
@@ -119,22 +122,25 @@ public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implement
     }
 
     public void renewToken(ProtocolContext context) throws ProcessingException {
-        if (context instanceof OpenIDProtocolContext == false)
+        if (context instanceof OpenIDProtocolContext == false) {
             return;
+        }
 
         check();
     }
 
     public void cancelToken(ProtocolContext context) throws ProcessingException {
-        if (context instanceof OpenIDProtocolContext == false)
+        if (context instanceof OpenIDProtocolContext == false) {
             return;
+        }
 
         check();
     }
 
     public void validateToken(ProtocolContext context) throws ProcessingException {
-        if (context instanceof OpenIDProtocolContext == false)
+        if (context instanceof OpenIDProtocolContext == false) {
             return;
+        }
 
         check();
 
@@ -150,8 +156,9 @@ public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implement
 
     protected void check() {
         SecurityManager sm = System.getSecurityManager();
-        if (sm != null)
+        if (sm != null) {
             sm.checkPermission(PicketLinkCoreSTS.rte);
+        }
 
         if (serverManager == null) {
 

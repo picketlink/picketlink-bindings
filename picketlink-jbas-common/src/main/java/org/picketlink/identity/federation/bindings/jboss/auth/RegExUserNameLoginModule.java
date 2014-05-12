@@ -17,26 +17,26 @@
  */
 package org.picketlink.identity.federation.bindings.jboss.auth;
 
+import org.jboss.security.auth.spi.UsernamePasswordLoginModule;
+import org.picketlink.common.ErrorCodes;
+
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.LoginException;
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
-
-import org.jboss.security.auth.spi.UsernamePasswordLoginModule;
-import org.picketlink.common.ErrorCodes;
-import org.picketlink.common.util.StringUtil;
-
 /**
  * PLINK-359: Login Module that extracts user name from the principal based on a regular expression
+ *
  * @author Anil Saldhana
  * @since February 10, 2014
  */
 public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
+
     private static final String REGEX_MODULE_OPTION = "regex";
 
     /** The login identity */
@@ -48,12 +48,12 @@ public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
 
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
-        this.addValidOptions(new String[] {REGEX_MODULE_OPTION});
+        this.addValidOptions(new String[]{REGEX_MODULE_OPTION});
         super.initialize(subject, callbackHandler, sharedState, options);
 
         //The format is in the options
         String regex = (String) options.get(REGEX_MODULE_OPTION);
-        if(regex == null){
+        if (regex == null) {
             log.error("regex module option not found");
         }
         pattern = Pattern.compile(regex);
@@ -64,39 +64,34 @@ public class RegExUserNameLoginModule extends UsernamePasswordLoginModule {
         // Setup our view of the user
         Object username = sharedState.get("javax.security.auth.login.name");
 
-        if(username == null){
-            throw new LoginException(ErrorCodes.NULL_ARGUMENT  + ": No username");
+        if (username == null) {
+            throw new LoginException(ErrorCodes.NULL_ARGUMENT + ": No username");
         }
 
-        if( username instanceof Principal){
+        if (username instanceof Principal) {
             identity = (Principal) username;
 
             String extractedUserName = extractUserName(identity.getName());
-            try{
+            try {
                 identity = createIdentity(extractedUserName);
-            }
-            catch(Exception e){
+            } catch (Exception e) {
                 log.debug("Failed to create principal", e);
             }
-        }
-        else
-        {
+        } else {
             String name = username.toString();
 
             name = extractUserName(name);
-            try{
+            try {
                 identity = createIdentity(name);
-            }
-            catch(Exception e){
+            } catch (Exception e) {
                 log.debug("Failed to create principal", e);
-                throw new LoginException(ErrorCodes.PROCESSING_EXCEPTION + "Failed to create principal: "+ e.getMessage());
+                throw new LoginException(ErrorCodes.PROCESSING_EXCEPTION + "Failed to create principal: " + e.getMessage());
             }
         }
         Object password = sharedState.get("javax.security.auth.login.password");
-        if( password instanceof char[] ){
+        if (password instanceof char[]) {
             credential = (char[]) password;
-        }
-        else if( password != null ) {
+        } else if (password != null) {
             String tmp = password.toString();
             credential = tmp.toCharArray();
         }

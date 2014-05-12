@@ -21,11 +21,6 @@
  */
 package org.picketlink.identity.federation.bindings.jboss.auth;
 
-import java.io.Serializable;
-import java.security.Principal;
-
-import javax.security.auth.Subject;
-
 import org.jboss.aop.advice.Interceptor;
 import org.jboss.aop.joinpoint.Invocation;
 import org.jboss.security.SecurityContext;
@@ -39,9 +34,12 @@ import org.picketlink.identity.federation.core.wstrust.SamlCredential;
 import org.picketlink.identity.federation.core.wstrust.plugins.saml.SAMLUtil;
 import org.w3c.dom.Element;
 
+import javax.security.auth.Subject;
+import java.io.Serializable;
+import java.security.Principal;
+
 /**
- * <p>
- * A client side EJB3 interceptor to automatically create a STS token and use it as the credential to invoke an EJB. This
+ * <p> A client side EJB3 interceptor to automatically create a STS token and use it as the credential to invoke an EJB. This
  * interceptor must be included after <code>org.jboss.ejb3.security.client.SecurityClientInterceptor</code> in the client
  * interceptor stack in deploy/ejb3-interceptors-aop.xml This interceptor requires an attribute named propertiesFile which is a
  * resource in the classpath where the configuration necessary to connect to the STS application can be read. E.g.
@@ -66,10 +64,11 @@ import org.w3c.dom.Element;
  * @version $Revision: 1 $
  */
 public class STSClientInterceptor implements Interceptor, Serializable {
+
     private static final long serialVersionUID = -4351623612864518960L;
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
-    
+
     private String propertiesFile;
 
     private Builder builder;
@@ -94,11 +93,12 @@ public class STSClientInterceptor implements Interceptor, Serializable {
             if (builder == null) {
                 if (propertiesFile != null) {
                     builder = new Builder(propertiesFile);
-                } else
+                } else {
                     throw logger.optionNotSet("propertiesFile");
+                }
             }
             WSTrustClient client = new WSTrustClient(builder.getServiceName(), builder.getPortName(),
-                    builder.getEndpointAddress(), new SecurityInfo(principal.getName(), credential));
+                builder.getEndpointAddress(), new SecurityInfo(principal.getName(), credential));
             Element assertion = null;
             try {
                 logger.trace("Invoking token service to get SAML assertion for " + principal.getName());

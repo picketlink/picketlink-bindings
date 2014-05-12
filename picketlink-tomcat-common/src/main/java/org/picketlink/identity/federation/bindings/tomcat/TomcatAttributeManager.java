@@ -21,12 +21,12 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat;
 
+import org.picketlink.identity.federation.core.interfaces.AttributeManager;
+
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.picketlink.identity.federation.core.interfaces.AttributeManager;
 
 /**
  * An implementation of attribute manager to get attributes of an identity
@@ -35,6 +35,7 @@ import org.picketlink.identity.federation.core.interfaces.AttributeManager;
  * @since Aug 31, 2009
  */
 public class TomcatAttributeManager implements AttributeManager {
+
     /**
      * @see AttributeManager#getAttributes(Principal, List)
      */

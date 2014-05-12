@@ -38,5 +38,4 @@ public class SPRedirectSignatureFormAuthenticator extends SPRedirectFormAuthenti
     protected boolean doSupportSignature() {
         return true;
     }
-
 }

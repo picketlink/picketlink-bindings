@@ -32,6 +32,7 @@ import java.security.PrivilegedAction;
  * @since May 19, 2011
  */
 class SecurityActions {
+
     static SecurityContext createSecurityContext(final String name) {
         return AccessController.doPrivileged(new PrivilegedAction<SecurityContext>() {
             public SecurityContext run() {
@@ -78,6 +79,7 @@ class SecurityActions {
      * @param clazz
      * @param methodName
      * @param parameterTypes
+     *
      * @return
      */
     static Method getMethod(final Class<?> clazz, final String methodName, final Class<?>[] parameterTypes) {
@@ -97,6 +99,7 @@ class SecurityActions {
      *
      * @param theAskingClass
      * @param fqn
+     *
      * @return
      */
     static Class<?> loadClass(final Class<?> theAskingClass, final String fqn) {
@@ -115,5 +118,4 @@ class SecurityActions {
             }
         });
     }
-
 }

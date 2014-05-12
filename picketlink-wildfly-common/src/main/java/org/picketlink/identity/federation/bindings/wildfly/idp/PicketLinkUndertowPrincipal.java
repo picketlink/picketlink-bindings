@@ -17,7 +17,6 @@
  */
 package org.picketlink.identity.federation.bindings.wildfly.idp;
 
-import io.undertow.security.idm.Account;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 
