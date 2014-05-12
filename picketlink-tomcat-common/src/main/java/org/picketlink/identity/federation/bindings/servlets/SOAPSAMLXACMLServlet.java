@@ -28,5 +28,6 @@ package org.picketlink.identity.federation.bindings.servlets;
  * @since Jan 27, 2009
  */
 public class SOAPSAMLXACMLServlet extends org.picketlink.identity.federation.web.servlets.saml.SOAPSAMLXACMLServlet {
+
     private static final long serialVersionUID = 1L;
 }

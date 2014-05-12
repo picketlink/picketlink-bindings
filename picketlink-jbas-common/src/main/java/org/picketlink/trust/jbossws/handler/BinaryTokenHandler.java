@@ -21,8 +21,10 @@
  */
 package org.picketlink.trust.jbossws.handler;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.picketlink.common.util.StringUtil;
+import org.picketlink.identity.federation.core.util.SOAPUtil;
+import org.picketlink.trust.jbossws.Constants;
+import org.picketlink.trust.jbossws.Util;
 
 import javax.security.jacc.PolicyContext;
 import javax.security.jacc.PolicyContextException;
@@ -37,34 +39,19 @@ import javax.xml.soap.SOAPHeader;
 import javax.xml.soap.SOAPMessage;
 import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
-
-import org.picketlink.common.util.StringUtil;
-import org.picketlink.identity.federation.core.util.SOAPUtil;
-import org.picketlink.trust.jbossws.Constants;
-import org.picketlink.trust.jbossws.Util;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * <p>
- * Handler that looks for a binary data that exists in the HTTP payload either as a header or a cookie based on configuration.
- * </p>
- * <p>
- * <b>Configuration:</b>
- * <p>
- * <i>System Properties:</i>
- * <ul>
- * <li>binary.http.header: http header name. Can be a comma separated set of names</li>
- * <li>binary.http.cookie: http cookie name</li>
- * <li>binary.http.encodingType: attribute value of the EncodingType attribute</li>
- * <li>binary.http.valueType: attribute value of the ValueType attribute</li>
- * <li>binary.http.valueType.namespace: namespace for the ValueType attribute</li>
- * <li>binary.http.valueType.prefix: namespace for the ValueType attribute</li>
- * <li>binary.http.cleanToken: true or false dependending on whether the binary token has to be cleaned</li>
- * </ul>
- * <i>Setters:</i>
- * <p>
- * Please see the see also section.
- * </p>
+ * <p> Handler that looks for a binary data that exists in the HTTP payload either as a header or a cookie based on configuration.
+ * </p> <p> <b>Configuration:</b> <p> <i>System Properties:</i> <ul> <li>binary.http.header: http header name. Can be a comma
+ * separated set of names</li> <li>binary.http.cookie: http cookie name</li> <li>binary.http.encodingType: attribute value of the
+ * EncodingType attribute</li> <li>binary.http.valueType: attribute value of the ValueType attribute</li>
+ * <li>binary.http.valueType.namespace: namespace for the ValueType attribute</li> <li>binary.http.valueType.prefix: namespace for
+ * the ValueType attribute</li> <li>binary.http.cleanToken: true or false dependending on whether the binary token has to be
+ * cleaned</li> </ul> <i>Setters:</i> <p> Please see the see also section. </p>
  *
+ * @author Anil.Saldhana@redhat.com
  * @see #setHttpHeaderName(String)
  * @see #setHttpCookieName(String)
  * @see #setEncodingType(String)
@@ -72,10 +59,10 @@ import org.picketlink.trust.jbossws.Util;
  * @see #setValueTypeNamespace(String)
  * @see #setValueTypePrefix(String)
  * @see #setCleanToken(boolean) </p> </p>
- * @author Anil.Saldhana@redhat.com
  * @since Apr 5, 2011
  */
 public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
+
     /**
      * The HTTP header name that this token looks for. Either this or the httpCookieName should be set.
      */
@@ -90,7 +77,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
      * Attribute value for the EncodingType attribute
      */
     private String encodingType = SecurityActions.getSystemProperty("binary.http.encodingType",
-            "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary");
+        "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary");
 
     /**
      * Attribute value for the ValueType attribute
@@ -115,12 +102,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
     private SOAPFactory factory = null;
 
     /**
-     * <p>
-     * Set the EncodingType value.
-     * </p>
-     * <p>
-     * Alternatively, set the system property "binary.http.encodingType"
-     * </p>
+     * <p> Set the EncodingType value. </p> <p> Alternatively, set the system property "binary.http.encodingType" </p>
      *
      * @param binaryEncodingType
      */
@@ -129,12 +111,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
     }
 
     /**
-     * <p>
-     * Set the Value type
-     * </p>
-     * <p>
-     * Alternatively, set the system property "binary.http.valueType"
-     * </p>
+     * <p> Set the Value type </p> <p> Alternatively, set the system property "binary.http.valueType" </p>
      *
      * @param binaryValueType
      */
@@ -143,12 +120,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
     }
 
     /**
-     * <p>
-     * Set the ValueType Namespace
-     * </p>
-     * <p>
-     * Alternatively, set the system property "binary.http.valueType.namespace"
-     * </p>
+     * <p> Set the ValueType Namespace </p> <p> Alternatively, set the system property "binary.http.valueType.namespace" </p>
      *
      * @param binaryValueNamespace
      */
@@ -157,12 +129,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
     }
 
     /**
-     * <p>
-     * Set the Value Type Prefix
-     * </p>
-     * <p>
-     * Alternatively, set the system property "binary.http.valueType.prefix"
-     * </p>
+     * <p> Set the Value Type Prefix </p> <p> Alternatively, set the system property "binary.http.valueType.prefix" </p>
      *
      * @param binaryValuePrefix
      */
@@ -171,12 +138,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
     }
 
     /**
-     * <p>
-     * Set the Http Header Name
-     * </p>
-     * <p>
-     * Alternatively, set the system property: "binary.http.header"
-     * </p>
+     * <p> Set the Http Header Name </p> <p> Alternatively, set the system property: "binary.http.header" </p>
      *
      * @param http
      */
@@ -185,12 +147,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
     }
 
     /**
-     * <p>
-     * Set the Http Cookie Name
-     * </p>
-     * <p>
-     * Alternatively, set the system property: ""binary.http.cookie"
-     * </p>
+     * <p> Set the Http Cookie Name </p> <p> Alternatively, set the system property: ""binary.http.cookie" </p>
      *
      * @param http
      */
@@ -199,11 +156,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
     }
 
     /**
-     * <p>
-     * Should we not clean the extracted binary token.
-     * </p>
-     * <p>
-     * Alternatively, set the system property: "binary.http.cleanToken"
+     * <p> Should we not clean the extracted binary token. </p> <p> Alternatively, set the system property: "binary.http.cleanToken"
      * </p>
      *
      * @param clean
@@ -217,16 +170,19 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
 
         logger.trace("Handling Outbound Message");
 
-        if (httpHeaderName == null && httpCookieName == null)
+        if (httpHeaderName == null && httpCookieName == null) {
             throw logger.injectedValueMissing("Either httpHeaderName or httpCookieName should be set");
+        }
 
         HttpServletRequest servletRequest = getHttpRequest(msgContext);
-        if (servletRequest == null)
+        if (servletRequest == null) {
             throw logger.nullValueError("Http request");
+        }
 
         String token = getTokenValue(servletRequest);
-        if (token == null)
+        if (token == null) {
             throw logger.nullValueError("Null Token");
+        }
         SOAPElement security = null;
         try {
             security = create(token);
@@ -244,7 +200,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
             SOAPHeader header = (SOAPHeader) Util.findElement(envelope, new QName(envelope.getNamespaceURI(), "Header"));
             if (header == null) {
                 header = (SOAPHeader) envelope.getOwnerDocument().createElementNS(envelope.getNamespaceURI(),
-                        envelope.getPrefix() + ":Header");
+                    envelope.getPrefix() + ":Header");
                 envelope.insertBefore(header, envelope.getFirstChild());
             }
             header.addChildElement(security);
@@ -252,7 +208,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
             logger.jbossWSUnableToCreateBinaryToken(e);
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("SOAP Message=" + SOAPUtil.soapMessageAsString(sm));            
+            logger.trace("SOAP Message=" + SOAPUtil.soapMessageAsString(sm));
         }
         return true;
     }
@@ -261,6 +217,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
      * Get the {@link HttpServletRequest} from the {@link MessageContext}
      *
      * @param msgContext
+     *
      * @return
      */
     private HttpServletRequest getHttpRequest(MessageContext msgContext) {
@@ -279,6 +236,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
      * Given the {@link HttpServletRequest}, look for the http header or the cookie depending on the configuration
      *
      * @param http
+     *
      * @return
      */
     private String getTokenValue(HttpServletRequest http) {
@@ -289,13 +247,14 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
                 StringBuilder builder = new StringBuilder();
                 for (String header : headers) {
                     String value = getTokenValue(http, header);
-                    if (value != null)
+                    if (value != null) {
                         builder.append(value);
+                    }
                 }
                 String headerValue = builder.toString();
 
                 logger.trace("Header value has been identified " + headerValue);
-                
+
                 return clean(headerValue);
             } else {
                 String header = http.getHeader(httpHeaderName);
@@ -331,12 +290,15 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
      * Given a binary token, create a {@link SOAPElement}
      *
      * @param token
+     *
      * @return
+     *
      * @throws SOAPException
      */
     private SOAPElement create(String token) throws SOAPException {
-        if (factory == null)
+        if (factory == null) {
             factory = SOAPFactory.newInstance();
+        }
         SOAPElement security = factory.createElement(Constants.WSSE_LOCAL, Constants.WSSE_PREFIX, Constants.WSSE_NS);
 
         if (valueTypeNamespace != null) {
@@ -344,7 +306,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
         }
 
         SOAPElement binarySecurityToken = factory.createElement(Constants.WSSE_BINARY_SECURITY_TOKEN, Constants.WSSE_PREFIX,
-                Constants.WSSE_NS);
+            Constants.WSSE_NS);
         binarySecurityToken.addTextNode(token);
         if (valueType != null && !valueType.isEmpty()) {
             binarySecurityToken.setAttribute(Constants.WSSE_VALUE_TYPE, valueType);
@@ -361,6 +323,7 @@ public class BinaryTokenHandler extends AbstractPicketLinkTrustHandler {
      * Some 3rd party systems send in the binary token in the format Discardable<space>ValidToken
      *
      * @param value
+     *
      * @return
      */
     private String clean(String value) {

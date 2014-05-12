@@ -22,7 +22,6 @@
 
 package org.picketlink.identity.federation;
 
-
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.exceptions.ParsingException;
@@ -43,8 +42,8 @@ import javax.xml.ws.WebServiceException;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
-import static org.picketlink.identity.federation.PicketLinkLoggerMessages.*;
-import static org.picketlink.identity.federation.PicketLinkMessages.*;
+import static org.picketlink.identity.federation.PicketLinkLoggerMessages.ROOT_LOGGER;
+import static org.picketlink.identity.federation.PicketLinkMessages.MESSAGES;
 
 /**
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
@@ -1593,5 +1592,4 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     public IllegalStateException datasourceIsNull() {
         return MESSAGES.datasourceIsNull();
     }
-
 }

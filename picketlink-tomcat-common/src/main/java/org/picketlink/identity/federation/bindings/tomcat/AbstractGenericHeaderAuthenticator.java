@@ -17,13 +17,6 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.StringTokenizer;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.catalina.Realm;
 import org.apache.catalina.Session;
 import org.apache.catalina.authenticator.Constants;
@@ -34,11 +27,17 @@ import org.apache.catalina.deploy.LoginConfig;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.StringTokenizer;
+
 /**
  * JBAS-2283: Provide custom header based authentication support
  *
- * Header Authenticator that deals with userid from the request header Requires two attributes configured on the Tomcat Service
- * - one for the http header denoting the authenticated identity and the other is the SESSION cookie
+ * Header Authenticator that deals with userid from the request header Requires two attributes configured on the Tomcat Service -
+ * one for the http header denoting the authenticated identity and the other is the SESSION cookie
  *
  * @author Anil Saldhana
  * @author Stefan Guilhen
@@ -55,10 +54,8 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
     private String sessionCookieForSSOAuth = null;
 
     /**
-     * <p>
-     * Obtain the value of the <code>httpHeaderForSSOAuth</code> attribute. This attribute is used to indicate the request
-     * header ids that have to be checked in order to retrieve the SSO identity set by a third party security system.
-     * </p>
+     * <p> Obtain the value of the <code>httpHeaderForSSOAuth</code> attribute. This attribute is used to indicate the request
+     * header ids that have to be checked in order to retrieve the SSO identity set by a third party security system. </p>
      *
      * @return a <code>String</code> containing the value of the <code>httpHeaderForSSOAuth</code> attribute.
      */
@@ -67,48 +64,39 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
     }
 
     /**
-     * <p>
-     * Set the value of the <code>httpHeaderForSSOAuth</code> attribute. This attribute is used to indicate the request header
-     * ids that have to be checked in order to retrieve the SSO identity set by a third party security system.
-     * </p>
+     * <p> Set the value of the <code>httpHeaderForSSOAuth</code> attribute. This attribute is used to indicate the request header
+     * ids that have to be checked in order to retrieve the SSO identity set by a third party security system. </p>
      *
-     * @param httpHeaderForSSOAuth a <code>String</code> containing the value of the <code>httpHeaderForSSOAuth</code>
-     *        attribute.
+     * @param httpHeaderForSSOAuth a <code>String</code> containing the value of the <code>httpHeaderForSSOAuth</code> attribute.
      */
     public void setHttpHeaderForSSOAuth(String httpHeaderForSSOAuth) {
         this.httpHeaderForSSOAuth = httpHeaderForSSOAuth;
     }
 
     /**
-     * <p>
-     * Obtain the value of the <code>sessionCookieForSSOAuth</code> attribute. This attribute is used to indicate the names of
-     * the SSO cookies that may be present in the request object.
-     * </p>
+     * <p> Obtain the value of the <code>sessionCookieForSSOAuth</code> attribute. This attribute is used to indicate the names of
+     * the SSO cookies that may be present in the request object. </p>
      *
-     * @return a <code>String</code> containing the names (separated by a <code>','</code>) of the SSO cookies that may have
-     *         been set by a third party security system in the request.
+     * @return a <code>String</code> containing the names (separated by a <code>','</code>) of the SSO cookies that may have been
+     * set by a third party security system in the request.
      */
     public String getSessionCookieForSSOAuth() {
         return sessionCookieForSSOAuth;
     }
 
     /**
-     * <p>
-     * Set the value of the <code>sessionCookieForSSOAuth</code> attribute. This attribute is used to indicate the names of the
-     * SSO cookies that may be present in the request object.
-     * </p>
+     * <p> Set the value of the <code>sessionCookieForSSOAuth</code> attribute. This attribute is used to indicate the names of the
+     * SSO cookies that may be present in the request object. </p>
      *
      * @param sessionCookieForSSOAuth a <code>String</code> containing the names (separated by a <code>','</code>) of the SSO
-     *        cookies that may have been set by a third party security system in the request.
+     * cookies that may have been set by a third party security system in the request.
      */
     public void setSessionCookieForSSOAuth(String sessionCookieForSSOAuth) {
         this.sessionCookieForSSOAuth = sessionCookieForSSOAuth;
     }
 
     /**
-     * <p>
-     * Creates an instance of <code>AbstractGenericHeaderAuthenticator</code>.
-     * </p>
+     * <p> Creates an instance of <code>AbstractGenericHeaderAuthenticator</code>. </p>
      */
     public AbstractGenericHeaderAuthenticator() {
         super();
@@ -122,8 +110,9 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
 
         Principal principal = request.getUserPrincipal();
         if (principal != null) {
-            if (trace)
+            if (trace) {
                 log.trace("Already authenticated '" + principal.getName() + "'");
+            }
             return true;
         }
 
@@ -159,6 +148,7 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
      * Get the username from the request header
      *
      * @param request
+     *
      * @return
      */
     protected String getUserId(Request request) {
@@ -166,14 +156,16 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
         // We can have a comma-separated ids
         String ids = this.httpHeaderForSSOAuth;
 
-        if (ids == null || ids.length() == 0)
+        if (ids == null || ids.length() == 0) {
             throw new IllegalStateException("Http headers configuration in tomcat service missing");
+        }
 
         StringTokenizer st = new StringTokenizer(ids, ",");
         while (st.hasMoreTokens()) {
             ssoid = request.getHeader(st.nextToken());
-            if (ssoid != null)
+            if (ssoid != null) {
                 break;
+            }
         }
         if (log.isTraceEnabled()) {
             log.trace("SSOID-" + ssoid);
@@ -185,6 +177,7 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
      * Obtain the session cookie from the request
      *
      * @param request
+     *
      * @return
      */
     protected String getSessionCookie(Request request) {
@@ -195,15 +188,17 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
         // We can have comma-separated ids
         String ids = sessionCookieForSSOAuth;
 
-        if (ids == null || ids.length() == 0)
+        if (ids == null || ids.length() == 0) {
             throw new IllegalStateException("Session cookies configuration in tomcat service missing");
+        }
 
         StringTokenizer st = new StringTokenizer(ids, ",");
         while (st.hasMoreTokens()) {
             String cookieToken = st.nextToken();
             String val = getCookieValue(cookies, numCookies, cookieToken);
-            if (val != null)
+            if (val != null) {
                 return val;
+            }
         }
         if (log.isTraceEnabled()) {
             log.trace("Session Cookie not found");
@@ -217,6 +212,7 @@ public abstract class AbstractGenericHeaderAuthenticator extends FormAuthenticat
      * @param cookies array of cookies
      * @param numCookies number of cookies in the array
      * @param token Key
+     *
      * @return value of cookie
      */
     protected String getCookieValue(Cookie[] cookies, int numCookies, String token) {

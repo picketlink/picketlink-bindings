@@ -21,15 +21,14 @@
  */
 package org.picketlink.trust.jbossws.jaas;
 
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedAction;
-
-import javax.security.auth.Subject;
-
 import org.jboss.security.SecurityContext;
 import org.jboss.security.SecurityContextAssociation;
 import org.jboss.security.SecurityContextFactory;
+
+import javax.security.auth.Subject;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedAction;
 
 /**
  * Privileged actions.
@@ -39,9 +38,10 @@ import org.jboss.security.SecurityContextFactory;
  * @version $Revision: 1 $
  */
 class SecurityActions {
+
     static SecurityContext createSecurityContext(final Principal p, final Object cred, final Subject subject) {
         SecurityManager sm = System.getSecurityManager();
-        
+
         if (sm != null) {
             return AccessController.doPrivileged(new PrivilegedAction<SecurityContext>() {
                 public SecurityContext run() {
@@ -67,7 +67,7 @@ class SecurityActions {
 
     static void setSecurityContext(final SecurityContext sc) {
         SecurityManager sm = System.getSecurityManager();
-        
+
         if (sm != null) {
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 public Object run() {
@@ -82,7 +82,7 @@ class SecurityActions {
 
     static SecurityContext getSecurityContext() {
         SecurityManager sm = System.getSecurityManager();
-        
+
         if (sm != null) {
             return AccessController.doPrivileged(new PrivilegedAction<SecurityContext>() {
                 public SecurityContext run() {
@@ -101,29 +101,33 @@ class SecurityActions {
      */
     static Subject getAuthenticatedSubject() {
         SecurityManager sm = System.getSecurityManager();
-        
+
         if (sm != null) {
             return AccessController.doPrivileged(new PrivilegedAction<Subject>() {
                 public Subject run() {
                     SecurityContext sc = SecurityContextAssociation.getSecurityContext();
-                    if (sc != null)
+                    if (sc != null) {
                         return sc.getUtil().getSubject();
+                    }
                     return null;
                 }
             });
         } else {
             SecurityContext sc = SecurityContextAssociation.getSecurityContext();
-            if (sc != null)
+            if (sc != null) {
                 return sc.getUtil().getSubject();
+            }
             return null;
         }
     }
 
     /**
-     * <p>Returns a system property value using the specified <code>key</code>. If not found the <code>defaultValue</code> will be returned.</p>
+     * <p>Returns a system property value using the specified <code>key</code>. If not found the <code>defaultValue</code> will be
+     * returned.</p>
      *
      * @param key
      * @param defaultValue
+     *
      * @return
      */
     static String getSystemProperty(final String key, final String defaultValue) {
@@ -161,7 +165,7 @@ class SecurityActions {
 
     static ClassLoader getClassLoader(final Class<?> clazz) {
         SecurityManager sm = System.getSecurityManager();
-        
+
         if (sm != null) {
             return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
                 public ClassLoader run() {
@@ -175,8 +179,8 @@ class SecurityActions {
 
     static ClassLoader getContextClassLoader() {
         SecurityManager sm = System.getSecurityManager();
-        
-        if (sm != null) {        
+
+        if (sm != null) {
             return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
                 public ClassLoader run() {
                     return Thread.currentThread().getContextClassLoader();

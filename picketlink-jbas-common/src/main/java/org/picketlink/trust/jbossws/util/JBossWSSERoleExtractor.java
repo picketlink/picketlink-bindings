@@ -21,10 +21,6 @@
  */
 package org.picketlink.trust.jbossws.util;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
@@ -35,6 +31,10 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Given a jboss-wsse.xml file, extract the roles
  *
@@ -42,21 +42,18 @@ import org.w3c.dom.NodeList;
  * @since Apr 11, 2011
  */
 public class JBossWSSERoleExtractor {
-    
+
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
-    
+
     public static final String UNCHECKED = "unchecked";
 
     /**
-     * <p>
-     * Given the jboss-wsse.xml inputstream, return the configured roles
-     * </p>
-     * <p>
-     * Note that the <unchecked/> setting will yield a role of unchecked. So special handling needs to be done by the caller.
-     * </p>
+     * <p> Given the jboss-wsse.xml inputstream, return the configured roles </p> <p> Note that the <unchecked/> setting will yield
+     * a role of unchecked. So special handling needs to be done by the caller. </p>
      *
      * @param is
      * @param portName optionally pass in a portName
+     *
      * @return a {@link List} of role names
      */
     public static List<String> getRoles(InputStream is, String portName, String operationName) throws ProcessingException {
@@ -89,8 +86,9 @@ public class JBossWSSERoleExtractor {
             Node n = nl.item(i);
             if (n.getNodeType() == Node.ELEMENT_NODE) {
                 Node name = n.getAttributes().getNamedItem("name");
-                if (portName.equals(name.getNodeValue()))
+                if (portName.equals(name.getNodeValue())) {
                     return n;
+                }
             }
         }
         return null;
@@ -104,16 +102,18 @@ public class JBossWSSERoleExtractor {
         NodeList ops = elem.getElementsByTagName("operation");
         if (ops.getLength() > 0) {
             Node opNode = getNamedNode(ops, operationName);
-            if (opNode != null)
+            if (opNode != null) {
                 return getDefaultRoles((Element) opNode);
+            }
             return roles;
         }
         NodeList nl = elem.getElementsByTagName("authorize");
         if (nl != null) {
             int len = nl.getLength();
 
-            if (len > 1)
+            if (len > 1) {
                 throw new ProcessingException(ErrorCodes.PROCESSING_EXCEPTION + "More than one authorize element");
+            }
             Node authorize = nl.item(0);
             roles.addAll(getRolesFromAuthorize((Element) authorize));
         }
@@ -130,12 +130,13 @@ public class JBossWSSERoleExtractor {
                 Node n = children.item(i);
                 if (n.getNodeType() == Node.ELEMENT_NODE) {
                     Element newNode = (Element) n;
-                    if (newNode.getNodeName().equals("port"))
+                    if (newNode.getNodeName().equals("port")) {
                         return roles;
-                    else if (newNode.getNodeName().equals("authorize"))
+                    } else if (newNode.getNodeName().equals("authorize")) {
                         return getRolesFromAuthorize(newNode);
-                    else
+                    } else {
                         roles = getDefaultRoles(newNode);
+                    }
                 }
             }
         }
@@ -145,8 +146,9 @@ public class JBossWSSERoleExtractor {
 
     private static List<String> validate(List<String> roles) throws ProcessingException {
         // Validate that we do not have unchecked and roles
-        if (roles.contains(UNCHECKED) && roles.size() > 1)
+        if (roles.contains(UNCHECKED) && roles.size() > 1) {
             throw logger.jbossWSUncheckedAndRolesCannotBeTogether();
+        }
         return roles;
     }
 

@@ -21,12 +21,6 @@
  */
 package org.picketlink.trust.jbossws.handler;
 
-import java.security.Principal;
-import java.util.Iterator;
-
-import javax.security.auth.Subject;
-import javax.xml.ws.handler.MessageContext;
-
 import org.jboss.security.AuthenticationManager;
 import org.jboss.security.SecurityConstants;
 import org.jboss.security.SecurityContext;
@@ -36,17 +30,21 @@ import org.jboss.security.identity.extensions.CredentialIdentity;
 import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.exceptions.ConfigurationException;
 
+import javax.security.auth.Subject;
+import javax.xml.ws.handler.MessageContext;
+import java.security.Principal;
+import java.util.Iterator;
+
 /**
  * <p>Base class to perform Authentication for POJO Web Services based on the Authorize Operation on the JBossWS Native stack.</p>
- * 
+ *
  * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
  * @author Anil.Saldhana@redhat.com
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- * 
  * @since Apr 11, 2011
  */
 public abstract class AbstractWSAuthenticationHandler extends AbstractPicketLinkTrustHandler {
-    
+
     /* (non-Javadoc)
      * @see org.picketlink.trust.jbossws.handler.AbstractPicketLinkTrustHandler#handleInbound(javax.xml.ws.handler.MessageContext)
      */
@@ -58,18 +56,18 @@ public abstract class AbstractWSAuthenticationHandler extends AbstractPicketLink
         trace(msgContext);
 
         AuthenticationManager authenticationManager = null;
-        
+
         try {
             authenticationManager = getAuthenticationManager(msgContext);
         } catch (ConfigurationException e) {
             logger.authenticationManagerError(e);
             throw new RuntimeException(e);
         }
-        
+
         Principal principal = null;
         Object credential = null;
         Iterator<Identity> iterator = SecurityContextAssociation.getSecurityContext().getSubjectInfo().getIdentities()
-                .iterator();
+            .iterator();
 
         while (iterator.hasNext()) {
             CredentialIdentity identity = (CredentialIdentity) iterator.next();
@@ -97,15 +95,16 @@ public abstract class AbstractWSAuthenticationHandler extends AbstractPicketLink
 
     /**
      * <p>Returns the {@link AuthenticationManager} associated with the application's security domain.</p>
-     * 
+     *
      * @param msgContext
+     *
      * @return
+     *
      * @throws ConfigurationException
      */
     protected AuthenticationManager getAuthenticationManager(MessageContext msgContext) throws ConfigurationException {
         String securityDomainName = getSecurityDomainName(msgContext);
-        
+
         return (AuthenticationManager) lookupJNDI(SecurityConstants.JAAS_CONTEXT_ROOT + securityDomainName);
     }
-
 }

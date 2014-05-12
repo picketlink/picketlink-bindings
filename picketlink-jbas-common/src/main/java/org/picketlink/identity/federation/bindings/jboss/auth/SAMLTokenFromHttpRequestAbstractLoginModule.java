@@ -22,90 +22,80 @@
 
 package org.picketlink.identity.federation.bindings.jboss.auth;
 
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.jacc.PolicyContext;
-import javax.servlet.http.HttpServletRequest;
-
 import org.jboss.security.auth.spi.AbstractServerLoginModule;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 import org.picketlink.common.util.Base64;
 import org.picketlink.identity.federation.core.wstrust.SamlCredential;
 
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.jacc.PolicyContext;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
- * This is not login module with full functionality.
- * It just adds ability to get SAML token from http header specified by module option. 
- * 
- * @author Peter Skopek: pskopek at redhat dot com
+ * This is not login module with full functionality. It just adds ability to get SAML token from http header specified by module
+ * option.
  *
+ * @author Peter Skopek: pskopek at redhat dot com
  */
 public abstract class SAMLTokenFromHttpRequestAbstractLoginModule extends
-        AbstractServerLoginModule {
+    AbstractServerLoginModule {
 
     protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
 
     protected String tokenEncoding = SAML2STSCommonLoginModule.NONE_TOKEN_ENCODING;
 
     /**
-     * Specify which http header contains saml token.
-     * If null, default behavior will be used, credentials got from callback.
+     * Specify which http header contains saml token. If null, default behavior will be used, credentials got from callback.
      */
     private String samlTokenHttpHeader = null;
 
     /**
-     * Regular expression to parse samlTokenHttpHeader to obtain saml token only.
-     * Token itself has to be Base64 encoded.
-     * Use .* to match whole content.
+     * Regular expression to parse samlTokenHttpHeader to obtain saml token only. Token itself has to be Base64 encoded. Use .* to
+     * match whole content.
      */
     private String samlTokenHttpHeaderRegEx = null;
 
-    private Pattern pattern = null; 
+    private Pattern pattern = null;
 
-    
     /**
-     * Group which will be used to retrieve matched part of the token header content.
-     * Defaults to 0.
+     * Group which will be used to retrieve matched part of the token header content. Defaults to 0.
      * pattern.matcher.group(samlTokenHttpHeaderRegExGroup)
      */
     private int samlTokenHttpHeaderRegExGroup = 0;
-    
+
     /**
-     * Key to specify token compression. 
-     * Supported types: 
-     *   {@link GZIP_TOKEN_ENCODING} - gzip
-     *   {@link BASE64_TOKEN_ENCODING} - base64
-     *   {@link NONE_TOKEN_ENCODING} - none
+     * Key to specify token compression. Supported types: {@link GZIP_TOKEN_ENCODING} - gzip {@link BASE64_TOKEN_ENCODING} - base64
+     * {@link NONE_TOKEN_ENCODING} - none
      */
     public static final String TOKEN_ENCODING_TYPE_KEY = "tokenEncodingType";
 
     /**
      * Token encoding type: gzip
      */
-    public static final String GZIP_TOKEN_ENCODING = "gzip"; 
+    public static final String GZIP_TOKEN_ENCODING = "gzip";
 
     /**
-     * Token encoding type: none 
+     * Token encoding type: none
      */
-    public static final String NONE_TOKEN_ENCODING = "none"; 
+    public static final String NONE_TOKEN_ENCODING = "none";
 
     /**
-     * Token encoding type: base64 
+     * Token encoding type: base64
      */
-    public static final String BASE64_TOKEN_ENCODING = "base64"; 
+    public static final String BASE64_TOKEN_ENCODING = "base64";
 
     public static final String WEB_REQUEST_KEY = "javax.servlet.http.HttpServletRequest";
     public static final String REG_EX_PATTERN_KEY = "samlTokenHttpHeaderRegEx";
     public static final String REG_EX_GROUP_KEY = "samlTokenHttpHeaderRegExGroup";
     public static final String SAML_TOKEN_HTTP_HEADER_KEY = "samlTokenHttpHeader";
-    
-    
+
     protected SamlCredential getCredentialFromHttpRequest() throws Exception {
-        
+
         HttpServletRequest request = (HttpServletRequest) PolicyContext.getContext(WEB_REQUEST_KEY);
         String encodedSamlToken = null;
         if (samlTokenHttpHeaderRegEx != null && !samlTokenHttpHeaderRegEx.equals("")) {
@@ -113,33 +103,31 @@ public abstract class SAMLTokenFromHttpRequestAbstractLoginModule extends
             if (logger.isTraceEnabled()) {
                 log.trace("http header with SAML token [" + samlTokenHttpHeader + "]=" + content);
             }
-            log.trace("samlTokenHttpHeaderRegEx="+samlTokenHttpHeaderRegEx);
+            log.trace("samlTokenHttpHeaderRegEx=" + samlTokenHttpHeaderRegEx);
             Matcher m = pattern.matcher(content);
             m.matches();
-            log.trace("samlTokenHttpHeaderRegExGroup="+samlTokenHttpHeaderRegExGroup);
+            log.trace("samlTokenHttpHeaderRegExGroup=" + samlTokenHttpHeaderRegExGroup);
             encodedSamlToken = m.group(samlTokenHttpHeaderRegExGroup);
-        }
-        else {
+        } else {
             encodedSamlToken = request.getHeader(samlTokenHttpHeader);
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("encodedSamlToken="+encodedSamlToken);
+            logger.trace("encodedSamlToken=" + encodedSamlToken);
         }
 
         String samlToken = null;
         if (tokenEncoding.equals(NONE_TOKEN_ENCODING)
-                || tokenEncoding == null) {
+            || tokenEncoding == null) {
             samlToken = encodedSamlToken;
-        }
-        else { 
+        } else {
             // gzip and base64 encodings are handled in this Base64.decode call
             byte[] decompressed = Base64.decode(encodedSamlToken);
             samlToken = new String(decompressed);
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("decoded samlToken="+samlToken);
+            logger.trace("decoded samlToken=" + samlToken);
         }
-        
+
         return new SamlCredential(samlToken);
     }
 
@@ -171,33 +159,30 @@ public abstract class SAMLTokenFromHttpRequestAbstractLoginModule extends
         return samlTokenHttpHeaderRegExGroup;
     }
 
-
     /* (non-Javadoc)
      * @see org.jboss.security.auth.spi.AbstractServerLoginModule#initialize(javax.security.auth.Subject, javax.security.auth.callback.CallbackHandler, java.util.Map, java.util.Map)
      */
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler,
-            Map<String, ?> sharedState, Map<String, ?> options) {
-        
-        super.initialize(subject, callbackHandler, sharedState, options);
-        
-        samlTokenHttpHeader = (String)this.options.get(SAML_TOKEN_HTTP_HEADER_KEY);
+        Map<String, ?> sharedState, Map<String, ?> options) {
 
-        String encoding = (String)this.options.get(TOKEN_ENCODING_TYPE_KEY);
+        super.initialize(subject, callbackHandler, sharedState, options);
+
+        samlTokenHttpHeader = (String) this.options.get(SAML_TOKEN_HTTP_HEADER_KEY);
+
+        String encoding = (String) this.options.get(TOKEN_ENCODING_TYPE_KEY);
         if (encoding != null) {
             this.tokenEncoding = encoding;
         }
 
-        samlTokenHttpHeaderRegEx = (String)this.options.get(REG_EX_PATTERN_KEY);
+        samlTokenHttpHeaderRegEx = (String) this.options.get(REG_EX_PATTERN_KEY);
         if (samlTokenHttpHeaderRegEx != null) {
             this.pattern = Pattern.compile(samlTokenHttpHeaderRegEx, Pattern.DOTALL);
-        }    
-        
-        String group = (String)this.options.get(REG_EX_GROUP_KEY);
+        }
+
+        String group = (String) this.options.get(REG_EX_GROUP_KEY);
         if (group != null) {
             samlTokenHttpHeaderRegExGroup = Integer.parseInt(group);
         }
-        
     }
-
 }

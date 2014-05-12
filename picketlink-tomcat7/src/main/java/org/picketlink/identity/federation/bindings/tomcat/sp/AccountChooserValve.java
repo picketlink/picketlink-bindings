@@ -17,14 +17,6 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Locale;
-
-import javax.servlet.http.Cookie;
-
 import org.apache.catalina.Session;
 import org.apache.catalina.authenticator.Constants;
 import org.apache.catalina.authenticator.SavedRequest;
@@ -34,29 +26,37 @@ import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.buf.MessageBytes;
 import org.apache.tomcat.util.http.MimeHeaders;
 
+import javax.servlet.http.Cookie;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.Locale;
+
 /**
- * PLINK-344: Account Chooser At the Service Provider to enable redirection to the appropriate IDP Implementation for Apache
- * Tomcat 7
+ * PLINK-344: Account Chooser At the Service Provider to enable redirection to the appropriate IDP Implementation for Apache Tomcat
+ * 7
  *
  * @author Anil Saldhana
  * @since January 22, 2014
  */
 public class AccountChooserValve extends AbstractAccountChooserValve {
+
     /**
      * Save the original request information into our session.
      *
-     * Implementation from
-     * http://svn.apache.org/repos/asf/tomcat/tc7.0.x/tags/TOMCAT_7_0_50/java/org/apache/catalina/authenticator
+     * Implementation from http://svn.apache.org/repos/asf/tomcat/tc7.0.x/tags/TOMCAT_7_0_50/java/org/apache/catalina/authenticator
      * /FormAuthenticator.java
      *
      * @param request The request to be saved
      * @param session The session to contain the saved information
+     *
      * @throws java.io.IOException
      */
     protected void saveRequest(Request request, Session session) throws IOException {
         // Create and populate a SavedRequest object for this request
         SavedRequest saved = new SavedRequest();
-        Cookie cookies[] = request.getCookies();
+        Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (int i = 0; i < cookies.length; i++) {
                 saved.addCookie(cookies[i]);
@@ -107,11 +107,10 @@ public class AccountChooserValve extends AbstractAccountChooserValve {
     }
 
     /**
-     * Restore the original request from information stored in our session. If the original request is no longer present
-     * (because the session timed out), return <code>false</code>; otherwise, return <code>true</code>.
+     * Restore the original request from information stored in our session. If the original request is no longer present (because
+     * the session timed out), return <code>false</code>; otherwise, return <code>true</code>.
      *
-     * Implementation from
-     * http://svn.apache.org/repos/asf/tomcat/tc7.0.x/tags/TOMCAT_7_0_50/java/org/apache/catalina/authenticator
+     * Implementation from http://svn.apache.org/repos/asf/tomcat/tc7.0.x/tags/TOMCAT_7_0_50/java/org/apache/catalina/authenticator
      * /FormAuthenticator.java
      *
      * @param request The request to be restored

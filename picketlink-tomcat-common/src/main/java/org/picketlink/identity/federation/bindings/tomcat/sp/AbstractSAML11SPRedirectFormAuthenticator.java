@@ -30,6 +30,7 @@ import static org.picketlink.common.util.StringUtil.isNotNull;
 
 /**
  * Authenticator for SAML 1.1 processing at the Service Provider
+ *
  * @author anil saldhana
  * @since Jul 7, 2011
  */
@@ -52,8 +53,9 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
         Principal principal = request.getUserPrincipal();
 
         // If we have already authenticated the user and there is no request from IDP or logout from user
-        if (principal != null)
+        if (principal != null) {
             return true;
+        }
 
         Session session = request.getSessionInternal(true);
 
@@ -66,8 +68,9 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
                 logger.samlSPHandleRequestError(e);
                 throw new IOException();
             }
-            if (!isValid)
+            if (!isValid) {
                 throw new IOException(ErrorCodes.VALIDATION_CHECK_FAILED);
+            }
 
             try {
                 InputStream base64DecodedResponse = null;
@@ -133,7 +136,7 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
         return false;
     }
 
-    protected void startPicketLink() throws LifecycleException{
+    protected void startPicketLink() throws LifecycleException {
         super.startPicketLink();
         this.spConfiguration.setBindingType("REDIRECT");
     }

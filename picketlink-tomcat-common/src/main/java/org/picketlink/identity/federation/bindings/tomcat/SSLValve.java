@@ -17,32 +17,25 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat;
 
-import java.io.IOException;
-import java.io.ByteArrayInputStream;
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
+import org.apache.catalina.valves.ValveBase;
+import org.picketlink.common.PicketLinkLogger;
+import org.picketlink.common.PicketLinkLoggerFactory;
 
+import javax.servlet.ServletException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
-import javax.servlet.ServletException;
-
-import org.apache.catalina.valves.ValveBase;
-import org.apache.catalina.connector.Request;
-import org.apache.catalina.connector.Response;
-import org.picketlink.common.PicketLinkLogger;
-import org.picketlink.common.PicketLinkLoggerFactory;
-
 /**
- * Valve to fill the SSL information in the request
- * mod_header is used to fill the headers and the valve
- * will fill the parameters of the request.
- * In httpd.conf add the following:
+ * Valve to fill the SSL information in the request mod_header is used to fill the headers and the valve will fill the parameters of
+ * the request. In httpd.conf add the following:
  *
- * <IfModule ssl_module>
- *   RequestHeader set SSL_CLIENT_CERT "%{SSL_CLIENT_CERT}s"
- *   RequestHeader set SSL_CIPHER "%{SSL_CIPHER}s"
- *   RequestHeader set SSL_SESSION_ID "%{SSL_SESSION_ID}s"
- *   RequestHeader set SSL_CIPHER_USEKEYSIZE "%{SSL_CIPHER_USEKEYSIZE}s"
+ * <IfModule ssl_module> RequestHeader set SSL_CLIENT_CERT "%{SSL_CLIENT_CERT}s" RequestHeader set SSL_CIPHER "%{SSL_CIPHER}s"
+ * RequestHeader set SSL_SESSION_ID "%{SSL_SESSION_ID}s" RequestHeader set SSL_CIPHER_USEKEYSIZE "%{SSL_CIPHER_USEKEYSIZE}s"
  * </IfModule>
  *
  * Visit: https://community.jboss.org/wiki/SSLModproxyForwarding
@@ -51,7 +44,8 @@ import org.picketlink.common.PicketLinkLoggerFactory;
  * @author Anil Saldhana
  * @since November 07, 2013
  */
-public class SSLValve extends ValveBase{
+public class SSLValve extends ValveBase {
+
     protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
 
     @Override
@@ -63,14 +57,14 @@ public class SSLValve extends ValveBase{
         if (isNotNull(strcert0)) {
 
             String strcert1 = strcert0.replace(' ', '\n');
-            String strcert2 = strcert1.substring(28, strcert1.length()-26);
+            String strcert2 = strcert1.substring(28, strcert1.length() - 26);
             String strcert3 = new String("-----BEGIN CERTIFICATE-----\n");
             String strcert4 = strcert3.concat(strcert2);
             String strcerts = strcert4.concat("\n-----END CERTIFICATE-----\n");
 
             // ByteArrayInputStream bais = new ByteArrayInputStream(strcerts.getBytes("UTF-8"));
             ByteArrayInputStream bais = new ByteArrayInputStream(strcerts.getBytes());
-            X509Certificate jsseCerts[] = null;
+            X509Certificate[] jsseCerts = null;
             try {
                 CertificateFactory cf = CertificateFactory.getInstance("X.509");
                 X509Certificate cert = (X509Certificate) cf.generateCertificate(bais);

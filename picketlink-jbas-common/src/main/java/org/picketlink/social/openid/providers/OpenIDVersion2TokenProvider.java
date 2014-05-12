@@ -26,6 +26,7 @@ import javax.xml.namespace.QName;
  * @since Jan 20, 2011
  */
 public class OpenIDVersion2TokenProvider extends OpenIDTokenProvider {
+
     @Override
     public boolean supports(String namespace) {
         return OPENID_2_0_NS.equals(namespace);

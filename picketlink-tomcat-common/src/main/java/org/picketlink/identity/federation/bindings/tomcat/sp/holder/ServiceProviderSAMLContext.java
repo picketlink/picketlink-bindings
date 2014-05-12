@@ -30,6 +30,7 @@ import java.util.List;
  * @since Feb 13, 2009
  */
 public class ServiceProviderSAMLContext {
+
     public static final String EMPTY_PASSWORD = "EMPTY_STR";
 
     private static ThreadLocal<String> username = new ThreadLocal<String>();

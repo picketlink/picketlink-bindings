@@ -21,22 +21,10 @@
  */
 package org.picketlink.trust.jbossws.handler;
 
-import java.security.Principal;
-import java.security.acl.Group;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.security.auth.Subject;
-import javax.xml.namespace.QName;
-import javax.xml.soap.SOAPMessage;
-import javax.xml.ws.handler.MessageContext;
-import javax.xml.ws.handler.soap.SOAPMessageContext;
-
 import org.jboss.security.SecurityContext;
 import org.picketlink.common.constants.JBossSAMLURIConstants;
 import org.picketlink.common.util.StringUtil;
 import org.picketlink.identity.federation.bindings.jboss.subject.PicketLinkPrincipal;
-import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2Handler;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.core.wstrust.SamlCredential;
 import org.picketlink.identity.federation.core.wstrust.plugins.saml.SAMLUtil;
@@ -46,17 +34,27 @@ import org.picketlink.trust.jbossws.Util;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import javax.security.auth.Subject;
+import javax.xml.namespace.QName;
+import javax.xml.soap.SOAPMessage;
+import javax.xml.ws.handler.MessageContext;
+import javax.xml.ws.handler.soap.SOAPMessageContext;
+import java.security.Principal;
+import java.security.acl.Group;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * <p>Base class for SAML handlers implementations. A default implementation is provided by the {@link SAML2Handler} class.</p>
- * 
+ * <p>Base class for SAML handlers implementations. A default implementation is provided by the {@link org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2Handler} class.</p>
+ *
  * @author <a href="mmoyses@redhat.com">Marcus Moyses</a>
  * @author <a href="alessio.soldano@jboss.com">Alessio Soldano</a>
  * @author Anil Saldhana
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- * 
  * @version $Revision: 1 $
  */
 public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandler {
+
     // The system property key that can be set to determine the keys under which the roles may be in the assertion
     public static final String ROLE_KEY_SYS_PROP = "picketlink.rolekey";
 
@@ -70,8 +68,9 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
         SOAPMessageContext ctx = (SOAPMessageContext) msgContext;
         SOAPMessage soapMessage = ctx.getMessage();
 
-        if (soapMessage == null)
+        if (soapMessage == null) {
             throw logger.nullValueError("SOAP Message");
+        }
 
         // retrieve the assertion
         Document document = soapMessage.getSOAPPart();
@@ -81,8 +80,9 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
             AssertionType assertionType = null;
             try {
                 assertionType = SAMLUtil.fromElement(assertion);
-                if (AssertionUtil.hasExpired(assertionType))
+                if (AssertionUtil.hasExpired(assertionType)) {
                     throw new RuntimeException(logger.samlAssertionExpiredError());
+                }
             } catch (Exception e) {
                 logger.samlAssertionPasingFailed(e);
             }
@@ -93,13 +93,13 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
             Element subject = Util.findElement(assertion, new QName(assertionNS, "Subject"));
             Element nameID = Util.findElement(subject, new QName(assertionNS, "NameID"));
             String username = getUsername(nameID);
-            
+
             // set SecurityContext
             Subject theSubject = new Subject();
             PicketLinkPrincipal principal = new PicketLinkPrincipal(username);
 
             createSecurityContext(credential, theSubject, principal);
-            
+
             if (assertionType != null) {
                 List<String> roleKeys = new ArrayList<String>();
                 String roleKey = SecurityActions.getSystemProperty(ROLE_KEY_SYS_PROP, "Role");
@@ -126,7 +126,7 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
 
     /**
      * <p>Subclasses can override this method to customize how the security context is created.</p>
-     * 
+     *
      * @param credential
      * @param theSubject
      * @param principal

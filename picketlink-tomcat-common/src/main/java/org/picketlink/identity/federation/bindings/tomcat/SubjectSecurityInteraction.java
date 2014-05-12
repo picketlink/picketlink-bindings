@@ -21,9 +21,8 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat;
 
-import java.security.Principal;
-
 import javax.security.auth.Subject;
+import java.security.Principal;
 
 /**
  * Interface to retrieve a subject
@@ -32,6 +31,7 @@ import javax.security.auth.Subject;
  * @since Sep 13, 2011
  */
 public interface SubjectSecurityInteraction {
+
     /**
      * Obtain a subject based on implementation
      *
@@ -43,13 +43,14 @@ public interface SubjectSecurityInteraction {
      * Clean up the {@link Principal} from the security cache
      *
      * @param principal
+     *
      * @return
      */
     boolean cleanup(Principal principal);
-    
+
     /**
      * <p>Sets the security domain name</p>
-     * 
+     *
      * @param securityDomain
      */
     void setSecurityDomain(String securityDomain);

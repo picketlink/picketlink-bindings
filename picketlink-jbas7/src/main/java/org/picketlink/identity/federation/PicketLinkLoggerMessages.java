@@ -33,19 +33,18 @@ import org.picketlink.common.exceptions.ConfigurationException;
 
 /**
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- * 
  */
 @MessageLogger(projectCode = "PLFED")
 public interface PicketLinkLoggerMessages extends BasicLogger {
 
     PicketLinkLoggerMessages ROOT_LOGGER = Logger.getMessageLogger(PicketLinkLoggerMessages.class,
-            PicketLinkLoggerMessages.class.getPackage().getName());
+        PicketLinkLoggerMessages.class.getPackage().getName());
 
     PicketLinkLoggerMessages AUDIT_LOGGER = Logger.getMessageLogger(PicketLinkLoggerMessages.class,
-            PicketLinkLoggerMessages.class.getPackage().getName() + ".audit");
+        PicketLinkLoggerMessages.class.getPackage().getName() + ".audit");
 
     /* INFO */
-    
+
     @LogMessage(level = Level.INFO)
     @Message(id = 200, value = "[PicketLink Audit] %s")
     void auditEvent(String auditEvent);
@@ -57,19 +56,19 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.INFO)
     @Message(id = 202, value = "No public key found for alias = %s")
     void keyStoreNullPublicKeyForAlias(String alias);
-    
+
     @LogMessage(level = Level.INFO)
     @Message(id = 203, value = "Assertion has expired with id=%s")
     void samlAssertionExpired(String id);
-    
+
     @LogMessage(level = Level.INFO)
     @Message(id = 204, value = "%s configuration file loaded")
     void stsConfigurationFileLoaded(String fileName);
-    
+
     @LogMessage(level = Level.INFO)
     @Message(id = 205, value = "Service Provider is setting the CanonicalizationMethod on XMLSignatureUtil: %s")
     void samlSPSettingCanonicalizationMethod(String canonicalizationMethod);
-    
+
     @LogMessage(level = Level.INFO)
     @Message(id = 206, value = "Identity Provider is setting the CanonicalizationMethod on XMLSignatureUtil: %s")
     void samlIDPSettingCanonicalizationMethod(String canonicalizationMethod);
@@ -107,7 +106,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.WARN)
     @Message(id = 214, value = "Error instantiating revocation registry class - using default registry")
     void stsRevocationRegistryInstantiationError();
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 215, value = "%s configuration file not found using TCCL")
     void stsConfigurationFileNotFoundTCL(String fileName);
@@ -119,11 +118,11 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.WARN)
     @Message(id = 217, value = "%s configuration file not found using URL. Using default configuration values")
     void stsUsingDefaultConfiguration(String fileName);
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 218, value = "Secret key could not be encrypted because the endpoint's PKC has not been specified")
     void stsSecretKeyNotEncrypted();
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 219, value = "SAML Assertion has been found to have no expiration: ID = %s")
     void authSAMLAssertionWithoutExpiration(String id);
@@ -147,23 +146,23 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.WARN)
     @Message(id = 224, value = "Session Created with id = %s ::active session count = %s")
     void samlIdentityServerSessionCreated(String id, int activeSessionCount);
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 225, value = "Session Destroyed with id = %s ::active session count = %s")
     void samlIdentityServerSessionDestroyed(String id, int activeSessionCount);
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 226, value = "Was not able to create security token. Just sending message without binary token")
     void jbossWSUnableToCreateSecurityToken();
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 227, value = "Unable to set the Identity Participant Stack Class. Will just use the default")
     void samlIDPUnableToSetParticipantStackUsingDefault(@Cause Throwable t);
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 228, value = "Security Token digital signature has NOT been verified. Either the STS has been configured not to sign tokens or the STS key pair has not been properly specified.")
     void stsSecurityTokenSignatureNotVerified();
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 229, value = "Security token should be encrypted but no encrypting key could be found")
     void stsSecurityTokenShouldBeEncrypted();
@@ -175,7 +174,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.WARN)
     @Message(id = 231, value = "Lifetime has not been specified. Using the default timeout value.")
     void stsTokenTimeoutNotSpecified();
-    
+
     @LogMessage(level = Level.WARN)
     @Message(id = 264, value = "Security Token with id = %s has already been persisted.")
     void samlSecurityTokenAlreadyPersisted(String id);
@@ -185,7 +184,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     void samlSecurityTokenNotFoundInRegistry(String id);
 
     /* ERROR */
-    
+
     @LogMessage(level = Level.ERROR)
     @Message(id = 232, value = "Exception loading the identity providers")
     void samlMetaDataIdentityProviderLoadingError(@Cause Throwable t);
@@ -241,7 +240,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.ERROR)
     @Message(id = 246, value = "Could not obtain security context.")
     void couldNotObtainSecurityContext();
-    
+
     @LogMessage(level = Level.ERROR)
     @Message(id = 247, value = "SAML Assertion parsing failed")
     void authSAMLAssertionParsingFailed(@Cause Throwable t);
@@ -273,7 +272,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.ERROR)
     @Message(id = 254, value = "Exception dealing with handler configuration")
     void samlHandlerConfigurationError(@Cause Throwable t);
-    
+
     @LogMessage(level = Level.ERROR)
     @Message(id = 255, value = "Falling back on local Form Authentication if available")
     void samlSPFallingBackToLocalFormAuthentication();
@@ -281,7 +280,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.ERROR)
     @Message(id = 256, value = "Unable to obtain the IDP SSO Descriptor from metadata")
     void samlSPUnableToGetIDPDescriptorFromMetadata();
-    
+
     @LogMessage(level = Level.ERROR)
     @Message(id = 257, value = "Verification of InResponseTo failed. InResponseTo from SAML response is %s. Value of request Id from HTTP session is %s")
     void samlHandlerFailedInResponseToVerification(String inResponseTo, String authnRequestId);
@@ -289,7 +288,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.ERROR)
     @Message(id = 258, value = "Exception in processing authentication")
     void samlHandlerAuthenticationError(@Cause Throwable t);
-    
+
     @LogMessage(level = Level.DEBUG)
     @Message(id = 259, value = "The provider %s could not be added")
     void jceProviderCouldNotBeLoaded(String name, @Cause Throwable t);
@@ -317,5 +316,4 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @LogMessage(level = Level.ERROR)
     @Message(id = 267, value = "Error loading the AuthorizationManager.")
     void authorizationManagerError(@Cause ConfigurationException e);
-    
 }

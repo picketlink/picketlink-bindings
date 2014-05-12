@@ -22,15 +22,6 @@
 
 package org.picketlink.identity.federation.bindings.tomcat;
 
-import java.io.IOException;
-import java.security.AccessController;
-import java.security.Principal;
-import java.security.PrivilegedAction;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.security.auth.Subject;
-
 import org.apache.catalina.Realm;
 import org.apache.catalina.Session;
 import org.apache.catalina.authenticator.AuthenticatorBase;
@@ -41,16 +32,23 @@ import org.apache.catalina.deploy.LoginConfig;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 
+import javax.security.auth.Subject;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.Principal;
+import java.security.PrivilegedAction;
+import java.util.Set;
+import java.util.UUID;
+
 /**
  * <p>An authenticator that delegates actual authentication to a realm, and in turn to a security manager, by presenting a
  * "conventional" identity. The security manager must accept the conventional identity and generate the real identity for the
- * authenticated principal.</p>
- * <p>Subclasses should override some methods to provide especific implementation according with the binding/environment.</p>
- * 
+ * authenticated principal.</p> <p>Subclasses should override some methods to provide especific implementation according with the
+ * binding/environment.</p>
+ *
  * @author <a href="mailto:ovidiu@novaordis.com">Ovidiu Feodorov</a>
  * @author Anil.Saldhana@redhat.com
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
- * 
  */
 public abstract class AbstractPicketLinkAuthenticator extends AuthenticatorBase {
 
@@ -74,7 +72,7 @@ public abstract class AbstractPicketLinkAuthenticator extends AuthenticatorBase 
 
     /**
      * Set the auth method via WEB-INF/context.xml (JBoss AS)
-     * 
+     *
      * @param authMethod
      */
     public void setAuthMethod(String authMethod) {
@@ -87,7 +85,7 @@ public abstract class AbstractPicketLinkAuthenticator extends AuthenticatorBase 
 
     /**
      * Set this if you want to override the default {@link SubjectSecurityInteraction}
-     * 
+     *
      * @param subjectRetrieverClassName
      */
     public void setSubjectInteractionClassName(String subjectRetrieverClassName) {
@@ -95,13 +93,16 @@ public abstract class AbstractPicketLinkAuthenticator extends AuthenticatorBase 
     }
 
     /**
-     * <p>Actually performs the authentication. Subclasses should call this method when implementing the <code>AuthenticatorBase.authenticate</code> method.</p>
-     * <p>This method was created to allow different signatures for the <code>AuthenticatorBase.authenticate</code> method according with the catalina version.</p>
-     * 
+     * <p>Actually performs the authentication. Subclasses should call this method when implementing the
+     * <code>AuthenticatorBase.authenticate</code> method.</p> <p>This method was created to allow different signatures for the
+     * <code>AuthenticatorBase.authenticate</code> method according with the catalina version.</p>
+     *
      * @param request
      * @param response
      * @param loginConfig
+     *
      * @return
+     *
      * @throws IOException
      */
     protected boolean performAuthentication(Request request, Response response, LoginConfig loginConfig) throws IOException {
@@ -124,8 +125,9 @@ public abstract class AbstractPicketLinkAuthenticator extends AuthenticatorBase 
         if (principal != null) {
             if (needSubjectPrincipalSubstitution) {
                 principal = getSubjectPrincipal();
-                if (principal == null)
+                if (principal == null) {
                     throw new RuntimeException("Principal from subject is null");
+                }
                 principal = realm.authenticate(principal.getName(), password);
             }
             session.setNote(Constants.SESS_USERNAME_NOTE, principal.getName());
@@ -143,7 +145,7 @@ public abstract class AbstractPicketLinkAuthenticator extends AuthenticatorBase 
 
     /**
      * <p>Subclasses should override this method to register an authenticated Principal.</p>
-     * 
+     *
      * @param request
      * @param response
      * @param principal
@@ -198,5 +200,4 @@ public abstract class AbstractPicketLinkAuthenticator extends AuthenticatorBase 
             }
         });
     }
-
 }

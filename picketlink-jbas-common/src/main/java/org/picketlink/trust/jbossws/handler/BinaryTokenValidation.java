@@ -25,9 +25,10 @@ import javax.xml.ws.handler.MessageContext;
 
 /**
  * Interface for token validation to be supplied to @MapBasedTokenHandler and @BinaryTokenHandler.
- * @author pskopek
  *
+ * @author pskopek
  */
 public interface BinaryTokenValidation {
-   public boolean validateBinaryToken(Object token, MessageContext msgContext);
+
+    boolean validateBinaryToken(Object token, MessageContext msgContext);
 }

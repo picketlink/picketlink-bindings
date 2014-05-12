@@ -1,9 +1,5 @@
 package org.picketlink.identity.federation.bindings.jboss.auth.mapping;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.jboss.security.identity.RoleGroup;
 import org.jboss.security.identity.plugins.SimpleRole;
 import org.jboss.security.identity.plugins.SimpleRoleGroup;
@@ -21,11 +17,13 @@ import org.picketlink.identity.federation.saml.v2.assertion.AttributeType;
 import org.picketlink.identity.federation.saml.v2.assertion.StatementAbstractType;
 import org.w3c.dom.Element;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
- * <p>
- * This mapping provider looks at the role attributes in the Assertion and returns corresponding JBoss RoleGroup objects for
- * insertion into the Subject.
- * </p>
+ * <p> This mapping provider looks at the role attributes in the Assertion and returns corresponding JBoss RoleGroup objects for
+ * insertion into the Subject. </p>
  *
  * <h3>Configuration</h3>
  *
@@ -39,7 +37,8 @@ import org.w3c.dom.Element;
  *     </login-module>
  *   </authentication>
  *   <mapping>
- *     <mapping-module code="org.picketlink.identity.federation.bindings.jboss.auth.mapping.STSPrincipalMappingProvider" type="principal"/>
+ *     <mapping-module code="org.picketlink.identity.federation.bindings.jboss.auth.mapping.STSPrincipalMappingProvider"
+ * type="principal"/>
  *     <mapping-module code="org.picketlink.identity.federation.bindings.jboss.auth.mapping.STSGroupMappingProvider" type="role">
  *       <module-option name="token-role-attribute-name">role</module-option>
  *     </mapping-module>
@@ -48,21 +47,19 @@ import org.w3c.dom.Element;
  * }
  * </pre>
  *
- * As demonstrated above, this mapping provider is typically configured for an STS Login Module to extract user roles from the
- * STS token and supply them for insertion into the JAAS Subject.
+ * As demonstrated above, this mapping provider is typically configured for an STS Login Module to extract user roles from the STS
+ * token and supply them for insertion into the JAAS Subject.
  *
  * This mapping provider looks for a multi-valued Attribute in the Assertion, where each value is a user role. The name of this
  * attribute defaults to {@code SAML20TokenRoleAttributeProvider.DEFAULT_TOKEN_ROLE_ATTRIBUTE_NAME} but may be set to any value
- * through the "token-role-attribute-name" module option.
- * <p/>
- *
+ * through the "token-role-attribute-name" module option. <p/>
  *
  * @author <a href="mailto:Babak@redhat.com">Babak Mozaffari</a>
  */
 public class STSGroupMappingProvider implements MappingProvider<RoleGroup> {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
-    
+
     private MappingResult<RoleGroup> result;
 
     private String tokenRoleAttributeName;
@@ -91,7 +88,8 @@ public class STSGroupMappingProvider implements MappingProvider<RoleGroup> {
         if (!(tokenObject instanceof Element)) {
             // With Tomcat SSO Valves, mapping providers DO get called automatically, so there may be no tokens and errors
             // should be expected and handled
-            logger.debug("Did not find a token " + Element.class.getName() + " under " + AbstractSTSLoginModule.SHARED_TOKEN + " in the map");
+            logger.debug("Did not find a token " + Element.class
+                .getName() + " under " + AbstractSTSLoginModule.SHARED_TOKEN + " in the map");
         }
 
         try {
@@ -131,28 +129,28 @@ public class STSGroupMappingProvider implements MappingProvider<RoleGroup> {
      * @see MappingProvider#supports(Class)
      */
     public boolean supports(Class<?> p) {
-        if (RoleGroup.class.isAssignableFrom(p))
+        if (RoleGroup.class.isAssignableFrom(p)) {
             return true;
+        }
 
         return false;
     }
 
     /**
-     * <p>
-     * Checks if the specified SAML assertion contains a {@code AttributeStatementType} and returns this type when it is
-     * available.
-     * </p>
+     * <p> Checks if the specified SAML assertion contains a {@code AttributeStatementType} and returns this type when it is
+     * available. </p>
      *
      * @param assertion a reference to the {@code AssertionType} that may contain an {@code AttributeStatementType}.
-     * @return the assertion's {@code AttributeStatementType}, or {@code null} if no such type can be found in the SAML
-     *         assertion.
+     *
+     * @return the assertion's {@code AttributeStatementType}, or {@code null} if no such type can be found in the SAML assertion.
      */
     private AttributeStatementType getAttributeStatement(AssertionType assertion) {
         Set<StatementAbstractType> statementList = assertion.getStatements();
         if (statementList.size() != 0) {
             for (StatementAbstractType statement : statementList) {
-                if (statement instanceof AttributeStatementType)
+                if (statement instanceof AttributeStatementType) {
                     return (AttributeStatementType) statement;
+                }
             }
         }
         return null;

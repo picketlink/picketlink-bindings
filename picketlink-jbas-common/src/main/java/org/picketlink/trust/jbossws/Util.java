@@ -21,18 +21,18 @@
  */
 package org.picketlink.trust.jbossws;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.xml.namespace.QName;
-
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+
+import javax.xml.namespace.QName;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Jason T. Greene
  */
 public class Util {
+
     public static int count = 0;
 
     public static String assignWsuId(Element element) {
@@ -49,24 +49,27 @@ public class Util {
 
     public static Element getFirstChildElement(Node node) {
         Node child = node.getFirstChild();
-        while (child != null && child.getNodeType() != Node.ELEMENT_NODE)
+        while (child != null && child.getNodeType() != Node.ELEMENT_NODE) {
             child = child.getNextSibling();
+        }
 
         return (Element) child;
     }
 
     public static Element getNextSiblingElement(Element element) {
         Node sibling = element.getNextSibling();
-        while (sibling != null && sibling.getNodeType() != Node.ELEMENT_NODE)
+        while (sibling != null && sibling.getNodeType() != Node.ELEMENT_NODE) {
             sibling = sibling.getNextSibling();
+        }
 
         return (Element) sibling;
     }
 
     public static Element getPreviousSiblingElement(Element element) {
         Node sibling = element.getPreviousSibling();
-        while (sibling != null && sibling.getNodeType() != Node.ELEMENT_NODE)
+        while (sibling != null && sibling.getNodeType() != Node.ELEMENT_NODE) {
             sibling = sibling.getPreviousSibling();
+        }
 
         return (Element) sibling;
     }
@@ -77,17 +80,20 @@ public class Util {
 
     public static Element findElement(Element root, QName name) {
         // Here lies your standard recusive DFS.....
-        if (matchNode(root, name))
+        if (matchNode(root, name)) {
             return root;
+        }
 
         // Search children
         for (Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
-            if (child.getNodeType() != Node.ELEMENT_NODE)
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
                 continue;
+            }
 
             Node possibleMatch = findElement((Element) child, name);
-            if (possibleMatch != null)
+            if (possibleMatch != null) {
                 return (Element) possibleMatch;
+            }
         }
 
         return null;
@@ -95,12 +101,14 @@ public class Util {
 
     public static List<Node> findAllElements(Element root, QName name, boolean local) {
         List<Node> list = new ArrayList<Node>();
-        if (matchNode(root, name, local))
+        if (matchNode(root, name, local)) {
             list.add(root);
+        }
 
         for (Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
-            if (child.getNodeType() != Node.ELEMENT_NODE)
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
                 continue;
+            }
 
             list.addAll(findAllElements((Element) child, name, local));
         }
@@ -110,17 +118,20 @@ public class Util {
 
     public static Element findElementByWsuId(Element root, String id) {
         // Here lies another standard recusive DFS.....
-        if (id.equals(getWsuId(root)))
+        if (id.equals(getWsuId(root))) {
             return root;
+        }
 
         // Search children
         for (Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
-            if (child.getNodeType() != Node.ELEMENT_NODE)
+            if (child.getNodeType() != Node.ELEMENT_NODE) {
                 continue;
+            }
 
             Node possibleMatch = findElementByWsuId((Element) child, id);
-            if (possibleMatch != null)
+            if (possibleMatch != null) {
                 return (Element) possibleMatch;
+            }
         }
 
         return null;
@@ -140,21 +151,24 @@ public class Util {
     }
 
     public static String getWsuId(Element element) {
-        if (element.hasAttributeNS(Constants.WSU_NS, Constants.ID))
+        if (element.hasAttributeNS(Constants.WSU_NS, Constants.ID)) {
             return element.getAttributeNS(Constants.WSU_NS, Constants.ID);
+        }
 
         if (element.hasAttribute(Constants.ID)) {
             String ns = element.getNamespaceURI();
-            if (Constants.XML_SIGNATURE_NS.equals(ns) || Constants.XML_ENCRYPTION_NS.equals(ns))
+            if (Constants.XML_SIGNATURE_NS.equals(ns) || Constants.XML_ENCRYPTION_NS.equals(ns)) {
                 return element.getAttribute(Constants.ID);
+            }
         }
 
         return null;
     }
 
     public static boolean equalStrings(String string1, String string2) {
-        if (string1 == null && string2 == null)
+        if (string1 == null && string2 == null) {
             return true;
+        }
 
         return string1 != null && string1.equals(string2);
     }
@@ -165,7 +179,7 @@ public class Util {
 
     public static boolean matchNode(Node node, QName name, boolean local) {
         return equalStrings(node.getLocalName(), name.getLocalPart())
-                && (local || equalStrings(node.getNamespaceURI(), name.getNamespaceURI()));
+            && (local || equalStrings(node.getNamespaceURI(), name.getNamespaceURI()));
     }
 
     public static String generateId() {

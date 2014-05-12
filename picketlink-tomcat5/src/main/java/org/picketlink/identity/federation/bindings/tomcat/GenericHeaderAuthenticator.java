@@ -17,17 +17,17 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat;
 
-import java.io.IOException;
-
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
 
+import java.io.IOException;
+
 /**
  * JBAS-2283: Provide custom header based authentication support
  *
- * Header Authenticator that deals with userid from the request header Requires two attributes configured on the Tomcat Service
- * - one for the http header denoting the authenticated identity and the other is the SESSION cookie
+ * Header Authenticator that deals with userid from the request header Requires two attributes configured on the Tomcat Service -
+ * one for the http header denoting the authenticated identity and the other is the SESSION cookie
  *
  * @author Anil Saldhana
  * @author Stefan Guilhen
