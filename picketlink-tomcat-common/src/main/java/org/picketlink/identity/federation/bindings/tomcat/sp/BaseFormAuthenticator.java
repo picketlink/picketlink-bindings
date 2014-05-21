@@ -635,15 +635,18 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    //Clear the configuration
-                    picketLinkConfiguration = null;
-                    spConfiguration = null;
-
-                    processConfiguration();
-                    try {
-                        initKeyProvider(context);
-                    } catch (LifecycleException e) {
-                        logger.trace(e.getMessage());
+                    synchronized (picketLinkConfiguration){
+                        synchronized (spConfiguration){
+                            //clear the configuration
+                            picketLinkConfiguration = null;
+                            spConfiguration = null;
+                            processConfiguration();
+                            try {
+                                initKeyProvider(context);
+                            } catch (LifecycleException e) {
+                                logger.trace(e.getMessage());
+                            }
+                        }
                     }
                 }
             }, timerInterval, timerInterval);
