@@ -292,7 +292,7 @@ public abstract class AbstractIDPValve extends ValveBase {
     @Deprecated
     public void setIgnoreIncomingSignatures(Boolean ignoreIncomingSignature) {
         logger.warn("Option 'ignoreIncomingSignatures' is deprecated and not used. Signatures are verified if "
-            + "SAML2SignatureValidationHandler is available.");
+                + "SAML2SignatureValidationHandler is available.");
     }
 
     /**
@@ -1559,16 +1559,19 @@ public abstract class AbstractIDPValve extends ValveBase {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    //Clear the configuration
-                    picketLinkConfiguration = null;
-                    idpConfiguration = null;
-
-                    initIDPConfiguration();
-                    try {
-                        initKeyManager();
-                        initHandlersChain();
-                    } catch (LifecycleException e) {
-                        logger.trace(e.getMessage());
+                    synchronized (picketLinkConfiguration) {
+                        synchronized (idpConfiguration) {
+                            // Clear
+                            picketLinkConfiguration = null;
+                            idpConfiguration = null;
+                            initIDPConfiguration();
+                            try {
+                                initKeyManager();
+                                initHandlersChain();
+                            } catch (LifecycleException e) {
+                                logger.trace(e.getMessage());
+                            }
+                        }
                     }
                 }
             }, timerInterval, timerInterval);
