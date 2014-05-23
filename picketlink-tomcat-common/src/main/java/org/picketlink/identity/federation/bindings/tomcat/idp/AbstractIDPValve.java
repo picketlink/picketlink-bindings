@@ -1559,19 +1559,15 @@ public abstract class AbstractIDPValve extends ValveBase {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    synchronized (picketLinkConfiguration) {
-                        synchronized (idpConfiguration) {
-                            // Clear
-                            picketLinkConfiguration = null;
-                            idpConfiguration = null;
-                            initIDPConfiguration();
-                            try {
-                                initKeyManager();
-                                initHandlersChain();
-                            } catch (LifecycleException e) {
-                                logger.trace(e.getMessage());
-                            }
-                        }
+                    // Clear
+                    picketLinkConfiguration = null;
+                    idpConfiguration = null;
+                    initIDPConfiguration();
+                    try {
+                        initKeyManager();
+                        initHandlersChain();
+                    } catch (LifecycleException e) {
+                        logger.trace(e.getMessage());
                     }
                 }
             }, timerInterval, timerInterval);
