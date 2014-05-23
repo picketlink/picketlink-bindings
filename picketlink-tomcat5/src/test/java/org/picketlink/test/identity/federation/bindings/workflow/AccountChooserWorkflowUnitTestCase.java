@@ -111,7 +111,18 @@ public class AccountChooserWorkflowUnitTestCase{
         if(StringUtil.isNullOrEmpty(forwardPath)){
             forwardPath = (String) catalinaRequest.getAttribute("FORWARD_PATH");
         }
-        assertTrue(forwardPath.contains("account"));
+        assertTrue(forwardPath.contains("accountChooser"));
+
+        //Assume user chose DomainA
+        catalinaRequest.setParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER, "DomainA");
+        accountChooserValve.invoke(catalinaRequest,catalinaResponse);
+
+        //Ensure that the user is provided the account confirmation page
+        forwardPath = catalinaRequest.getForwardPath();
+        if(StringUtil.isNullOrEmpty(forwardPath)){
+            forwardPath = (String) catalinaRequest.getAttribute("FORWARD_PATH");
+        }
+        assertTrue(forwardPath.contains("accountConfirm"));
 
         //Assume user chose DomainA
         catalinaRequest.setParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER, "DomainA");
@@ -189,7 +200,18 @@ public class AccountChooserWorkflowUnitTestCase{
         if(StringUtil.isNullOrEmpty(forwardPath)){
             forwardPath = (String) catalinaRequest.getAttribute("FORWARD_PATH");
         }
-        assertTrue(forwardPath.contains("account"));
+        assertTrue(forwardPath.contains("accountChooser"));
+
+        //Assume user chose DomainB
+        catalinaRequest.setParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER, "DomainB");
+        accountChooserValve.invoke(catalinaRequest,catalinaResponse);
+
+        //Ensure that the user is provided the account confirmation page
+        forwardPath = catalinaRequest.getForwardPath();
+        if(StringUtil.isNullOrEmpty(forwardPath)){
+            forwardPath = (String) catalinaRequest.getAttribute("FORWARD_PATH");
+        }
+        assertTrue(forwardPath.contains("accountConfirm"));
 
         //Assume user chose DomainB
         catalinaRequest.setParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER, "DomainB");

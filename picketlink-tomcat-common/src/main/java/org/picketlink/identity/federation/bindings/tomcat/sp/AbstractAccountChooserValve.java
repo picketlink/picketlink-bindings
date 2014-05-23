@@ -52,12 +52,20 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
 
     public static final String AUTHENTICATING = "AUTHENTICATING";
 
+    public static final String PROVIDED_CONFIRMATION = "PROVIDED_CONFIRMATION";
+
+    public static final String STATE = "STATE";
+
     /**
      * Domain Name to be used in the cookie that is sent out
      */
     protected String domainName;
 
     protected String accountChooserPage = "/accountChooser.html";
+
+    protected String accountConfirmationPage = "/accountConfirm.html";
+
+    protected boolean requireConfirmation = true;
 
     protected ConcurrentHashMap<String, String> idpMap = new ConcurrentHashMap<String, String>();
 
@@ -123,6 +131,26 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         this.accountChooserPage = pageName;
     }
 
+    /**
+     * Set the name of the html or jsp page that has the accounts for the user to confirm.
+     * Default: "/accountConfirm.html" is used
+     *
+     * @param pageName
+     */
+    public void setAccountConfirmationPage(String pageName) {
+        this.accountConfirmationPage = pageName;
+    }
+
+    /**
+     * If the user needs to be provided an account confirmation page,
+     * default is true
+     *
+     * @param value
+     */
+    public void setRequireConfirmation(String value){
+        requireConfirmation = Boolean.parseBoolean(value);
+    }
+
     @Override
     public void setNext(Valve valve) {
         super.setNext(valve);
@@ -144,7 +172,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
             idpMap.putAll(accountIDPMapProvider.getIDPMap());
         }
 
-        String sessionState = (String) session.getNote("STATE");
+        String sessionState = (String) session.getNote(STATE);
 
         String idpChosenKey = request.getParameter(ACCOUNT_PARAMETER);
         String cookieValue = cookieValue(request);
@@ -159,7 +187,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
                 String chosenIDP = idpMap.get(idpChosenKey);
                 if (chosenIDP != null) {
                     request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
-                    session.setNote("STATE", AUTHENTICATING);
+                    session.setNote(STATE, AUTHENTICATING);
                     proceedToAuthentication(request, response, idpChosenKey);
                 } else {
                     logger.configurationFileMissing(":IDP Mapping");
@@ -167,28 +195,38 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
                 }
             } else {
                 // redirect to provided html
-                saveRequest(request, request.getSessionInternal());
-                Context context = (Context) getContainer();
-                RequestDispatcher requestDispatcher = context.getServletContext().getRequestDispatcher(accountChooserPage);
-                if (requestDispatcher != null) {
-                    requestDispatcher.forward(request.getRequest(), response);
-                }
+                //saveRequest(request, request.getSessionInternal());
+                redirectToChosenPage(accountChooserPage,request,response);
+                return;
             }
         }
     }
 
+    /**
+     * Proceed to the Service Provider Authentication Mechanism
+     * @param request
+     * @param response
+     * @param cookieValue
+     * @throws IOException
+     * @throws ServletException
+     */
     protected void proceedToAuthentication(Request request, Response response, String cookieValue) throws IOException,
         ServletException {
+        Session session = request.getSessionInternal(false);
         try {
+            //We provide account confirmation page to the user per session
+            if(requireConfirmation && session.getNote(PROVIDED_CONFIRMATION) == null){
+                session.setNote(PROVIDED_CONFIRMATION,"true");
+                redirectToChosenPage(accountConfirmationPage,request,response);
+                return;
+            }
             getNext().invoke(request, response);
         } finally {
-            Session session = request.getSessionInternal(false);
-
-            String state = session != null ? (String) session.getNote("STATE") : null;
+            String state = session != null ? (String) session.getNote(STATE) : null;
 
             //If we are authenticated and registered at the service provider
             if (request.getUserPrincipal() != null && StringUtil.isNotNull(state)) {
-                session.removeNote("STATE");
+                session.removeNote(STATE);
                 // Send back a cookie
                 Context context = (Context) getContainer();
                 String contextpath = context.getPath();
@@ -205,6 +243,22 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
                 }
                 response.addCookie(cookie);
             }
+        }
+    }
+
+    /**
+     * Redirect user to a page
+     * @param page
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
+    protected void redirectToChosenPage(String page, Request request, Response response) throws ServletException, IOException {
+        Context context = (Context) getContainer();
+        RequestDispatcher requestDispatcher = context.getServletContext().getRequestDispatcher(page);
+        if (requestDispatcher != null) {
+            requestDispatcher.forward(request.getRequest(), response);
         }
     }
 
