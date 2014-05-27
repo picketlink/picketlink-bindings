@@ -25,6 +25,7 @@ import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
+import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.common.util.StringUtil;
 import org.picketlink.identity.federation.bindings.tomcat.sp.plugins.PropertiesAccountMapProvider;
 
@@ -52,8 +53,6 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
 
     public static final String AUTHENTICATING = "AUTHENTICATING";
 
-    public static final String PROVIDED_CONFIRMATION = "PROVIDED_CONFIRMATION";
-
     public static final String STATE = "STATE";
 
     /**
@@ -64,8 +63,6 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
     protected String accountChooserPage = "/accountChooser.html";
 
     protected String accountConfirmationPage = "/accountConfirm.html";
-
-    protected boolean requireConfirmation = true;
 
     protected ConcurrentHashMap<String, String> idpMap = new ConcurrentHashMap<String, String>();
 
@@ -141,16 +138,6 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         this.accountConfirmationPage = pageName;
     }
 
-    /**
-     * If the user needs to be provided an account confirmation page,
-     * default is true
-     *
-     * @param value
-     */
-    public void setRequireConfirmation(String value){
-        requireConfirmation = Boolean.parseBoolean(value);
-    }
-
     @Override
     public void setNext(Valve valve) {
         super.setNext(valve);
@@ -180,6 +167,13 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
             if (idpChosenKey != null) {
                 String chosenIDP = idpMap.get(idpChosenKey);
                 request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+            }
+
+            // Case when user is directed to IDP and wants to change the IDP. So he enters the URL again
+            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null) {
+                session.removeNote(STATE);
+                redirectToChosenPage(accountConfirmationPage, request, response);
+                return;
             }
             proceedToAuthentication(request, response, cookieValue);
         } else {
@@ -214,12 +208,13 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         ServletException {
         Session session = request.getSessionInternal(false);
         try {
-            //We provide account confirmation page to the user per session
-            if(requireConfirmation && session.getNote(PROVIDED_CONFIRMATION) == null){
-                session.setNote(PROVIDED_CONFIRMATION,"true");
-                redirectToChosenPage(accountConfirmationPage,request,response);
+            /*String sessionState = (String) session.getNote(STATE);
+            // Case when user is directed to IDP and wants to change the IDP. So he enters the URL again
+            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null) {
+                session.removeNote(STATE);
+                redirectToChosenPage(accountConfirmationPage, request, response);
                 return;
-            }
+            }*/
             getNext().invoke(request, response);
         } finally {
             String state = session != null ? (String) session.getNote(STATE) : null;
