@@ -18,11 +18,9 @@
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
 /**
- * PLINK-344: Account Chooser At the Service Provider to enable redirection to the appropriate IDP Implementation for Apache Tomcat
- * 7
- *
+ * PLINK-344: Account Chooser At the Service Provider to enable redirection to the appropriate IDP
  * @author Anil Saldhana
- * @since January 22, 2014
+ * @since May 28, 2014
  */
 public class AccountChooserValve extends AbstractAccountChooserValve {
 }
