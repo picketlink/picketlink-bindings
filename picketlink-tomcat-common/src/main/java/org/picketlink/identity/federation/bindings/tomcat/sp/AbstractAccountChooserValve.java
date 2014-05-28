@@ -273,25 +273,6 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
     }
 
     /**
-     * Save the original request information into our session.
-     *
-     * @param request The request to be saved
-     * @param session The session to contain the saved information
-     *
-     * @throws IOException
-     */
-    protected abstract void saveRequest(Request request, Session session) throws IOException;
-
-    /**
-     * Restore the original request from information stored in our session. If the original request is no longer present (because
-     * the session timed out), return <code>false</code>; otherwise, return <code>true</code>.
-     *
-     * @param request The request to be restored
-     * @param session The session containing the saved information
-     */
-    protected abstract boolean restoreRequest(Request request, Session session) throws IOException;
-
-    /**
      * Interface for obtaining the Identity Provider Mapping
      */
     public interface AccountIDPMapProvider {
