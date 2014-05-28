@@ -126,9 +126,9 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
      * Maximal number of clients in the STS Client Pool.
      */
     protected int maxClientsInPool = 0;
-    
+
     /**
-     * Number of clients initialized for in case pool is out of free clients. 
+     * Number of clients initialized for in case pool is out of free clients.
      */
     protected int initialNumberOfClients = 0;
 
@@ -246,7 +246,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
                 logger.cannotParseParameterValue(MAX_CLIENTS_IN_POOL, e);
             }
         }
-        
+
         String initialNumberOfClientsString = (String) options.get(INITIAL_NUMBER_OF_CLIENTS);
         if (StringUtil.isNotNull(initialNumberOfClientsString)) {
             try {
@@ -255,7 +255,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
                 logger.cannotParseParameterValue(INITIAL_NUMBER_OF_CLIENTS, e);
             }
         }
-        
+
     }
 
     /*
@@ -482,7 +482,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
         STSClient client = null;
         if (rawOptions.containsKey(STS_CONFIG_FILE)) {
             builder = new Builder(this.stsConfigurationFile);
-            client = STSClientFactory.getInstance(maxClientsInPool).create(initialNumberOfClients, builder.build());
+            client = STSClientFactory.getInstance(maxClientsInPool).createPool(initialNumberOfClients, builder.build());
         } else {
             builder = new Builder();
             builder.endpointAddress((String) rawOptions.get(ENDPOINT_ADDRESS));
@@ -509,7 +509,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
                     throw logger.unableToDecodePasswordError(passwordString);
                 }
             }
-            client = STSClientFactory.getInstance(maxClientsInPool).create(initialNumberOfClients, builder.build());
+            client = STSClientFactory.getInstance(maxClientsInPool).createPool(initialNumberOfClients, builder.build());
         }
 
         // if the login module options map still contains any properties, assume they are for configuring the connection
