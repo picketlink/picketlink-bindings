@@ -62,8 +62,6 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
 
     protected String accountChooserPage = "/accountChooser.html";
 
-    protected String accountConfirmationPage = "/accountConfirm.html";
-
     protected ConcurrentHashMap<String, String> idpMap = new ConcurrentHashMap<String, String>();
 
     protected AccountIDPMapProvider accountIDPMapProvider = new PropertiesAccountMapProvider();
@@ -128,16 +126,6 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         this.accountChooserPage = pageName;
     }
 
-    /**
-     * Set the name of the html or jsp page that has the accounts for the user to confirm.
-     * Default: "/accountConfirm.html" is used
-     *
-     * @param pageName
-     */
-    public void setAccountConfirmationPage(String pageName) {
-        this.accountConfirmationPage = pageName;
-    }
-
     @Override
     public void setNext(Valve valve) {
         super.setNext(valve);
@@ -170,9 +158,10 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
             }
 
             // Case when user is directed to IDP and wants to change the IDP. So he enters the URL again
-            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null) {
+            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null
+                    && idpChosenKey == null) {
                 session.removeNote(STATE);
-                redirectToChosenPage(accountConfirmationPage, request, response);
+                redirectToChosenPage(accountChooserPage, request, response);
                 return;
             }
             proceedToAuthentication(request, response, cookieValue);
@@ -208,13 +197,6 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         ServletException {
         Session session = request.getSessionInternal(false);
         try {
-            /*String sessionState = (String) session.getNote(STATE);
-            // Case when user is directed to IDP and wants to change the IDP. So he enters the URL again
-            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null) {
-                session.removeNote(STATE);
-                redirectToChosenPage(accountConfirmationPage, request, response);
-                return;
-            }*/
             getNext().invoke(request, response);
         } finally {
             String state = session != null ? (String) session.getNote(STATE) : null;
