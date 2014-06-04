@@ -1424,6 +1424,15 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
         }
 
+        //Close the InputStream as we no longer need it
+        if(is != null){
+            try {
+                is.close();
+            } catch (IOException e) {
+                //ignore
+            }
+        }
+
         try {
             if (this.picketLinkConfiguration != null) {
                 enableAudit = picketLinkConfiguration.isEnableAudit();
