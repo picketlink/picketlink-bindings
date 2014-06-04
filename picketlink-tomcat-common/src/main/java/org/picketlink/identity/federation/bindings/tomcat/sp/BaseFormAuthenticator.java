@@ -222,20 +222,20 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     /**
      * Set the {@link SAMLConfigurationProvider} fqn
      *
-     * @param cp fqn of a {@link SAMLConfigurationProvider}
+     * @param configProviderFQN fqn of a {@link SAMLConfigurationProvider}
      */
-    public void setConfigProvider(String cp) {
-        if (cp == null) {
-            throw new IllegalStateException(ErrorCodes.NULL_ARGUMENT + cp);
+    public void setConfigProvider(String configProviderFQN) {
+        if (configProviderFQN == null) {
+            throw logger.nullValueError("cp");
         }
-        Class<?> clazz = SecurityActions.loadClass(getClass(), cp);
+        Class<?> clazz = SecurityActions.loadClass(getClass(), configProviderFQN);
         if (clazz == null) {
-            throw new RuntimeException(ErrorCodes.CLASS_NOT_LOADED + cp);
+            throw logger.nullValueError("clazz");
         }
         try {
             configProvider = (SAMLConfigurationProvider) clazz.newInstance();
         } catch (Exception e) {
-            throw new RuntimeException(ErrorCodes.CANNOT_CREATE_INSTANCE + cp + ":" + e.getMessage());
+            throw logger.runtimeException(ErrorCodes.CANNOT_CREATE_INSTANCE + configProviderFQN + ":" + e.getMessage(), e);
         }
     }
 
