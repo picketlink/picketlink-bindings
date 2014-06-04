@@ -30,6 +30,7 @@ import org.picketlink.social.standalone.openid.providers.helpers.OpenIDTokenRegi
 import javax.xml.namespace.QName;
 
 /**
+ * An OpenID Token Provider for the PicketLink STS
  * @author Anil.Saldhana@redhat.com
  * @since Jan 20, 2011
  */
@@ -39,7 +40,14 @@ public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implement
     public static final String OPENID_1_1_NS = "urn:openid:1:1";
     public static final String OPENID_2_0_NS = "urn:openid:2:0";
 
-    protected static OpenIDProviderManager serverManager = null; // Will be initialized the first time of access
+    protected static OpenIDProviderManager serverManager = null;
+
+    static {
+        if (serverManager == null) {
+            serverManager = new OpenIDProviderManager();
+            serverManager.initialize(new OpenIDTokenRegistryStore(), new OpenIDTokenRegistryStore());
+        }
+    };
 
     /**
      * @see org.picketlink.identity.federation.core.interfaces.SecurityTokenProvider#supports(String)
@@ -158,12 +166,6 @@ public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implement
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(PicketLinkCoreSTS.rte);
-        }
-
-        if (serverManager == null) {
-
-            serverManager = new OpenIDProviderManager();
-            serverManager.initialize(new OpenIDTokenRegistryStore(), new OpenIDTokenRegistryStore());
         }
     }
 }
