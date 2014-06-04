@@ -502,6 +502,15 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                 }
             }
 
+            //Close the InputStream as we no longer need it
+            if(is != null){
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    //ignore
+                }
+            }
+
             if (this.picketLinkConfiguration != null) {
                 enableAudit = picketLinkConfiguration.isEnableAudit();
 
