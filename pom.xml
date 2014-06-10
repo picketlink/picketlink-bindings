@@ -48,6 +48,7 @@
     <module>picketlink-jbas5</module>
     <module>picketlink-jbas7</module>
     <module>picketlink-wildfly-common</module>
+    <module>picketlink-jetty-common</module>
     <module>build-tomcat5</module>
     <module>build-tomcat7</module>
     <module>build-jbas5</module>
