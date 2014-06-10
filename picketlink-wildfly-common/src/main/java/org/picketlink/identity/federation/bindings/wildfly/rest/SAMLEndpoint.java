@@ -118,7 +118,6 @@ public class SAMLEndpoint {
 
     @PostConstruct
     public void initialize() {
-        System.out.println("INITIALIZE");
         if (servletConfig != null) {
             issuer = servletConfig.getInitParameter("issuer");
             if (issuer == null) {
