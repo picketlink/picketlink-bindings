@@ -17,25 +17,17 @@
  */
 package org.picketlink.identity.federation.bindings.jetty.idp;
 
-import org.eclipse.jetty.http.HttpParser;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
-import org.eclipse.jetty.security.IdentityService;
-import org.eclipse.jetty.security.LoginService;
-import org.eclipse.jetty.security.SecurityHandler;
-import org.eclipse.jetty.server.HttpChannel;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.UserIdentity;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.session.SessionHandler;
-import org.eclipse.jetty.servlet.ServletHandler;
-import org.picketlink.identity.federation.core.interfaces.RoleGenerator;
-
-import javax.security.auth.Subject;
-import javax.servlet.ServletContext;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import javax.security.auth.Subject;
+
+import org.eclipse.jetty.server.HttpChannel;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.UserIdentity;
+import org.picketlink.identity.federation.core.interfaces.RoleGenerator;
 
 /**
  * An implementation of {@link org.picketlink.identity.federation.core.interfaces.RoleGenerator}
