@@ -58,6 +58,8 @@ public class SAMLEndpoint {
 
     private String issuer = null;
 
+    private PicketLinkCoreSTS sts = null;
+
     @POST
     public Response generateAssertion(@Context HttpServletRequest httpServletRequest,
             @Context HttpServletResponse httpServletResponse) throws Exception {
@@ -95,14 +97,15 @@ public class SAMLEndpoint {
 
         subjectType.addConfirmation(subjectConfirmation);
 
-        PicketLinkCoreSTS sts = PicketLinkCoreSTS.instance();
-        sts.installDefaultConfiguration();
         SAMLProtocolContext samlProtocolContext = new SAMLProtocolContext();
         samlProtocolContext.setSubjectType(subjectType);
 
         NameIDType issuerNameIDType = new NameIDType();
         issuerNameIDType.setValue(issuer);
         samlProtocolContext.setIssuerID(issuerNameIDType);
+
+        //Check if the STS is null
+        setupSTS();
 
         sts.issueToken(samlProtocolContext);
 
@@ -115,11 +118,20 @@ public class SAMLEndpoint {
 
     @PostConstruct
     public void initialize() {
+        System.out.println("INITIALIZE");
         if (servletConfig != null) {
             issuer = servletConfig.getInitParameter("issuer");
             if (issuer == null) {
                 issuer = "PicketLink_SAML_REST";
             }
+        }
+        setupSTS();
+    }
+
+    protected void setupSTS(){
+        if(sts == null){
+            sts = PicketLinkCoreSTS.instance();
+            sts.installDefaultConfiguration();
         }
     }
 }
