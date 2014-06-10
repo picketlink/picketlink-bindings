@@ -12,11 +12,12 @@
   <name>PicketLink Common Server Bindings for WildFly</name>
 
   <properties>
+    <resteasy.version>3.0.8.Final</resteasy.version>
     <jboss.servlet31-api.version>1.0.0.Final</jboss.servlet31-api.version>
     <jboss.jaxrs2.version>1.0.0.Alpha1</jboss.jaxrs2.version>
     <jbossxacml.version>2.0.4</jbossxacml.version>
-    <wildfly.version>8.0.0.CR1</wildfly.version>
-    <undertow.io.version>1.0.1.Final</undertow.io.version>
+    <wildfly.version>8.1.0.Final</wildfly.version>
+    <undertow.io.version>1.0.9.Final</undertow.io.version>
     <httpcomponents.version>4.2.5</httpcomponents.version>
     <httpunit.version>1.7</httpunit.version>
   </properties>
@@ -73,6 +74,20 @@
       <artifactId>jbossxacml</artifactId>
       <version>${jbossxacml.version}</version>
       <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jaxrs</artifactId>
+      <version>${resteasy.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-undertow</artifactId>
+      <version>${resteasy.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
