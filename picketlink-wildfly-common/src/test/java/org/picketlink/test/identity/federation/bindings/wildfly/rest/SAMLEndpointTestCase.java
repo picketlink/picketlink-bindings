@@ -19,7 +19,6 @@ package org.picketlink.test.identity.federation.bindings.wildfly.rest;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
@@ -39,7 +38,7 @@ import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.picketlink.identity.federation.core.parsers.saml.SAMLParser;
+import org.picketlink.identity.federation.api.saml.api.SAMLClient;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
 import org.picketlink.identity.federation.saml.v2.assertion.NameIDType;
@@ -124,8 +123,9 @@ public class SAMLEndpointTestCase {
         String samlAssertionBase64Encoded = response.readEntity(String.class);
         assertNotNull(samlAssertionBase64Encoded);
         byte[] assertionBytes = PostBindingUtil.base64Decode(samlAssertionBase64Encoded);
-        SAMLParser samlParser = new SAMLParser();
-        AssertionType assertionType = (AssertionType) samlParser.parse(new ByteArrayInputStream(assertionBytes));
+
+        SAMLClient samlClient = new SAMLClient();
+        AssertionType assertionType = samlClient.parseAssertion(assertionBytes);
         assertNotNull(assertionType);
 
         assertFalse(AssertionUtil.hasExpired(assertionType));
