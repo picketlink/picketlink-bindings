@@ -128,7 +128,7 @@ public class SAMLEndpointTestCase {
         AssertionType assertionType = samlClient.parseAssertion(assertionBytes);
         assertNotNull(assertionType);
 
-        assertFalse(AssertionUtil.hasExpired(assertionType));
+        assertFalse(samlClient.hasExpired(assertionType));
         NameIDType nameIDType = (NameIDType) assertionType.getSubject().getSubType().getBaseID();
         assertEquals("user1", nameIDType.getValue());
     }
