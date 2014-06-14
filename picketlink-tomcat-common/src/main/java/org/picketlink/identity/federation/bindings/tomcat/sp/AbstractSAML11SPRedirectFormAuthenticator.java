@@ -16,6 +16,7 @@ import org.picketlink.identity.federation.saml.v1.assertion.SAML11Authentication
 import org.picketlink.identity.federation.saml.v1.assertion.SAML11StatementAbstractType;
 import org.picketlink.identity.federation.saml.v1.assertion.SAML11SubjectType;
 import org.picketlink.identity.federation.saml.v1.protocol.SAML11ResponseType;
+import org.picketlink.identity.federation.web.util.PostBindingUtil;
 import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
 import org.picketlink.identity.federation.web.util.ServerDetector;
 
@@ -29,6 +30,7 @@ import static org.picketlink.common.util.StringUtil.isNotNull;
 
 /**
  * Authenticator for SAML 1.1 processing at the Service Provider
+ *
  * @author anil saldhana
  * @since Jul 7, 2011
  */
@@ -51,8 +53,9 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
         Principal principal = request.getUserPrincipal();
 
         // If we have already authenticated the user and there is no request from IDP or logout from user
-        if (principal != null)
+        if (principal != null) {
             return true;
+        }
 
         Session session = request.getSessionInternal(true);
 
@@ -65,11 +68,19 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
                 logger.samlSPHandleRequestError(e);
                 throw new IOException();
             }
-            if (!isValid)
+            if (!isValid) {
                 throw new IOException(ErrorCodes.VALIDATION_CHECK_FAILED);
+            }
 
             try {
-                InputStream base64DecodedResponse = RedirectBindingUtil.base64DeflateDecode(samlResponse);
+                InputStream base64DecodedResponse = null;
+
+                if ("GET".equalsIgnoreCase(request.getMethod())) {
+                    base64DecodedResponse = RedirectBindingUtil.base64DeflateDecode(samlResponse);
+                } else {
+                    base64DecodedResponse = PostBindingUtil.base64DecodeAsStream(samlResponse);
+                }
+
                 SAMLParser parser = new SAMLParser();
                 SAML11ResponseType saml11Response = (SAML11ResponseType) parser.parse(base64DecodedResponse);
 
@@ -125,7 +136,7 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
         return false;
     }
 
-    protected void startPicketLink() throws LifecycleException{
+    protected void startPicketLink() throws LifecycleException {
         super.startPicketLink();
         this.spConfiguration.setBindingType("REDIRECT");
     }

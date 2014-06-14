@@ -39,6 +39,7 @@ import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.valves.ValveBase;
 import org.jboss.security.SimplePrincipal;
 import org.junit.Test;
+import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.common.util.StringUtil;
 import org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve;
 import org.picketlink.identity.federation.bindings.tomcat.sp.AccountChooserValve;
@@ -131,6 +132,10 @@ public class AccountChooserWorkflowUnitTestCase{
         //Let us assume that the IDP interaction succeeds and we have a principal now
         catalinaRequest.setUserPrincipal(new SimplePrincipal("anil"));
 
+        //Also ensure catalinaRequest has a SAMLResponse parameter
+        //This is so that we don't think the user wants to change his IDP choice
+        catalinaRequest.setParameter(GeneralConstants.SAML_RESPONSE_KEY, "xyz");
+
         //Let us invoke to get back a cookie
         accountChooserValve.invoke(catalinaRequest,catalinaResponse);
 
@@ -206,9 +211,12 @@ public class AccountChooserWorkflowUnitTestCase{
         //Ensure that the SP is trying to redirect to idp2 which is the equivalent for DomainB
         assertTrue(spResponse.contains("http://idp2"));
 
-
         //Let us assume that the IDP interaction succeeds and we have a principal now
         catalinaRequest.setUserPrincipal(new SimplePrincipal("anil"));
+
+        //Also ensure catalinaRequest has a SAMLResponse parameter
+        //This is so that we don't think the user wants to change his IDP choice
+        catalinaRequest.setParameter(GeneralConstants.SAML_RESPONSE_KEY, "xyz");
 
         //Let us invoke to get back a cookie
         accountChooserValve.invoke(catalinaRequest,catalinaResponse);

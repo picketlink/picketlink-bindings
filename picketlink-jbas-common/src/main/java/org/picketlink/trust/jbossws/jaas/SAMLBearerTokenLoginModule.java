@@ -17,6 +17,30 @@
  */
 package org.picketlink.trust.jbossws.jaas;
 
+import org.jboss.security.SimpleGroup;
+import org.jboss.security.auth.spi.AbstractServerLoginModule;
+import org.picketlink.common.exceptions.ConfigurationException;
+import org.picketlink.common.util.Base64;
+import org.picketlink.identity.federation.core.parsers.saml.SAMLAssertionParser;
+import org.picketlink.identity.federation.core.saml.v2.util.XMLTimeUtil;
+import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
+import org.picketlink.identity.federation.saml.v2.assertion.AttributeStatementType;
+import org.picketlink.identity.federation.saml.v2.assertion.AttributeStatementType.ASTChoiceType;
+import org.picketlink.identity.federation.saml.v2.assertion.AudienceRestrictionType;
+import org.picketlink.identity.federation.saml.v2.assertion.ConditionAbstractType;
+import org.picketlink.identity.federation.saml.v2.assertion.ConditionsType;
+import org.picketlink.identity.federation.saml.v2.assertion.NameIDType;
+import org.picketlink.identity.federation.saml.v2.assertion.StatementAbstractType;
+import org.picketlink.identity.federation.saml.v2.assertion.SubjectType;
+
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.LoginException;
+import javax.security.jacc.PolicyContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLInputFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,43 +52,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
-import javax.security.jacc.PolicyContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
-
-import org.jboss.security.SimpleGroup;
-import org.jboss.security.auth.spi.AbstractServerLoginModule;
-import org.picketlink.common.exceptions.ConfigurationException;
-import org.picketlink.common.util.Base64;
-import org.picketlink.identity.federation.core.parsers.saml.SAMLAssertionParser;
-import org.picketlink.identity.federation.core.saml.v2.util.XMLTimeUtil;
-import org.picketlink.identity.federation.saml.v2.assertion.*;
-import org.picketlink.identity.federation.saml.v2.assertion.AttributeStatementType.ASTChoiceType;
-
 /**
- * <p>
- * A login module that consumes a SAML Assertion passed via the password piece of a Basic authentication request. In other
+ * <p> A login module that consumes a SAML Assertion passed via the password piece of a Basic authentication request. In other
  * words, the SAML Assertion should be passed as the password (with a username of "SAML-BEARER-TOKEN") in a BASIC auth style
- * request. The Authorization HTTP header would look like a normal BASIC auth version (e.g.
- * "Basic U0FNTC1CRUFSRVItVE9LRU46PHNhbWw6QXNz="), but the Base64 Decoded Credentials will look like:
- * </p>
- * 
+ * request. The Authorization HTTP header would look like a normal BASIC auth version (e.g. "Basic
+ * U0FNTC1CRUFSRVItVE9LRU46PHNhbWw6QXNz="), but the Base64 Decoded Credentials will look like: </p>
+ *
  * <pre>
  * SAML-BEARER-TOKEN:<saml:Assertion ...>...</saml:Assertion>
  * </pre>
- * <p>
- * This class will validate the SAML Assertion and then consume it, making the JAAS principal the same as the SAML subject. JAAS
- * role information is pulled from a multi-value SAML Attribute called "Role".
- * </p>
- * 
+ * <p> This class will validate the SAML Assertion and then consume it, making the JAAS principal the same as the SAML subject. JAAS
+ * role information is pulled from a multi-value SAML Attribute called "Role". </p>
+ *
  * @author eric.wittmann@redhat.com
  */
 public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
+
     public static final String AUTHORIZATION = "Authorization";
     public static final String BASIC = "Basic";
     public static final String SAML_BEARER_TOKEN = "SAML-BEARER-TOKEN:";
@@ -83,7 +86,7 @@ public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
 
     /**
      * @see org.jboss.security.auth.spi.AbstractServerLoginModule#initialize(javax.security.auth.Subject,
-     *      javax.security.auth.callback.CallbackHandler, java.util.Map, java.util.Map)
+     * javax.security.auth.callback.CallbackHandler, java.util.Map, java.util.Map)
      */
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
@@ -92,8 +95,9 @@ public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
         if (val != null) {
             String[] split = val.split(",");
             for (String issuer : split) {
-                if (issuer != null && issuer.trim().length() > 0)
+                if (issuer != null && issuer.trim().length() > 0) {
                     allowedIssuers.add(issuer);
+                }
             }
         }
     }
@@ -131,20 +135,22 @@ public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
             loginOk = false;
             return false;
         } finally {
-            if (is != null)
+            if (is != null) {
                 try {
                     is.close();
                 } catch (IOException e) {
                 }
+            }
         }
         return super.login();
     }
 
     /**
      * Validates that the assertion is acceptable based on configurable criteria.
-     * 
+     *
      * @param assertion
      * @param request
+     *
      * @throws LoginException
      */
     private void validateAssertion(AssertionType assertion, HttpServletRequest request) throws LoginException {
@@ -159,7 +165,7 @@ public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
         Set<String> audienceRestrictions = getAudienceRestrictions(assertion);
         if (!audienceRestrictions.contains(currentAudience)) {
             throw new LoginException("SAML Assertion Audience Restrictions not valid for this context (" + currentAudience
-                    + ")");
+                + ")");
         }
 
         // Possibly fail the assertion based on time.
@@ -171,7 +177,7 @@ public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
                 XMLGregorianCalendar notOnOrAfter = conditionsType.getNotOnOrAfter();
                 if (!XMLTimeUtil.isValid(now, notBefore, notOnOrAfter)) {
                     String msg = "SAML Assertion has expired: " + "Now=" + now.toXMLFormat() + " ::notBefore="
-                            + notBefore.toXMLFormat() + " ::notOnOrAfter=" + notOnOrAfter;
+                        + notBefore.toXMLFormat() + " ::notOnOrAfter=" + notOnOrAfter;
                     throw new LoginException(msg);
                 }
             } else {
@@ -185,13 +191,14 @@ public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
 
     /**
      * Gets the audience restriction condition.
-     * 
+     *
      * @param assertion
      */
     private Set<String> getAudienceRestrictions(AssertionType assertion) {
         Set<String> rval = new HashSet<String>();
-        if (assertion == null || assertion.getConditions() == null || assertion.getConditions().getConditions() == null)
+        if (assertion == null || assertion.getConditions() == null || assertion.getConditions().getConditions() == null) {
             return rval;
+        }
 
         List<ConditionAbstractType> conditions = assertion.getConditions().getConditions();
         for (ConditionAbstractType conditionAbstractType : conditions) {
@@ -208,10 +215,11 @@ public class SAMLBearerTokenLoginModule extends AbstractServerLoginModule {
     }
 
     /**
-     * Consumes the assertion, resulting in the extraction of the Subject as the JAAS principal and the Role Statements as the
-     * JAAS roles.
-     * 
+     * Consumes the assertion, resulting in the extraction of the Subject as the JAAS principal and the Role Statements as the JAAS
+     * roles.
+     *
      * @param assertion
+     *
      * @throws Exception
      */
     private void consumeAssertion(AssertionType assertion) throws Exception {

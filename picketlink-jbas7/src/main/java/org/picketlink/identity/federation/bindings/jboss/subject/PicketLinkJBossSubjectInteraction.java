@@ -21,38 +21,37 @@
  */
 package org.picketlink.identity.federation.bindings.jboss.subject;
 
-import java.security.Principal;
+import org.jboss.security.CacheableManager;
+import org.jboss.security.SecurityConstants;
+import org.picketlink.identity.federation.bindings.tomcat.SubjectSecurityInteraction;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.security.auth.Subject;
 import javax.security.jacc.PolicyContext;
 import javax.security.jacc.PolicyContextException;
-
-import org.jboss.security.CacheableManager;
-import org.jboss.security.SecurityConstants;
-import org.picketlink.identity.federation.bindings.tomcat.SubjectSecurityInteraction;
+import java.security.Principal;
 
 /**
  * An implementation of {@link SubjectSecurityInteraction} for JBoss AS 7.
  *
- * @author Anil.Saldhana@redhat.com
- * <a href="mailto:psilva@redhat.com">Pedro Silva</a>
+ * @author Anil.Saldhana@redhat.com <a href="mailto:psilva@redhat.com">Pedro Silva</a>
  * @since Sep 13, 2011
  */
 public class PicketLinkJBossSubjectInteraction implements SubjectSecurityInteraction {
-    
+
     private String securityDomain;
-    
+
     /**
      * @see org.picketlink.identity.federation.bindings.tomcat.SubjectSecurityInteraction#cleanup(java.security.Principal)
      */
     public boolean cleanup(Principal principal) {
         try {
             String lookupDomain = this.securityDomain;
-            
-            if (lookupDomain.startsWith(SecurityConstants.JAAS_CONTEXT_ROOT) == false)
+
+            if (lookupDomain.startsWith(SecurityConstants.JAAS_CONTEXT_ROOT) == false) {
                 lookupDomain = SecurityConstants.JAAS_CONTEXT_ROOT + "/" + lookupDomain;
+            }
 
             // lookup the JBossCachedAuthManager.
             InitialContext context = new InitialContext();

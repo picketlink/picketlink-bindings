@@ -21,13 +21,12 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat;
 
-import java.io.IOException;
-import java.security.Principal;
-
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
 
+import java.io.IOException;
+import java.security.Principal;
 
 /**
  * An authenticator that delegates actual authentication to a realm, and in turn to a security manager, by presenting a
@@ -51,7 +50,6 @@ public class PicketLinkAuthenticator extends AbstractPicketLinkAuthenticator {
 
     @Override
     protected void doRegister(Request request, Response response, Principal principal, String password) {
-        register(request, response, principal, this.authMethod, principal.getName(), password);        
+        register(request, response, principal, this.authMethod, principal.getName(), password);
     }
-
 }

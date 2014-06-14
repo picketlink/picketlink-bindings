@@ -22,23 +22,6 @@
 
 package org.picketlink.test.identity.federation.bindings.authenticators;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Logger;
-
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.stream.StreamResult;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.picketlink.common.constants.GeneralConstants;
@@ -62,6 +45,7 @@ import org.picketlink.identity.federation.saml.v2.assertion.ConditionsType;
 import org.picketlink.identity.federation.saml.v2.assertion.StatementAbstractType;
 import org.picketlink.identity.federation.saml.v2.protocol.AuthnRequestType;
 import org.picketlink.identity.federation.saml.v2.protocol.ResponseType;
+import org.picketlink.identity.federation.saml.v2.protocol.StatusCodeType;
 import org.picketlink.identity.federation.web.core.IdentityParticipantStack;
 import org.picketlink.identity.federation.web.util.PostBindingUtil;
 import org.picketlink.identity.federation.web.util.RedirectBindingSignatureUtil;
@@ -72,6 +56,22 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRespons
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
 
 /**
  * <p>
@@ -254,8 +254,11 @@ public class IDPWebBrowserSSOTestCase {
         ResponseType responseType = getResponseTypeAndCheckSignature(response, null);
 
         assertNotNull(responseType);
-        assertEquals(JBossSAMLURIConstants.STATUS_AUTHNFAILED.get(), responseType.getStatus().getStatusCode().getValue()
-                .toString());
+
+        StatusCodeType statusCode = responseType.getStatus().getStatusCode();
+
+        assertEquals(JBossSAMLURIConstants.STATUS_RESPONDER.get(), statusCode.getValue().toString());
+        assertEquals(JBossSAMLURIConstants.STATUS_AUTHNFAILED.get(), statusCode.getStatusCode().getValue().toString());
 
         // The response should redirect back to the caller SP
         assertTrue("Expected a redirect to the SP.", response.redirectString.contains(SERVICE_PROVIDER_URL));
@@ -286,8 +289,11 @@ public class IDPWebBrowserSSOTestCase {
         ResponseType responseType = getResponseTypeAndCheckSignature(response, null);
 
         assertNotNull(responseType);
-        assertEquals(JBossSAMLURIConstants.STATUS_AUTHNFAILED.get(), responseType.getStatus().getStatusCode().getValue()
-                .toString());
+
+        StatusCodeType statusCode = responseType.getStatus().getStatusCode();
+
+        assertEquals(JBossSAMLURIConstants.STATUS_RESPONDER.get(), statusCode.getValue().toString());
+        assertEquals(JBossSAMLURIConstants.STATUS_AUTHNFAILED.get(), statusCode.getStatusCode().getValue().toString());
 
         // The response should redirect back to the caller SP
         assertTrue("Expected a redirect to the SP.", response.redirectString.contains(notTrustedServiceProviderURL));
@@ -314,8 +320,10 @@ public class IDPWebBrowserSSOTestCase {
         ResponseType responseType = getResponseTypeAndCheckSignature(response, null);
 
         assertNotNull(responseType);
-        assertEquals(JBossSAMLURIConstants.STATUS_REQUEST_DENIED.get(), responseType.getStatus().getStatusCode().getValue()
-                .toString());
+        StatusCodeType statusCode = responseType.getStatus().getStatusCode();
+
+        assertEquals(JBossSAMLURIConstants.STATUS_RESPONDER.get(), statusCode.getValue().toString());
+        assertEquals(JBossSAMLURIConstants.STATUS_REQUEST_DENIED.get(), statusCode.getStatusCode().getValue().toString());
 
         // The response should redirect back to the caller SP
         assertTrue("Expected a redirect to the SP.", response.redirectString.contains(notTrustedServiceProviderURL));

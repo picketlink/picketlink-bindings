@@ -36,7 +36,9 @@ public class ValveUtil {
      * Given a SP or IDP issuer from the assertion, return the host
      *
      * @param domainURL
+     *
      * @return
+     *
      * @throws IOException
      */
     public static String getDomain(String domainURL) throws IOException {

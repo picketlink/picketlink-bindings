@@ -29,26 +29,27 @@ import java.util.List;
 
 /**
  * {@link org.picketlink.identity.federation.core.interfaces.RoleGenerator} for JBossWeb
+ *
  * @author Anil Saldhana
  * @since February 21, 2014
  */
-public class JBossWebRoleGenerator extends TomcatRoleGenerator{
+public class JBossWebRoleGenerator extends TomcatRoleGenerator {
+
     @Override
     public List<String> generateRoles(Principal principal) {
-        if(principal instanceof SimplePrincipal){
+        if (principal instanceof SimplePrincipal) {
             //Use JACC to get the request
             try {
                 HttpServletRequest request =
-                        (HttpServletRequest) PolicyContext.getContext("javax.servlet.http.HttpServletRequest");
-                if(request instanceof Request){
-                    Request catalinaRequest  = (Request) request;
+                    (HttpServletRequest) PolicyContext.getContext("javax.servlet.http.HttpServletRequest");
+                if (request instanceof Request) {
+                    Request catalinaRequest = (Request) request;
                     return super.generateRoles(catalinaRequest.getPrincipal());
                 }
             } catch (PolicyContextException e) {
                 throw new RuntimeException(e);
             }
-
-        }else {
+        } else {
             return super.generateRoles(principal);
         }
         return null;

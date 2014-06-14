@@ -22,37 +22,6 @@
 
 package org.picketlink.identity.federation.bindings.jboss.auth;
 
-import java.security.KeyStore;
-import java.security.Principal;
-import java.security.acl.Group;
-import java.security.cert.CertPath;
-import java.security.cert.CertPathValidator;
-import java.security.cert.CertPathValidatorResult;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.CertificateNotYetValidException;
-import java.security.cert.PKIXParameters;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.security.auth.Subject;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
-import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-
 import org.apache.xml.security.keys.KeyInfo;
 import org.apache.xml.security.signature.XMLSignature;
 import org.jboss.security.SecurityConstants;
@@ -80,40 +49,64 @@ import org.picketlink.identity.federation.saml.v2.assertion.SubjectType;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import javax.security.auth.Subject;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.LoginException;
+import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import java.security.KeyStore;
+import java.security.Principal;
+import java.security.acl.Group;
+import java.security.cert.CertPath;
+import java.security.cert.CertPathValidator;
+import java.security.cert.CertPathValidatorResult;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.PKIXParameters;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * This LoginModule authenticates clients by validating their SAML assertions locally. If the supplied assertion contains roles, these roles are extracted and included in the Group returned by the getRoleSets method.
- * The LoginModule is designed to validate SAML token using X509 certificate stored in XML signature within SAML assertion token.
+ * This LoginModule authenticates clients by validating their SAML assertions locally. If the supplied assertion contains roles,
+ * these roles are extracted and included in the Group returned by the getRoleSets method. The LoginModule is designed to validate
+ * SAML token using X509 certificate stored in XML signature within SAML assertion token.
  *
- * It validates:
- * <ol>
- * <li>CertPath against specified truststore. It has to have common valid public certificate in the trusted entries.</li>
- * <li>X509 certificate stored in SAML token didn't expire</li>
- * <li>if signature itself is valid</li>
- * <li>SAML token expiration</li>
- * </ol>
+ * It validates: <ol> <li>CertPath against specified truststore. It has to have common valid public certificate in the trusted
+ * entries.</li> <li>X509 certificate stored in SAML token didn't expire</li> <li>if signature itself is valid</li> <li>SAML token
+ * expiration</li> </ol>
  *
  * This module defines the following module options:
  *
- *  roleKey: key of the attribute name that we need to use for Roles from the SAML assertion. This can be a comma-separated string values such as (Role,Membership)
- *  localValidationSecurityDomain:  the security domain for the trust store information (via the JaasSecurityDomain)
- *  cache.invalidation - set it to true if you require invalidation of JBoss Auth Cache at SAML Principal expiration.
- *  jboss.security.security_domain -security domain at which Principal will expire if cache.invalidation is used.
- *  tokenEncodingType: encoding type of SAML token delivered via http request's header.
- *  Possible values are:
- *      base64 - content encoded as base64. In case of encoding will vary between base64 and gzip use base64 and LoginModule will detect gzipped data.
- *      gzip - gzipped content encoded as base64
- *      none - content not encoded in any way
- *  samlTokenHttpHeader - name of http request header to fetch SAML token from. For example: "Authorize"
- *  samlTokenHttpHeaderRegEx - Java regular expression to be used to get SAML token from "samlTokenHttpHeader". Example: use: ."(.)".* to parse SAML token from header content like this: SAML_assertion="HHDHS=", at the same time set samlTokenHttpHeaderRegExGroup to 1.
- *  samlTokenHttpHeaderRegExGroup - Group value to be used when parsing out value of http request header specified by "samlTokenHttpHeader" using "samlTokenHttpHeaderRegEx".
+ * roleKey: key of the attribute name that we need to use for Roles from the SAML assertion. This can be a comma-separated string
+ * values such as (Role,Membership) localValidationSecurityDomain:  the security domain for the trust store information (via the
+ * JaasSecurityDomain) cache.invalidation - set it to true if you require invalidation of JBoss Auth Cache at SAML Principal
+ * expiration. jboss.security.security_domain -security domain at which Principal will expire if cache.invalidation is used.
+ * tokenEncodingType: encoding type of SAML token delivered via http request's header. Possible values are: base64 - content encoded
+ * as base64. In case of encoding will vary between base64 and gzip use base64 and LoginModule will detect gzipped data. gzip -
+ * gzipped content encoded as base64 none - content not encoded in any way samlTokenHttpHeader - name of http request header to
+ * fetch SAML token from. For example: "Authorize" samlTokenHttpHeaderRegEx - Java regular expression to be used to get SAML token
+ * from "samlTokenHttpHeader". Example: use: ."(.)".* to parse SAML token from header content like this: SAML_assertion="HHDHS=", at
+ * the same time set samlTokenHttpHeaderRegExGroup to 1. samlTokenHttpHeaderRegExGroup - Group value to be used when parsing out
+ * value of http request header specified by "samlTokenHttpHeader" using "samlTokenHttpHeaderRegEx".
  *
  * @author Peter Skopek: pskopek at redhat dot com
- *
  */
 @SuppressWarnings("unchecked")
 public abstract class SAMLTokenCertValidatingCommonLoginModule extends
-        SAMLTokenFromHttpRequestAbstractLoginModule {
+    SAMLTokenFromHttpRequestAbstractLoginModule {
 
     protected Principal principal;
 
@@ -128,7 +121,6 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
     protected String localValidationSecurityDomain;
 
     protected String roleKey = AttributeConstants.ROLE_IDENTIFIER_ASSERTION;
-
 
     /**
      * Options that are computed by this login module. Few options are removed and the rest are set in the dispatch sts call
@@ -194,8 +186,9 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
             this.enableCacheInvalidation = Boolean.parseBoolean(cacheInvalidation);
 
             this.securityDomain = (String) this.options.remove(SecurityConstants.SECURITY_DOMAIN_OPTION);
-            if (this.securityDomain == null || this.securityDomain.isEmpty())
+            if (this.securityDomain == null || this.securityDomain.isEmpty()) {
                 throw logger.optionNotSet(SecurityConstants.SECURITY_DOMAIN_OPTION);
+            }
         }
 
         String roleKeyStr = (String) options.get("roleKey");
@@ -206,16 +199,16 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
         localValidationSecurityDomain = (String) options.get("localValidationSecurityDomain");
 
         if (localValidationSecurityDomain == null) {
-           logger.error(ErrorCodes.LOCAL_VALIDATION_SEC_DOMAIN_MUST_BE_SPECIFIED);
-           throw logger.optionNotSet("localValidationSecurityDomain");
+            logger.error(ErrorCodes.LOCAL_VALIDATION_SEC_DOMAIN_MUST_BE_SPECIFIED);
+            throw logger.optionNotSet("localValidationSecurityDomain");
         }
 
-        if (localValidationSecurityDomain.startsWith("java:") == false)
+        if (localValidationSecurityDomain.startsWith("java:") == false) {
             localValidationSecurityDomain = SecurityConstants.JAAS_CONTEXT_ROOT + "/" + localValidationSecurityDomain;
+        }
 
         // initialize xmlsec
         org.apache.xml.security.Init.init();
-
     }
 
     /*
@@ -228,9 +221,9 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
         // if shared data exists, set our principal and assertion variables.
         if (super.login()) {
             Object sharedPrincipal = super.sharedState.get("javax.security.auth.login.name");
-            if (sharedPrincipal instanceof Principal)
+            if (sharedPrincipal instanceof Principal) {
                 this.principal = (Principal) sharedPrincipal;
-            else {
+            } else {
                 try {
                     this.principal = createIdentity(sharedPrincipal.toString());
                 } catch (Exception e) {
@@ -239,10 +232,11 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
             }
 
             Object credential = super.sharedState.get("javax.security.auth.login.password");
-            if (credential instanceof SamlCredential)
+            if (credential instanceof SamlCredential) {
                 this.credential = (SamlCredential) credential;
-            else
+            } else {
                 throw logger.authSharedCredentialIsNotSAMLCredential(credential.getClass().getName());
+            }
             return true;
         }
 
@@ -252,11 +246,11 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
         try {
             if (getSamlTokenHttpHeader() != null) {
                 this.credential = getCredentialFromHttpRequest();
-            }
-            else {
-                super.callbackHandler.handle(new Callback[] { callback });
-                if (callback.getCredential() instanceof SamlCredential == false)
+            } else {
+                super.callbackHandler.handle(new Callback[]{callback});
+                if (callback.getCredential() instanceof SamlCredential == false) {
                     throw logger.authSharedCredentialIsNotSAMLCredential(callback.getCredential().getClass().getName());
+                }
                 this.credential = (SamlCredential) callback.getCredential();
             }
             assertionElement = this.credential.getAssertionAsElement();
@@ -269,7 +263,6 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
         } catch (Exception e) {
             throw logger.authFailedToParseSAMLAssertion(e);
         }
-
 
         try {
             // cert path validation
@@ -290,7 +283,8 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
                         if (expiry != null) {
                             Date expiryDate = expiry.toGregorianCalendar().getTime();
 
-                            logger.trace("Creating Cache Entry for JBoss at [" + new Date() + "] , with expiration set to SAML expiry = " + expiryDate);
+                            logger
+                                .trace("Creating Cache Entry for JBoss at [" + new Date() + "] , with expiration set to SAML expiry = " + expiryDate);
 
                             cacheExpiry.register(securityDomain, expiryDate, principal);
                         } else {
@@ -313,8 +307,6 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
         return (super.loginOk = true);
     }
 
-
-
     /* (non-Javadoc)
      * @see org.jboss.security.auth.spi.AbstractServerLoginModule#commit()
      */
@@ -322,8 +314,9 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
     public boolean commit() throws LoginException {
         if (super.commit()) {
             final boolean added = subject.getPublicCredentials().add(this.credential);
-            if (added && logger.isTraceEnabled())
+            if (added && logger.isTraceEnabled()) {
                 logger.trace("Added Credential " + this.credential);
+            }
             return true;
         } else {
             return false;
@@ -395,22 +388,18 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
             rolesGroup.addMember(new SimplePrincipal(role));
         }
 
-        return new Group[] { rolesGroup };
+        return new Group[]{rolesGroup};
     }
 
     protected JBossAuthCacheInvalidationFactory.TimeCacheExpiry getCacheExpiry() throws Exception {
         return JBossAuthCacheInvalidationFactory.getCacheExpiry();
     }
 
-
     /**
-     * This method validates SAML Credential in following steps:
-     * <ol>
-     *   <li>Validate the signing key embedded in SAML token is still valid, not expired</li>
-     *   <li>Validate the signing key embedded in SAML token is trusted against a local truststore,  such as certpath validation</li>
-     *   <li>Validate SAML token is still valid, not expired</li>
-     *   <li>Validate the SAML signature using the embedded signing key in SAML token itself as you indicated below</li>
-     * </ol>
+     * This method validates SAML Credential in following steps: <ol> <li>Validate the signing key embedded in SAML token is still
+     * valid, not expired</li> <li>Validate the signing key embedded in SAML token is trusted against a local truststore,  such as
+     * certpath validation</li> <li>Validate SAML token is still valid, not expired</li> <li>Validate the SAML signature using the
+     * embedded signing key in SAML token itself as you indicated below</li> </ol>
      *
      * If something goes wrong throws LoginException.
      *
@@ -439,12 +428,13 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
         if (AssertionUtil.hasExpired(assertion)) {
             throw logger.authSAMLAssertionExpiredError();
         }
-
     }
 
     /**
      * Extract x509 certificate from SAML Assertion's signature.
+     *
      * @return
+     *
      * @throws LoginException
      */
     private X509Certificate getX509Certificate() throws LoginException {
@@ -458,9 +448,9 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
             XPathFactory xpf = XPathFactory.newInstance();
             XPath xpath = xpf.newXPath();
             xpath.setNamespaceContext(
-                    NamespaceContext.create()
-                        .addNsUriPair(xmlSignatureNSPrefix, JBossSAMLURIConstants.XMLDSIG_NSURI.get())
-                    );
+                NamespaceContext.create()
+                    .addNsUriPair(xmlSignatureNSPrefix, JBossSAMLURIConstants.XMLDSIG_NSURI.get())
+            );
 
             Element sigElement =
                 (Element) xpath.evaluate(expression, credential.getAssertionAsElement(), XPathConstants.NODE);
@@ -468,7 +458,7 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
                 new XMLSignature(sigElement, "");
 
             if (logger.isTraceEnabled()) {
-                logger.trace("sigElement="+sigElement.getTextContent());
+                logger.trace("sigElement=" + sigElement.getTextContent());
             }
 
             KeyInfo keyInfo = signature.getKeyInfo();
@@ -485,11 +475,10 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
             }
 
             if (logger.isTraceEnabled()) {
-                logger.trace("Got certificate="+certificate.toString());
+                logger.trace("Got certificate=" + certificate.toString());
             }
             return certificate;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.error(e);
             throw new LoginException(e.getLocalizedMessage());
         }
@@ -499,23 +488,23 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
         NodeList nl = element.getElementsByTagNameNS(xmlns, "Signature");
         if (nl.getLength() > 0) {
             return nl.item(0).getPrefix();
-        }
-        else {
+        } else {
             return null;
         }
     }
 
     /**
      * Validate certificate path against keystore specified as SecurityDomain in module-option.
+     *
      * @param cert
      */
     protected void validateCertPath(X509Certificate certificate)
-            throws LoginException {
+        throws LoginException {
         // get cert path
         CertPath certPath = null;
         try {
             CertificateFactory certFact = CertificateFactory
-                    .getInstance("X.509");
+                .getInstance("X.509");
             certPath = certFact.generateCertPath(Arrays.asList(certificate));
         } catch (CertificateEncodingException e) {
             logger.error(e.getMessage());
@@ -560,10 +549,9 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
                     Certificate crt = trustStore.getCertificate(alias);
                     if (crt != null) {
                         logger.trace(alias + " is a certificate of type "
-                                + crt.getType());
+                            + crt.getType());
                         logger.trace(crt.toString());
                     }
-
                 }
             }
 
@@ -576,18 +564,17 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
             // Create the validator and validate the path
             // To create a path, see Creating a Certification Path
             CertPathValidator certPathValidator = CertPathValidator
-                    .getInstance(CertPathValidator.getDefaultType());
+                .getInstance(CertPathValidator.getDefaultType());
 
             if (logger.isTraceEnabled()) {
                 logger.trace("certPathValidator is ready");
             }
 
             CertPathValidatorResult result = certPathValidator.validate(
-                    certPath, params);
+                certPath, params);
             if (logger.isTraceEnabled()) {
                 logger.trace("CertPathValidatorResult=" + result);
             }
-
         } catch (Exception e) {
             logger.error(e);
             throw new LoginException(e.getLocalizedMessage());
@@ -595,12 +582,11 @@ public abstract class SAMLTokenCertValidatingCommonLoginModule extends
     }
 
     /**
-     * Binding dependent version of getting configured keyStore.
-     * uses module-option: localValidationSecurityDomain.
-     *  
+     * Binding dependent version of getting configured keyStore. uses module-option: localValidationSecurityDomain.
+     *
      * @return
+     *
      * @throws Exception
      */
     protected abstract KeyStore getKeyStore() throws Exception;
-
 }

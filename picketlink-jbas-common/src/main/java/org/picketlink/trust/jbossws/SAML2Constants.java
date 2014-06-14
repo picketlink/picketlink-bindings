@@ -29,7 +29,7 @@ package org.picketlink.trust.jbossws;
  */
 public interface SAML2Constants {
 
-    public static String SAML2_ASSERTION_PROPERTY = "org.picketlink.trust.saml.assertion";
+    String SAML2_ASSERTION_PROPERTY = "org.picketlink.trust.saml.assertion";
 
-    public static String SAML2_ASSERTION_URI = "urn:oasis:names:tc:SAML:2.0:assertion";
+    String SAML2_ASSERTION_URI = "urn:oasis:names:tc:SAML:2.0:assertion";
 }

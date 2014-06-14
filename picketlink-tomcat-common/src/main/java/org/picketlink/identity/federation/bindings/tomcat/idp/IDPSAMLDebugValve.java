@@ -21,16 +21,15 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.idp;
 
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 import org.picketlink.common.constants.GeneralConstants;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
 
 /**
  * Debug Valve on the IDP end that will inform whether the SP is sending the SAMLRequest or not properly
@@ -41,7 +40,7 @@ import org.picketlink.common.constants.GeneralConstants;
 public class IDPSAMLDebugValve extends ValveBase {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
-    
+
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
         StringBuilder builder = new StringBuilder();
@@ -56,5 +55,4 @@ public class IDPSAMLDebugValve extends ValveBase {
 
         getNext().invoke(request, response);
     }
-
 }

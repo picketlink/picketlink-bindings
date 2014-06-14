@@ -1,8 +1,5 @@
 package org.picketlink.identity.federation.bindings.jboss.auth.mapping;
 
-import java.security.Principal;
-import java.util.Map;
-
 import org.jboss.security.SimplePrincipal;
 import org.jboss.security.mapping.MappingResult;
 import org.jboss.security.mapping.providers.principal.AbstractPrincipalMappingProvider;
@@ -16,11 +13,12 @@ import org.picketlink.identity.federation.saml.v2.assertion.NameIDType;
 import org.picketlink.identity.federation.saml.v2.assertion.SubjectType;
 import org.w3c.dom.Element;
 
+import java.security.Principal;
+import java.util.Map;
+
 /**
- * <p>
- * This mapping provider looks at the NameID in the Assertion and returns a corresponding JBoss Principal for insertion into the
- * Subject.
- * </p>
+ * <p> This mapping provider looks at the NameID in the Assertion and returns a corresponding JBoss Principal for insertion into the
+ * Subject. </p>
  *
  * <h3>Configuration</h3>
  *
@@ -34,7 +32,8 @@ import org.w3c.dom.Element;
  *     </login-module>
  *   </authentication>
  *   <mapping>
- *     <mapping-module code="org.picketlink.identity.federation.bindings.jboss.auth.mapping.STSPrincipalMappingProvider" type="principal"/>
+ *     <mapping-module code="org.picketlink.identity.federation.bindings.jboss.auth.mapping.STSPrincipalMappingProvider"
+ * type="principal"/>
  *     <mapping-module code="org.picketlink.identity.federation.bindings.jboss.auth.mapping.STSGroupMappingProvider" type="role"/>
  *   </mapping>
  * </application-policy>
@@ -44,7 +43,7 @@ import org.w3c.dom.Element;
  * @author <a href="mailto:Babak@redhat.com">Babak Mozaffari</a>
  */
 public class STSPrincipalMappingProvider extends AbstractPrincipalMappingProvider {
-    
+
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
 
     private MappingResult<Principal> result;
@@ -62,7 +61,8 @@ public class STSPrincipalMappingProvider extends AbstractPrincipalMappingProvide
         if (!(tokenObject instanceof Element)) {
             // With Tomcat SSO Valves, mapping providers DO get called automatically, so there may be no tokens and errors
             // should be expected and handled
-            logger.debug("Did not find a token " + Element.class.getName() + " under " + AbstractSTSLoginModule.SHARED_TOKEN + " in the map");
+            logger.debug("Did not find a token " + Element.class
+                .getName() + " under " + AbstractSTSLoginModule.SHARED_TOKEN + " in the map");
         }
 
         try {

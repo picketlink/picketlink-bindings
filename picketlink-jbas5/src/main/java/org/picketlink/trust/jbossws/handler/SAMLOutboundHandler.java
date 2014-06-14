@@ -26,9 +26,8 @@ import javax.xml.ws.handler.MessageContext;
 
 /**
  * <p>{@link SAML2Handler} implementation to handle only outbound messages.</p>
- * 
- * @author Pedro Igor
  *
+ * @author Pedro Igor
  */
 public class SAMLOutboundHandler extends SAML2Handler {
 
@@ -37,5 +36,4 @@ public class SAMLOutboundHandler extends SAML2Handler {
         // noop
         return true;
     }
-    
 }

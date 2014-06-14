@@ -55,6 +55,7 @@ import java.util.Map;
  * @since Sep 22, 2011
  */
 public class OpenIDProcessor {
+
     protected static Logger log = Logger.getLogger(OpenIDProcessor.class);
     protected boolean trace = log.isTraceEnabled();
 
@@ -79,12 +80,19 @@ public class OpenIDProcessor {
     public static String EMPTY_PASSWORD = "EMPTY";
 
     private enum STATES {
-        AUTH, AUTHZ, FINISH
-    };
+        AUTH,
+        AUTHZ,
+        FINISH
+    }
+
+    ;
 
     private enum Providers {
-        GOOGLE("https://www.google.com/accounts/o8/id"), YAHOO("https://me.yahoo.com/"), MYSPACE("myspace.com"), MYOPENID(
-                "https://myopenid.com/");
+        GOOGLE("https://www.google.com/accounts/o8/id"),
+        YAHOO("https://me.yahoo.com/"),
+        MYSPACE("myspace.com"),
+        MYOPENID(
+            "https://myopenid.com/");
 
         private String name;
 
@@ -116,12 +124,14 @@ public class OpenIDProcessor {
      * Initialize the processor
      *
      * @param requiredRoles
+     *
      * @throws MessageException
      * @throws ConsumerException
      */
     public void initialize(List<String> requiredRoles) throws MessageException, ConsumerException {
-        if (openIdConsumerManager == null)
+        if (openIdConsumerManager == null) {
             openIdConsumerManager = new ConsumerManager();
+        }
 
         fetchRequest = FetchRequest.createFetchRequest();
         // Work on the required attributes
@@ -191,21 +201,24 @@ public class OpenIDProcessor {
     public Principal processIncomingAuthResult(Request request, Response response, Realm realm) throws IOException {
         Principal principal = null;
         Session session = request.getSessionInternal(false);
-        if (session == null)
+        if (session == null) {
             throw new RuntimeException("wrong lifecycle: session was null");
+        }
 
         // extract the parameters from the authentication response
         // (which comes in as a HTTP request from the OpenID provider)
         ParameterList responseParamList = new ParameterList(request.getParameterMap());
         // retrieve the previously stored discovery information
         DiscoveryInformation discovered = (DiscoveryInformation) session.getNote("discovery");
-        if (discovered == null)
+        if (discovered == null) {
             throw new RuntimeException("discovered information was null");
+        }
         // extract the receiving URL from the HTTP request
         StringBuffer receivingURL = request.getRequestURL();
         String queryString = request.getQueryString();
-        if (queryString != null && queryString.length() > 0)
+        if (queryString != null && queryString.length() > 0) {
             receivingURL.append("?").append(request.getQueryString());
+        }
 
         // verify the response; ConsumerManager needs to be the same
         // (static) instance used to place the authentication request
@@ -235,7 +248,7 @@ public class OpenIDProcessor {
             }
 
             OpenIdPrincipal openIDPrincipal = createPrincipal(identifier.getIdentifier(), discovered.getOPEndpoint(),
-                    attributes);
+                attributes);
             request.getSession().setAttribute("PRINCIPAL", openIDPrincipal);
 
             String principalName = openIDPrincipal.getName();
@@ -249,8 +262,9 @@ public class OpenIDProcessor {
                 principal = new GenericPrincipal(realm, principalName, null, roles, openIDPrincipal);
             }
 
-            if (trace)
+            if (trace) {
                 log.trace("Logged in as:" + principal);
+            }
         } else {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
         }
@@ -263,24 +277,27 @@ public class OpenIDProcessor {
 
     private boolean isJBossEnv() {
         Class<?> clazz = SecurityActions.loadClass(getClass(), "org.jboss.as.web.WebServer");
-        if (clazz == null)
+        if (clazz == null) {
             clazz = SecurityActions.loadClass(getClass(), "org.jboss.system.Service");
-        if (clazz != null)
+        }
+        if (clazz != null) {
             return true;
+        }
         return false;
     }
 
     private void determineServiceUrl(String service) {
         openIdServiceUrl = Providers.GOOGLE.get();
         if (StringUtil.isNotNull(service)) {
-            if ("google".equals(service))
+            if ("google".equals(service)) {
                 openIdServiceUrl = Providers.GOOGLE.get();
-            else if ("yahoo".equals(service))
+            } else if ("yahoo".equals(service)) {
                 openIdServiceUrl = Providers.YAHOO.get();
-            else if ("myspace".equals(service))
+            } else if ("myspace".equals(service)) {
                 openIdServiceUrl = Providers.MYSPACE.get();
-            else if ("myopenid".equals(service))
+            } else if ("myopenid".equals(service)) {
                 openIdServiceUrl = Providers.MYOPENID.get();
+            }
         }
     }
 }

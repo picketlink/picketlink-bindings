@@ -2,13 +2,13 @@ package org.picketlink.identity.federation.bindings.tomcat.sp;
 
 import org.apache.catalina.LifecycleException;
 
-
 /**
  * Unified Service Provider Authenticator
  *
  * @author anil saldhana
  */
 public class ServiceProviderAuthenticator extends AbstractSPFormAuthenticator {
+
     /*
      * (non-Javadoc)
      *
@@ -17,11 +17,11 @@ public class ServiceProviderAuthenticator extends AbstractSPFormAuthenticator {
     @Override
     public void start() throws LifecycleException {
         super.start();
-        startPicketLink(); 
+        startPicketLink();
     }
-    
+
     @Override
-    protected String getContextPath() { 
+    protected String getContextPath() {
         return getContext().getServletContext().getContextPath();
     }
 }

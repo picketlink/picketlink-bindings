@@ -23,7 +23,6 @@ package org.picketlink.identity.federation.bindings.tomcat.sp;
 
 import org.apache.catalina.LifecycleException;
 
-
 /**
  * Authenticator for SAML 1.1 processing at the Service Provider
  *
@@ -31,6 +30,7 @@ import org.apache.catalina.LifecycleException;
  * @since Jul 7, 2011
  */
 public class SAML11SPRedirectFormAuthenticator extends AbstractSAML11SPRedirectFormAuthenticator {
+
     /*
      * (non-Javadoc)
      *

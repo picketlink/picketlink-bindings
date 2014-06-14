@@ -31,6 +31,7 @@ import java.security.PrivilegedAction;
  * @since Mar 17, 2009
  */
 class SecurityActions {
+
     static void setSystemProperty(final String key, final String value) {
         if (System.getSecurityManager() != null) {
             AccessController.doPrivileged(new PrivilegedAction<Object>() {

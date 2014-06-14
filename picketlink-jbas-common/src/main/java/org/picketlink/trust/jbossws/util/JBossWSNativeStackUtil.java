@@ -21,12 +21,11 @@
  */
 package org.picketlink.trust.jbossws.util;
 
-import java.lang.reflect.Method;
+import org.jboss.logging.Logger;
 
 import javax.xml.namespace.QName;
 import javax.xml.ws.handler.MessageContext;
-
-import org.jboss.logging.Logger;
+import java.lang.reflect.Method;
 
 /**
  * Utility class that uses reflection on the JBossWS Native Stack as backup strategy
@@ -35,6 +34,7 @@ import org.jboss.logging.Logger;
  * @since Jul 13, 2011
  */
 public class JBossWSNativeStackUtil {
+
     protected static Logger log = Logger.getLogger(JBossWSNativeStackUtil.class);
     protected static boolean trace = log.isTraceEnabled();
 
@@ -43,12 +43,13 @@ public class JBossWSNativeStackUtil {
      * Native stack
      *
      * @param msgContext
+     *
      * @return
      */
     public static QName getPortNameViaReflection(Class<?> callingClazz, MessageContext msgContext) {
         try {
             Class<?> clazz = SecurityActions.getClassLoader(callingClazz).loadClass(
-                    "org.jboss.ws.core.jaxws.handler.SOAPMessageContextJAXWS");
+                "org.jboss.ws.core.jaxws.handler.SOAPMessageContextJAXWS");
             Method endpointMDMethod = clazz.getMethod("getEndpointMetaData", new Class[0]);
             Object endpointMD = endpointMDMethod.invoke(msgContext, new Object[0]);
 
@@ -57,8 +58,9 @@ public class JBossWSNativeStackUtil {
 
             return (QName) portNameMethod.invoke(endpointMD, new Object[0]);
         } catch (Exception e) {
-            if (trace)
+            if (trace) {
                 log.trace("Exception using backup method to get port name=", e);
+            }
         }
         return null;
     }

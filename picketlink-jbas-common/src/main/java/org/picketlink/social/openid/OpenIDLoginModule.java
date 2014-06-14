@@ -33,6 +33,7 @@ import java.util.List;
  * @since May 19, 2011
  */
 public class OpenIDLoginModule extends UsernamePasswordLoginModule {
+
     @Override
     protected Principal getIdentity() {
         return OpenIDProcessor.cachedPrincipal.get();
@@ -54,6 +55,6 @@ public class OpenIDLoginModule extends UsernamePasswordLoginModule {
                 group.addMember(new SimplePrincipal(role));
             }
         }
-        return new Group[] { group };
+        return new Group[]{group};
     }
 }

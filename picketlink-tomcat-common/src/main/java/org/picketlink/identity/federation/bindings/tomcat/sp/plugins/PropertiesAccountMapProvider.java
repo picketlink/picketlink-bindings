@@ -28,14 +28,14 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Implementation of
- * {@link org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve.AccountIDPMapProvider} using a
- * properties file
+ * Implementation of {@link org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve.AccountIDPMapProvider}
+ * using a properties file
  *
  * @author Anil Saldhana
  * @since January 23, 2014
  */
 public class PropertiesAccountMapProvider implements AbstractAccountChooserValve.AccountIDPMapProvider {
+
     private ClassLoader classLoader = null;
 
     private ServletContext servletContext = null;
@@ -49,7 +49,7 @@ public class PropertiesAccountMapProvider implements AbstractAccountChooserValve
         this.classLoader = classLoader;
     }
 
-    public void setServletContext(ServletContext servletContext){
+    public void setServletContext(ServletContext servletContext) {
         this.servletContext = servletContext;
     }
 
@@ -69,7 +69,7 @@ public class PropertiesAccountMapProvider implements AbstractAccountChooserValve
         if (inputStream == null && servletContext != null) {
             inputStream = servletContext.getResourceAsStream(WEB_INF_PROP_FILE_NAME);
         }
-        if(inputStream == null){
+        if (inputStream == null) {
             inputStream = getClass().getResourceAsStream(PROP_FILE_NAME);
         }
         if (inputStream != null) {

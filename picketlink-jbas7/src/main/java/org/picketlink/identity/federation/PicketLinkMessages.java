@@ -22,14 +22,6 @@
 
 package org.picketlink.identity.federation;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
-import javax.security.auth.login.LoginException;
-import javax.xml.crypto.dsig.XMLSignatureException;
-import javax.xml.stream.Location;
-import javax.xml.ws.WebServiceException;
-
 import org.jboss.logging.Cause;
 import org.jboss.logging.Message;
 import org.jboss.logging.MessageBundle;
@@ -46,6 +38,13 @@ import org.picketlink.common.exceptions.fed.IssuerNotTrustedException;
 import org.picketlink.common.exceptions.fed.SignatureValidationException;
 import org.picketlink.common.exceptions.fed.WSTrustException;
 import org.w3c.dom.Element;
+
+import javax.security.auth.login.LoginException;
+import javax.xml.crypto.dsig.XMLSignatureException;
+import javax.xml.stream.Location;
+import javax.xml.ws.WebServiceException;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 /**
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
@@ -470,7 +469,7 @@ public interface PicketLinkMessages {
     RuntimeException samlSPConfigurationError(@Cause Throwable t);
 
     @Message(id = 167, value = "Could not find a security domain configuration. Check if it is defined in WEB-INF/jboss-web.xml or set the "
-            + GeneralConstants.AUDIT_SECURITY_DOMAIN + " system property.")
+        + GeneralConstants.AUDIT_SECURITY_DOMAIN + " system property.")
     ConfigurationException auditSecurityDomainNotFound(@Cause Throwable t);
 
     @Message(id = 168, value = "Could not find a audit manager configuration. Location: %s")
@@ -483,7 +482,7 @@ public interface PicketLinkMessages {
     IllegalArgumentException samlInvalidProtocolBinding();
 
     @Message(id = 171, value = "Service Provider configuration not found. Check if the " + GeneralConstants.CONFIGURATION
-            + " parameter is defined in the handler chain config.")
+        + " parameter is defined in the handler chain config.")
     IllegalStateException samlHandlerServiceProviderConfigNotFound();
 
     @Message(id = 172, value = "Cache duration could not be created using '%s'. This value must be an ISO-8601 period or a numeric value representing the duration in milliseconds.")
@@ -509,4 +508,29 @@ public interface PicketLinkMessages {
 
     @Message(id = 179, value = "Datasource is null.")
     IllegalStateException datasourceIsNull();
+
+    @Message(id = 180, value = "Cannot parse: %s")
+    IllegalArgumentException cannotParseParameterError(String parameterName, @Cause Throwable e);
+
+    @Message(id = 181, value = "Cannot get free client pool key: %s")
+    RuntimeException cannotGetFreeClientPoolKey(String key);
+
+    @Message(id = 182, value = "Cannot get STS config by key:  %s")
+    RuntimeException cannotGetSTSConfigByKey(String key);
+
+    @Message(id = 183, value = "Cannot get used clients by key:  %s")
+    RuntimeException cannotGetUsedClientsByKey(String key);
+
+    @Message(id = 184, value = "Free pool already contains given key:  %s")
+    RuntimeException freePoolAlreadyContainsGivenKey(String key);
+
+    @Message(id = 185, value = "removing non existing client from used clients by key: %s")
+    RuntimeException removingNonExistingClientFromUsedClientsByKey(String key);
+
+    @Message(id = 186, value = "Pool reached miximum number of clients within the pool (%s)")
+    RuntimeException maximumNumberOfClientsReachedforPool(String max);
+
+    @Message(id = 187, value = "Cannot set maximum STS client pool size to negative number (%s)")
+    RuntimeException cannotSetMaxPoolSizeToNegative(String max);
+
 }

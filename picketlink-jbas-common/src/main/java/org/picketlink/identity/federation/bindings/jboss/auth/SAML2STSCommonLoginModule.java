@@ -21,22 +21,6 @@
  */
 package org.picketlink.identity.federation.bindings.jboss.auth;
 
-import java.security.Principal;
-import java.security.acl.Group;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.security.auth.Subject;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
-import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.transform.Source;
-import javax.xml.ws.Dispatch;
-
 import org.jboss.security.SecurityConstants;
 import org.jboss.security.SimplePrincipal;
 import org.jboss.security.auth.callback.ObjectCallback;
@@ -52,6 +36,7 @@ import org.picketlink.identity.federation.core.constants.PicketLinkFederationCon
 import org.picketlink.identity.federation.core.factories.JBossAuthCacheInvalidationFactory.TimeCacheExpiry;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.core.wstrust.STSClient;
+import org.picketlink.identity.federation.core.wstrust.STSClientFactory;
 import org.picketlink.identity.federation.core.wstrust.STSClientConfig.Builder;
 import org.picketlink.identity.federation.core.wstrust.SamlCredential;
 import org.picketlink.identity.federation.core.wstrust.auth.AbstractSTSLoginModule;
@@ -62,61 +47,43 @@ import org.picketlink.identity.federation.saml.v2.assertion.NameIDType;
 import org.picketlink.identity.federation.saml.v2.assertion.SubjectType;
 import org.w3c.dom.Element;
 
+import javax.security.auth.Subject;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.LoginException;
+import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.transform.Source;
+import javax.xml.ws.Dispatch;
+import java.security.Principal;
+import java.security.acl.Group;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * <p>
- * This {@code LoginModule} authenticates clients by validating their SAML assertions with an external security token service
- * (such as PicketLinkSTS). If the supplied assertion contains roles, these roles are extracted and included in the
- * {@code Group} returned by the {@code getRoleSets} method.
- * </p>
- * <p>
- * This module defines the following module options:
- * <ul>
- * <li>
- * configFile - this property identifies the properties file that will be used to establish communication with the external
- * security token service.
- * </li>
- * <li>
- * cache.invalidation: set it to true if you require invalidation of JBoss Auth Cache at SAML Principal expiration.
- * </li>
- * <li>
- * jboss.security.security_domain: name of the security domain where this login module is configured. This is only required if
- * the cache.invalidation option is configured.
- * </li>
- * <li>
- * roleKey: a comma separated list of strings that define the attributes in SAML assertion for user roles
- * </li>
- * <li>
- * localValidation: if you want to validate the assertion locally for signature and expiry
- * </li>
- * <li>
- * localValidationSecurityDomain:  the security domain for the trust store information (via the JaasSecurityDomain)
- * </li>
- * <li>
- * tokenEncodingType: encoding type of SAML token delivered via http request's header.
- * Possible values are:
- *    base64 - content encoded as base64. In case of encoding will vary between base64 and gzip use base64 and LoginModule will detect gzipped data.
- *    gzip - gzipped content encoded as base64
- *    none - content not encoded in any way
- * </li>
- * <li>
- * samlTokenHttpHeader - name of http request header to fetch SAML token from. For example: "Authorize"
- * </li>
- * <li>
- * samlTokenHttpHeaderRegEx - Java regular expression to be used to get SAML token from "samlTokenHttpHeader". Example: use: ."(.)".* to parse SAML token from header content like this: SAML_assertion="HHDHS=", at the same time set samlTokenHttpHeaderRegExGroup to 1.
- * </li>
- * <li>
- * samlTokenHttpHeaderRegExGroup - Group value to be used when parsing out value of http request header specified by "samlTokenHttpHeader" using "samlTokenHttpHeaderRegEx".
- * </li>
- * </ul>
- * </p>
- * <p>
- * Any properties specified besides the above properties are assumed to be used to configure how the {@code STSClient} will
- * connect to the STS. For example, the JBossWS {@code StubExt.PROPERTY_SOCKET_FACTORY} can be specified in order to inform the
- * socket factory that must be used to connect to the STS. All properties will be set in the request context of the
- * {@code Dispatch} instance used by the {@code STSClient} to send requests to the STS.
- * </p>
- * <p>
- * An example of a {@code configFile} can be seen bellow:
+ * <p> This {@code LoginModule} authenticates clients by validating their SAML assertions with an external security token service
+ * (such as PicketLinkSTS). If the supplied assertion contains roles, these roles are extracted and included in the {@code Group}
+ * returned by the {@code getRoleSets} method. </p> <p> This module defines the following module options: <ul> <li> configFile -
+ * this property identifies the properties file that will be used to establish communication with the external security token
+ * service. </li> <li> cache.invalidation: set it to true if you require invalidation of JBoss Auth Cache at SAML Principal
+ * expiration. </li> <li> jboss.security.security_domain: name of the security domain where this login module is configured. This is
+ * only required if the cache.invalidation option is configured. </li> <li> roleKey: a comma separated list of strings that define
+ * the attributes in SAML assertion for user roles </li> <li> localValidation: if you want to validate the assertion locally for
+ * signature and expiry </li> <li> localValidationSecurityDomain:  the security domain for the trust store information (via the
+ * JaasSecurityDomain) </li> <li> tokenEncodingType: encoding type of SAML token delivered via http request's header. Possible
+ * values are: base64 - content encoded as base64. In case of encoding will vary between base64 and gzip use base64 and LoginModule
+ * will detect gzipped data. gzip - gzipped content encoded as base64 none - content not encoded in any way </li> <li>
+ * samlTokenHttpHeader - name of http request header to fetch SAML token from. For example: "Authorize" </li> <li>
+ * samlTokenHttpHeaderRegEx - Java regular expression to be used to get SAML token from "samlTokenHttpHeader". Example: use:
+ * ."(.)".* to parse SAML token from header content like this: SAML_assertion="HHDHS=", at the same time set
+ * samlTokenHttpHeaderRegExGroup to 1. </li> <li> samlTokenHttpHeaderRegExGroup - Group value to be used when parsing out value of
+ * http request header specified by "samlTokenHttpHeader" using "samlTokenHttpHeaderRegEx". </li> </ul> </p> <p> Any properties
+ * specified besides the above properties are assumed to be used to configure how the {@code STSClient} will connect to the STS. For
+ * example, the JBossWS {@code StubExt.PROPERTY_SOCKET_FACTORY} can be specified in order to inform the socket factory that must be
+ * used to connect to the STS. All properties will be set in the request context of the {@code Dispatch} instance used by the {@code
+ * STSClient} to send requests to the STS. </p> <p> An example of a {@code configFile} can be seen bellow:
  *
  * <pre>
  * serviceName=PicketLinkSTS
@@ -128,19 +95,15 @@ import org.w3c.dom.Element;
  *
  * The first three properties specify the STS endpoint URL, service name, and port name. The last two properties specify the
  * username and password that are to be used by the application server to authenticate to the STS and have the SAML assertions
- * validated.
- * </p>
- * <p>
- * <b>NOTE:</b> Sub-classes can use {@link #getSTSClient()} method to customize the {@link STSClient} class to make calls to
- * STS/
- * </p>
+ * validated. </p> <p> <b>NOTE:</b> Sub-classes can use {@link #getSTSClient()} method to customize the {@link STSClient} class to
+ * make calls to STS/ </p>
  *
  * @author <a href="mailto:sguilhen@redhat.com">Stefan Guilhen</a>
  * @author Anil.Saldhana@redhat.com
  */
 @SuppressWarnings("unchecked")
 public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequestAbstractLoginModule {
-    
+
     protected String stsConfigurationFile;
 
     protected Principal principal;
@@ -159,7 +122,16 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
 
     protected String roleKey = AttributeConstants.ROLE_IDENTIFIER_ASSERTION;
 
-    
+    /**
+     * Maximal number of clients in the STS Client Pool.
+     */
+    protected int maxClientsInPool = 0;
+
+    /**
+     * Number of clients initialized for in case pool is out of free clients.
+     */
+    protected int initialNumberOfClients = 0;
+
     /**
      * Options that are computed by this login module. Few options are removed and the rest are set in the dispatch sts call
      */
@@ -203,6 +175,16 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
     // A variable used by the unit test to pass local validation
     protected boolean localTestingOnly = false;
 
+    /**
+     * Paramater name.
+     */
+    public static final String MAX_CLIENTS_IN_POOL = "maxClientsInPool";
+
+    /**
+     * Paramater name.
+     */
+    public static final String INITIAL_NUMBER_OF_CLIENTS = "initialNumberOfClients";
+
     /*
      * (non-Javadoc)
      *
@@ -226,8 +208,9 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             this.enableCacheInvalidation = Boolean.parseBoolean(cacheInvalidation);
 
             this.securityDomain = (String) this.options.remove(SecurityConstants.SECURITY_DOMAIN_OPTION);
-            if (this.securityDomain == null || this.securityDomain.isEmpty())
+            if (this.securityDomain == null || this.securityDomain.isEmpty()) {
                 throw logger.optionNotSet(SecurityConstants.SECURITY_DOMAIN_OPTION);
+            }
         }
 
         String roleKeyStr = (String) options.get("roleKey");
@@ -241,19 +224,38 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             localValidationSecurityDomain = (String) options.get("localValidationSecurityDomain");
 
             if (localValidationSecurityDomain == null) {
-               logger.error(ErrorCodes.LOCAL_VALIDATION_SEC_DOMAIN_MUST_BE_SPECIFIED);
-               throw logger.optionNotSet("localValidationSecurityDomain");
+                logger.error(ErrorCodes.LOCAL_VALIDATION_SEC_DOMAIN_MUST_BE_SPECIFIED);
+                throw logger.optionNotSet("localValidationSecurityDomain");
             }
-            
-            if (localValidationSecurityDomain.startsWith("java:") == false)
+
+            if (localValidationSecurityDomain.startsWith("java:") == false) {
                 localValidationSecurityDomain = SecurityConstants.JAAS_CONTEXT_ROOT + "/" + localValidationSecurityDomain;
+            }
 
             String localTestingOnlyStr = (String) options.get("localTestingOnly");
             if (StringUtil.isNotNull(localTestingOnlyStr)) {
                 localTestingOnly = Boolean.valueOf(localTestingOnlyStr);
             }
         }
-        
+
+        String maxClientsString = (String) options.get(MAX_CLIENTS_IN_POOL);
+        if (StringUtil.isNotNull(maxClientsString)) {
+            try {
+                this.maxClientsInPool = Integer.parseInt(maxClientsString);
+            } catch (Exception e) {
+                logger.cannotParseParameterValue(MAX_CLIENTS_IN_POOL, e);
+            }
+        }
+
+        String initialNumberOfClientsString = (String) options.get(INITIAL_NUMBER_OF_CLIENTS);
+        if (StringUtil.isNotNull(initialNumberOfClientsString)) {
+            try {
+                this.initialNumberOfClients = Integer.parseInt(initialNumberOfClientsString);
+            } catch (Exception e) {
+                logger.cannotParseParameterValue(INITIAL_NUMBER_OF_CLIENTS, e);
+            }
+        }
+
     }
 
     /*
@@ -266,9 +268,9 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
         // if shared data exists, set our principal and assertion variables.
         if (super.login()) {
             Object sharedPrincipal = super.sharedState.get("javax.security.auth.login.name");
-            if (sharedPrincipal instanceof Principal)
+            if (sharedPrincipal instanceof Principal) {
                 this.principal = (Principal) sharedPrincipal;
-            else {
+            } else {
                 try {
                     this.principal = createIdentity(sharedPrincipal.toString());
                 } catch (Exception e) {
@@ -277,10 +279,11 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             }
 
             Object credential = super.sharedState.get("javax.security.auth.login.password");
-            if (credential instanceof SamlCredential)
+            if (credential instanceof SamlCredential) {
                 this.credential = (SamlCredential) credential;
-            else
+            } else {
                 throw logger.authSharedCredentialIsNotSAMLCredential(credential.getClass().getName());
+            }
             return true;
         }
 
@@ -290,24 +293,24 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
         try {
             if (getSamlTokenHttpHeader() != null) {
                 this.credential = getCredentialFromHttpRequest();
-            }
-            else {
-                super.callbackHandler.handle(new Callback[] { callback });
-                
+            } else {
+                super.callbackHandler.handle(new Callback[]{callback});
+
                 if (callback.getCredential() instanceof String) {
-                    callback.setCredential(new SamlCredential(DocumentUtil.getDocument(callback.getCredential().toString()).getDocumentElement()));
+                    callback.setCredential(new SamlCredential(DocumentUtil.getDocument(callback.getCredential().toString())
+                        .getDocumentElement()));
                 }
-                
-                if (callback.getCredential() instanceof SamlCredential == false)
+
+                if (callback.getCredential() instanceof SamlCredential == false) {
                     throw logger.authSharedCredentialIsNotSAMLCredential(callback.getCredential().getClass().getName());
+                }
                 this.credential = (SamlCredential) callback.getCredential();
             }
             assertionElement = this.credential.getAssertionAsElement();
         } catch (Exception e) {
             throw logger.authErrorHandlingCallback(e);
         }
-    
-        
+
         // if there is no shared data, validate the assertion using the STS.
         if (localValidation) {
             logger.trace("Local Validation is being Performed");
@@ -325,16 +328,18 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             logger.trace("Local Validation is disabled. Verifying with STS");
 
             // sts config file has to be present to call STS (using sts client)
-            if (this.stsConfigurationFile == null)
+            if (this.stsConfigurationFile == null) {
                 throw logger.authSTSConfigFileNotFound();
+            }
 
             // send the assertion to the STS for validation.
             STSClient client = this.getSTSClient();
             try {
                 boolean isValid = client.validateToken(assertionElement);
                 // if the STS says the assertion is invalid, throw an exception to signal that authentication has failed.
-                if (isValid == false)
+                if (isValid == false) {
                     throw logger.authInvalidSAMLAssertionBySTS();
+                }
             } catch (WSTrustException we) {
                 throw logger.authAssertionValidationError(we);
             }
@@ -357,7 +362,8 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
                         if (expiry != null) {
                             Date expiryDate = expiry.toGregorianCalendar().getTime();
 
-                            logger.trace("Creating Cache Entry for JBoss at [" + new Date() + "] , with expiration set to SAML expiry = " + expiryDate);
+                            logger
+                                .trace("Creating Cache Entry for JBoss at [" + new Date() + "] , with expiration set to SAML expiry = " + expiryDate);
 
                             cacheExpiry.register(securityDomain, expiryDate, principal);
                         } else {
@@ -377,8 +383,6 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
         }
         return (super.loginOk = true);
     }
-    
-    
 
     /* (non-Javadoc)
      * @see org.jboss.security.auth.spi.AbstractServerLoginModule#commit()
@@ -387,8 +391,9 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
     public boolean commit() throws LoginException {
         if (super.commit()) {
             final boolean added = subject.getPublicCredentials().add(this.credential);
-            if (added && logger.isTraceEnabled())
+            if (added && logger.isTraceEnabled()) {
                 logger.trace("Added Credential " + this.credential);
+            }
             return true;
         } else {
             return false;
@@ -460,7 +465,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             rolesGroup.addMember(new SimplePrincipal(role));
         }
 
-        return new Group[] { rolesGroup };
+        return new Group[]{rolesGroup};
     }
 
     /**
@@ -477,7 +482,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
         STSClient client = null;
         if (rawOptions.containsKey(STS_CONFIG_FILE)) {
             builder = new Builder(this.stsConfigurationFile);
-            client = new STSClient(builder.build());
+            client = STSClientFactory.getInstance(maxClientsInPool).createPool(initialNumberOfClients, builder.build());
         } else {
             builder = new Builder();
             builder.endpointAddress((String) rawOptions.get(ENDPOINT_ADDRESS));
@@ -488,12 +493,14 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             if (passwordString != null && passwordString.startsWith(PicketLinkFederationConstants.PASS_MASK_PREFIX)) {
                 // password is masked
                 String salt = (String) rawOptions.get(PicketLinkFederationConstants.SALT);
-                if (StringUtil.isNullOrEmpty(salt))
+                if (StringUtil.isNullOrEmpty(salt)) {
                     throw logger.optionNotSet("Salt");
+                }
 
                 String iCount = (String) rawOptions.get(PicketLinkFederationConstants.ITERATION_COUNT);
-                if (StringUtil.isNullOrEmpty(iCount))
+                if (StringUtil.isNullOrEmpty(iCount)) {
                     throw logger.optionNotSet("Iteration Count");
+                }
 
                 int iterationCount = Integer.parseInt(iCount);
                 try {
@@ -502,28 +509,30 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
                     throw logger.unableToDecodePasswordError(passwordString);
                 }
             }
-            client = new STSClient(builder.build());
+            client = STSClientFactory.getInstance(maxClientsInPool).createPool(initialNumberOfClients, builder.build());
         }
 
         // if the login module options map still contains any properties, assume they are for configuring the connection
         // to the STS and set them in the Dispatch request context.
         if (!this.options.isEmpty()) {
             Dispatch<Source> dispatch = client.getDispatch();
-            for (Map.Entry<String, ?> entry : this.options.entrySet())
+            for (Map.Entry<String, ?> entry : this.options.entrySet()) {
                 dispatch.getRequestContext().put(entry.getKey(), entry.getValue());
+            }
         }
         return client;
     }
-    
+
     /**
      * Locally validate the SAML Assertion element
      *
      * @param assertionElement
+     *
      * @return
+     *
      * @throws Exception
      */
     protected abstract boolean localValidation(Element assertionElement) throws Exception;
 
     protected abstract TimeCacheExpiry getCacheExpiry() throws Exception;
-
 }

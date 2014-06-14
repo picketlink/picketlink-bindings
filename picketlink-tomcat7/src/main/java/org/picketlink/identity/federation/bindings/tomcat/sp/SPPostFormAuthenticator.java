@@ -44,6 +44,6 @@ public class SPPostFormAuthenticator extends ServiceProviderAuthenticator {
     @Override
     protected void startPicketLink() throws LifecycleException {
         super.startPicketLink();
-        this.spConfiguration.setBindingType("POST"); 
+        this.spConfiguration.setBindingType("POST");
     }
 }

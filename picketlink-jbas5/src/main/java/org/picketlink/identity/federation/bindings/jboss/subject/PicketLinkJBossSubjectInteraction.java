@@ -21,15 +21,6 @@
  */
 package org.picketlink.identity.federation.bindings.jboss.subject;
 
-import java.security.Principal;
-import java.util.Calendar;
-
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.security.auth.Subject;
-import javax.security.jacc.PolicyContext;
-import javax.security.jacc.PolicyContextException;
-
 import org.jboss.security.SimplePrincipal;
 import org.jboss.security.SubjectSecurityManager;
 import org.picketlink.common.PicketLinkLogger;
@@ -38,6 +29,14 @@ import org.picketlink.identity.federation.bindings.tomcat.SubjectSecurityInterac
 import org.picketlink.identity.federation.core.factories.JBossAuthCacheInvalidationFactory;
 import org.picketlink.identity.federation.core.factories.JBossAuthCacheInvalidationFactory.TimeCacheExpiry;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.security.auth.Subject;
+import javax.security.jacc.PolicyContext;
+import javax.security.jacc.PolicyContextException;
+import java.security.Principal;
+import java.util.Calendar;
+
 /**
  * An implementation of {@link SubjectSecurityInteraction} for JBoss AS
  *
@@ -45,9 +44,9 @@ import org.picketlink.identity.federation.core.factories.JBossAuthCacheInvalidat
  * @since Sep 13, 2011
  */
 public class PicketLinkJBossSubjectInteraction implements SubjectSecurityInteraction {
-    
+
     protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
-    
+
     /**
      * @see org.picketlink.identity.federation.bindings.tomcat.SubjectSecurityInteraction#cleanup(java.security.Principal)
      */
@@ -88,12 +87,13 @@ public class PicketLinkJBossSubjectInteraction implements SubjectSecurityInterac
         // Get the SecurityManagerService from JNDI
         InitialContext ctx = new InitialContext();
         SubjectSecurityManager ssm = (SubjectSecurityManager) ctx.lookup("java:comp/env/security/securityMgr");
-        if (ssm == null)
+        if (ssm == null) {
             throw logger.nullValueError("Unable to get the subject security manager");
+        }
         return ssm.getSecurityDomain();
     }
 
     public void setSecurityDomain(String securityDomain) {
-        
+
     }
 }

@@ -21,14 +21,11 @@
  */
 package org.picketlink.trust.jbossws;
 
-import java.net.URL;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Future;
+import org.picketlink.common.ErrorCodes;
+import org.picketlink.common.util.Base64;
+import org.picketlink.common.util.StringUtil;
+import org.picketlink.identity.federation.core.saml.v2.common.IDGenerator;
+import org.picketlink.identity.federation.core.util.SOAPUtil;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -55,25 +52,24 @@ import javax.xml.ws.WebServiceException;
 import javax.xml.ws.handler.Handler;
 import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
-
-import org.picketlink.common.ErrorCodes;
-import org.picketlink.common.util.Base64;
-import org.picketlink.common.util.StringUtil;
-import org.picketlink.identity.federation.core.saml.v2.common.IDGenerator;
-import org.picketlink.identity.federation.core.util.SOAPUtil;
+import java.net.URL;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Future;
 
 /**
- * <p>
- * A concrete implementation of {@code Dispatch} that can be used as an alternative to the underlying JAXWS implementation.
- * </p>
- * <p>
- * This is used by setting the module option "overrideDispatch" to true in the {@code JBWSTokenIssuingLoginModule}
- * </p>
+ * <p> A concrete implementation of {@code Dispatch} that can be used as an alternative to the underlying JAXWS implementation. </p>
+ * <p> This is used by setting the module option "overrideDispatch" to true in the {@code JBWSTokenIssuingLoginModule} </p>
  *
  * @author Anil.Saldhana@redhat.com
  * @since May 10, 2011
  */
 public class PicketLinkDispatch implements Dispatch<Source> {
+
     @SuppressWarnings("rawtypes")
     private Dispatch parent;
     private String endpoint;
@@ -115,7 +111,7 @@ public class PicketLinkDispatch implements Dispatch<Source> {
         return parent.getEndpointReference(clazz);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Source invoke(Source requestMessage) {
         PLMessageContext msgContext = new PLMessageContext();
         msgContext.put(MessageContext.MESSAGE_OUTBOUND_PROPERTY, Boolean.TRUE);
@@ -163,9 +159,10 @@ public class PicketLinkDispatch implements Dispatch<Source> {
         List<Handler> handlers = getBinding().getHandlerChain();
         for (Handler handler : handlers) {
             boolean result = handler.handleMessage(msgContext);
-            if (!result)
+            if (!result) {
                 throw new WebServiceException(ErrorCodes.PROCESSING_EXCEPTION + "Handler " + handler.getClass()
-                        + " returned false");
+                    + " returned false");
+            }
         }
 
         if (sslSocketFactory != null) {
@@ -207,6 +204,7 @@ public class PicketLinkDispatch implements Dispatch<Source> {
     }
 
     public static class PLMessageContext implements MessageContext, SOAPMessageContext {
+
         private Map<String, Object> map = new HashMap<String, Object>();
         private Map<String, Scope> scopeMap = new HashMap<String, MessageContext.Scope>();
 
@@ -312,7 +310,9 @@ public class PicketLinkDispatch implements Dispatch<Source> {
      * Given username and pass, create a {@link SOAPElement} for WSSE UsernameToken Profile
      *
      * @param token
+     *
      * @return
+     *
      * @throws SOAPException
      */
     private SOAPElement create(String userName, String pass) throws SOAPException {
@@ -321,7 +321,7 @@ public class PicketLinkDispatch implements Dispatch<Source> {
         security.addNamespaceDeclaration(Constants.WSU_PREFIX, Constants.WSU_NS);
 
         SOAPElement userNameToken = factory.createElement(Constants.WSSE_USERNAME_TOKEN, Constants.WSSE_PREFIX,
-                Constants.WSSE_NS);
+            Constants.WSSE_NS);
         userNameToken.addAttribute(new QName(Constants.WSU_NS, "Id", Constants.WSU_PREFIX), IDGenerator.create("token-"));
 
         SOAPElement un = factory.createElement(Constants.WSSE_USERNAME, Constants.WSSE_PREFIX, Constants.WSSE_NS);

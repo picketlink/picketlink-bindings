@@ -21,15 +21,6 @@
  */
 package org.picketlink.identity.federation.bindings.jboss.auth;
 
-import java.security.KeyStore;
-import java.security.PublicKey;
-import java.security.cert.Certificate;
-
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.security.auth.login.LoginException;
-
 import org.jboss.security.JBossJSSESecurityDomain;
 import org.picketlink.identity.federation.core.factories.JBossAuthCacheInvalidationFactory;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
@@ -37,12 +28,18 @@ import org.picketlink.identity.federation.core.wstrust.plugins.saml.SAMLUtil;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
 import org.w3c.dom.Element;
 
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.security.auth.login.LoginException;
+import java.security.KeyStore;
+import java.security.PublicKey;
+import java.security.cert.Certificate;
+
 /**
- * <p>
- * This {@code LoginModule} implements the local validation of SAML assertions on AS7. The specified
- * {@code localValidationSecurityDomain} property must correspond to a AS7 JSSE domain that configures a truststore and
- * a server-alias that identifies the certificate used to validate the assertions.
- * </p>
+ * <p> This {@code LoginModule} implements the local validation of SAML assertions on AS7. The specified {@code
+ * localValidationSecurityDomain} property must correspond to a AS7 JSSE domain that configures a truststore and a server-alias that
+ * identifies the certificate used to validate the assertions. </p>
  *
  * @author <a href="mailto:sguilhen@redhat.com">Stefan Guilhen</a>
  */
@@ -50,8 +47,9 @@ public class SAML2STSLoginModule extends SAML2STSCommonLoginModule {
 
     protected boolean localValidation(Element assertionElement) throws Exception {
         // For unit tests
-        if (localTestingOnly)
+        if (localTestingOnly) {
             return true;
+        }
 
         try {
             Context ctx = new InitialContext();

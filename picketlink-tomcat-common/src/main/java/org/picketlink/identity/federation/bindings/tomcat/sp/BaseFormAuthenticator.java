@@ -21,25 +21,6 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.security.GeneralSecurityException;
-import java.security.Principal;
-import java.security.cert.X509Certificate;
-import java.util.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.crypto.dsig.CanonicalizationMethod;
-
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Session;
@@ -52,7 +33,6 @@ import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 import org.picketlink.common.constants.GeneralConstants;
-import org.picketlink.common.constants.JBossSAMLURIConstants;
 import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.exceptions.ParsingException;
 import org.picketlink.common.exceptions.ProcessingException;
@@ -84,6 +64,28 @@ import org.picketlink.identity.federation.web.util.ConfigurationUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
 
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.crypto.dsig.CanonicalizationMethod;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.security.Principal;
+import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
 import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 
@@ -94,6 +96,7 @@ import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
  * @since Jun 9, 2009
  */
 public abstract class BaseFormAuthenticator extends FormAuthenticator {
+
     protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
 
     public static final String DESIRED_IDP = "picketlink.desired.idp";
@@ -142,17 +145,16 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     protected SAMLConfigurationProvider configProvider = null;
 
     /**
-     * Servlet3 related changes forced Tomcat to change the authenticate method signature in the FormAuthenticator. For now, we
-     * use reflection for forward compatibility. This has to be changed in future.
+     * Servlet3 related changes forced Tomcat to change the authenticate method signature in the FormAuthenticator. For now, we use
+     * reflection for forward compatibility. This has to be changed in future.
      */
     private Method theSuperRegisterMethod = null;
 
     /**
-     * If it is determined that we are running in a Tomcat6/JBAS5 environment, there is no need to seek the super.register
-     * method that conforms to the servlet3 spec changes
+     * If it is determined that we are running in a Tomcat6/JBAS5 environment, there is no need to seek the super.register method
+     * that conforms to the servlet3 spec changes
      */
     private boolean seekSuperRegisterMethod = true;
-
 
     protected int timerInterval = -1;
 
@@ -165,8 +167,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     protected String idpAddress = null;
 
     /**
-     * If the request.getRemoteAddr is not exactly the IDP address that you have keyed in your deployment descriptor for
-     * keystore alias, you can set it here explicitly
+     * If the request.getRemoteAddr is not exactly the IDP address that you have keyed in your deployment descriptor for keystore
+     * alias, you can set it here explicitly
      */
     public void setIdpAddress(String idpAddress) {
         this.idpAddress = idpAddress;
@@ -174,6 +176,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Get the name of the configuration file
+     *
      * @return
      */
     public String getConfigFile() {
@@ -182,6 +185,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Set the name of the configuration file
+     *
      * @param configFile
      */
     public void setConfigFile(String configFile) {
@@ -190,6 +194,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Set the SAML Handler Chain Class fqn
+     *
      * @param samlHandlerChainClass
      */
     public void setSamlHandlerChainClass(String samlHandlerChainClass) {
@@ -198,6 +203,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Set the service URL
+     *
      * @param serviceURL
      */
     public void setServiceURL(String serviceURL) {
@@ -205,8 +211,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     }
 
     /**
-     * Set whether the authenticator saves/restores the request
-     * during form authentication
+     * Set whether the authenticator saves/restores the request during form authentication
+     *
      * @param saveRestoreRequest
      */
     public void setSaveRestoreRequest(boolean saveRestoreRequest) {
@@ -215,23 +221,27 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Set the {@link SAMLConfigurationProvider} fqn
-     * @param cp fqn of a {@link SAMLConfigurationProvider}
+     *
+     * @param configProviderFQN fqn of a {@link SAMLConfigurationProvider}
      */
-    public void setConfigProvider(String cp) {
-        if (cp == null)
-            throw new IllegalStateException(ErrorCodes.NULL_ARGUMENT + cp);
-        Class<?> clazz = SecurityActions.loadClass(getClass(), cp);
-        if (clazz == null)
-            throw new RuntimeException(ErrorCodes.CLASS_NOT_LOADED + cp);
+    public void setConfigProvider(String configProviderFQN) {
+        if (configProviderFQN == null) {
+            throw logger.nullValueError("cp");
+        }
+        Class<?> clazz = SecurityActions.loadClass(getClass(), configProviderFQN);
+        if (clazz == null) {
+            throw logger.nullValueError("clazz");
+        }
         try {
             configProvider = (SAMLConfigurationProvider) clazz.newInstance();
         } catch (Exception e) {
-            throw new RuntimeException(ErrorCodes.CANNOT_CREATE_INSTANCE + cp + ":" + e.getMessage());
+            throw logger.runtimeException(ErrorCodes.CANNOT_CREATE_INSTANCE + configProviderFQN + ":" + e.getMessage(), e);
         }
     }
 
     /**
      * Set an instance of the {@link SAMLConfigurationProvider}
+     *
      * @param configProvider
      */
     public void setConfigProvider(SAMLConfigurationProvider configProvider) {
@@ -240,6 +250,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Get the {@link SPType}
+     *
      * @return
      */
     public SPType getConfiguration() {
@@ -257,19 +268,20 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Set the logout page
+     *
      * @param logOutPage
      */
     public void setLogOutPage(String logOutPage) {
         logger.warn("Option logOutPage is now configured with the PicketLinkSP element.");
-
     }
 
     /**
      * Set the Timer Value to reload the configuration
+     *
      * @param value an integer value that represents timer value (in miliseconds)
      */
-    public void setTimerInterval(String value){
-        if(StringUtil.isNotNull(value)){
+    public void setTimerInterval(String value) {
+        if (StringUtil.isNotNull(value)) {
             timerInterval = Integer.parseInt(value);
         }
     }
@@ -278,9 +290,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * Perform validation os the request object
      *
      * @param request
+     *
      * @return
-     * @throws IOException
-     * @throws GeneralSecurityException
      */
     protected boolean validate(Request request) {
         return request.getParameter("SAMLResponse") != null;
@@ -310,21 +321,20 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * {@link Method}
      *
      * @see org.apache.catalina.authenticator.AuthenticatorBase#register(org.apache.catalina.connector.Request,
-     *      org.apache.catalina.connector.Response, java.security.Principal, java.lang.String, java.lang.String,
-     *      java.lang.String)
+     * org.apache.catalina.connector.Response, java.security.Principal, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     protected void register(Request request, Response response, Principal principal, String arg3, String arg4, String arg5) {
         // Try the JBossAS6 version
         if (theSuperRegisterMethod == null && seekSuperRegisterMethod) {
-            Class<?>[] args = new Class[] { Request.class, HttpServletResponse.class, Principal.class, String.class,
-                    String.class, String.class };
+            Class<?>[] args = new Class[]{Request.class, HttpServletResponse.class, Principal.class, String.class,
+                String.class, String.class};
             Class<?> superClass = getAuthenticatorBaseClass();
             theSuperRegisterMethod = SecurityActions.getMethod(superClass, "register", args);
         }
         try {
             if (theSuperRegisterMethod != null) {
-                Object[] callArgs = new Object[] { request, response, principal, arg3, arg4, arg5 };
+                Object[] callArgs = new Object[]{request, response, principal, arg3, arg4, arg5};
                 theSuperRegisterMethod.invoke(this, callArgs);
             }
         } catch (Exception e) {
@@ -345,7 +355,9 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * @param request
      * @param response
      * @param loginConfig
+     *
      * @return
+     *
      * @throws IOException
      */
     protected boolean localAuthentication(Request request, Response response, LoginConfig loginConfig) throws IOException {
@@ -357,23 +369,25 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                 // Use Reflection
                 try {
                     Method method = super.getClass().getMethod("authenticate",
-                            new Class[] { HttpServletRequest.class, HttpServletResponse.class, LoginConfig.class });
-                    return (Boolean) method.invoke(this, new Object[] { request.getRequest(), response.getResponse(),
-                            loginConfig });
+                        new Class[]{HttpServletRequest.class, HttpServletResponse.class, LoginConfig.class});
+                    return (Boolean) method.invoke(this, new Object[]{request.getRequest(), response.getResponse(),
+                        loginConfig});
                 } catch (Exception ex) {
                     throw logger.unableLocalAuthentication(ex);
                 }
             }
-        } else
+        } else {
             return true;
+        }
     }
 
     /**
      * Return the SAML Binding that this authenticator supports
      *
-     * @see {@link JBossSAMLURIConstants#SAML_HTTP_POST_BINDING}
-     * @see {@link JBossSAMLURIConstants#SAML_HTTP_REDIRECT_BINDING}
      * @return
+     *
+     * @see {@link org.picketlink.common.constants.JBossSAMLURIConstants#SAML_HTTP_POST_BINDING}
+     * @see {@link org.picketlink.common.constants.JBossSAMLURIConstants#SAML_HTTP_REDIRECT_BINDING}
      */
     protected abstract String getBinding();
 
@@ -383,8 +397,9 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     protected void processIDPMetadataFile(String idpMetadataFile) {
         ServletContext servletContext = context.getServletContext();
         InputStream is = servletContext.getResourceAsStream(idpMetadataFile);
-        if (is == null)
+        if (is == null) {
             return;
+        }
 
         Object metadata = null;
         try {
@@ -408,10 +423,11 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         List<EndpointType> endpoints = idpSSO.getSingleSignOnService();
         for (EndpointType endpoint : endpoints) {
             String endpointBinding = endpoint.getBinding().toString();
-            if (endpointBinding.contains("HTTP-POST"))
+            if (endpointBinding.contains("HTTP-POST")) {
                 endpointBinding = "POST";
-            else if (endpointBinding.contains("HTTP-Redirect"))
+            } else if (endpointBinding.contains("HTTP-Redirect")) {
                 endpointBinding = "REDIRECT";
+            }
             if (getBinding().equals(endpointBinding)) {
                 identityURL = endpoint.getLocation().toString();
                 break;
@@ -479,9 +495,19 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                     }
                 } else {
                     is = servletContext.getResourceAsStream(GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION);
-                    if (is == null)
+                    if (is == null) {
                         throw logger.configurationFileMissing(configFile);
+                    }
                     spConfiguration = ConfigurationUtil.getSPConfiguration(is);
+                }
+            }
+
+            //Close the InputStream as we no longer need it
+            if(is != null){
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    //ignore
                 }
             }
 
@@ -489,9 +515,9 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                 enableAudit = picketLinkConfiguration.isEnableAudit();
 
                 //See if we have the system property enabled
-                if(!enableAudit){
+                if (!enableAudit) {
                     String sysProp = SecurityActions.getSystemProperty(GeneralConstants.AUDIT_ENABLE, "NULL");
-                    if(!"NULL".equals(sysProp)){
+                    if (!"NULL".equals(sysProp)) {
                         enableAudit = Boolean.parseBoolean(sysProp);
                     }
                 }
@@ -529,10 +555,12 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         for (Object entityDescriptor : entityDescs) {
             if (entityDescriptor instanceof EntitiesDescriptorType) {
                 idpSSO = getIDPSSODescriptor(entities);
-            } else
+            } else {
                 idpSSO = handleMetadata((EntityDescriptorType) entityDescriptor);
-            if (idpSSO != null)
+            }
+            if (idpSSO != null) {
                 break;
+            }
         }
         return idpSSO;
     }
@@ -571,8 +599,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         if (doSupportSignature()) {
             chainConfigOptions.put(GeneralConstants.KEYPAIR, keyManager.getSigningKeyPair());
             //If there is a need for X509Data in signedinfo
-            String certificateAlias = (String)keyManager.getAdditionalOption(GeneralConstants.X509CERTIFICATE);
-            if(certificateAlias != null){
+            String certificateAlias = (String) keyManager.getAdditionalOption(GeneralConstants.X509CERTIFICATE);
+            if (certificateAlias != null) {
                 chainConfigOptions.put(GeneralConstants.X509CERTIFICATE, keyManager.getCertificate(certificateAlias));
             }
         }
@@ -581,9 +609,9 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     protected void sendToLogoutPage(Request request, Response response, Session session) throws IOException, ServletException {
         // we are invalidated.
         RequestDispatcher dispatch = context.getServletContext().getRequestDispatcher(this.getConfiguration().getLogOutPage());
-        if (dispatch == null)
+        if (dispatch == null) {
             logger.samlSPCouldNotDispatchToLogoutPage(this.getConfiguration().getLogOutPage());
-        else {
+        } else {
             logger.trace("Forwarding request to logOutPage: " + this.getConfiguration().getLogOutPage());
             session.expire();
             try {
@@ -598,8 +626,9 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     // Mock test purpose
     public void testStart() throws LifecycleException {
         this.saveRestoreRequest = false;
-        if (context == null)
+        if (context == null) {
             throw new RuntimeException("Catalina Context not set up");
+        }
         startPicketLink();
     }
 
@@ -608,17 +637,16 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         Handlers handlers = null;
 
         //Introduce a timer to reload configuration if desired
-        if(timerInterval > 0 ){
-            if(timer == null){
+        if (timerInterval > 0) {
+            if (timer == null) {
                 timer = new Timer();
             }
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    //Clear the configuration
+                    //clear the configuration
                     picketLinkConfiguration = null;
                     spConfiguration = null;
-
                     processConfiguration();
                     try {
                         initKeyProvider(context);
@@ -671,10 +699,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     }
 
     /**
-     * <p>
-     * Indicates if digital signatures/validation of SAML assertions are enabled. Subclasses that supports signature should
-     * override this method.
-     * </p>
+     * <p> Indicates if digital signatures/validation of SAML assertions are enabled. Subclasses that supports signature should
+     * override this method. </p>
      *
      * @return
      */

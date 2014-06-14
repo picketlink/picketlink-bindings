@@ -35,6 +35,7 @@ import java.util.Set;
  * @since Jan 16, 2009
  */
 public class PicketLinkGroup extends PicketLinkPrincipal implements Group {
+
     private static final long serialVersionUID = 1L;
 
     private Set<Principal> roles = new HashSet<Principal>();
