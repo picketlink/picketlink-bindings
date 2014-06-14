@@ -21,6 +21,40 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.idp;
 
+import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
+import static org.picketlink.common.constants.GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION;
+import static org.picketlink.common.util.StringUtil.isNotNull;
+import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.security.Principal;
+import java.security.PublicKey;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.catalina.Context;
 import org.apache.catalina.Globals;
 import org.apache.catalina.LifecycleException;
@@ -106,39 +140,6 @@ import org.picketlink.identity.federation.web.util.IDPWebRequestUtil;
 import org.picketlink.identity.federation.web.util.IDPWebRequestUtil.WebRequestUtilHolder;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.security.GeneralSecurityException;
-import java.security.Principal;
-import java.security.PublicKey;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
-import static org.picketlink.common.constants.GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION;
-import static org.picketlink.common.util.StringUtil.isNotNull;
-import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 
 /**
  * Base Class for the IDPWebBrowserSSOValve
@@ -375,7 +376,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         // handleSAMLMessage. Otherwise, for authenticated users and for
         // requests other than SAML or Hosted page, just call the valve sequence.
         boolean wasAuthorized = (request.getPrincipal() != null);
-        
+
         // get an authenticated user or tries to authenticate if this is a authentication request
         Principal userPrincipal = getUserPrincipal(request, response);
 
@@ -475,36 +476,8 @@ public abstract class AbstractIDPValve extends ValveBase {
     }
 
     /**
-<<<<<<< HEAD
-     * <p>
-     * SAML parameters are also populated into session if they are present in the request. This allows the IDP to retrieve them
-     * later when handling a specific SAML request or response.
-     * </p>
-=======
-     * <p> Before forwarding we need to know the content length of the target resource in order to configure the response properly.
-     * This is necessary because the valve already have written to the response, and we want to override with the target resource
-     * data. </p>
-     *
-     * @param request
-     * @param response
-     * @param dispatch
-     *
-     * @throws ServletException
-     * @throws IOException
-     */
-    private void includeResource(ServletRequest request, Response response, RequestDispatcher dispatch)
-        throws ServletException, IOException {
-        dispatch.include(request, response);
-
-        // we need to re-configure the content length because Tomcat will truncate the output with the size of the welcome page
-        // (eg.: index.html).
-        response.getCoyoteResponse().setContentLength(response.getContentCount());
-    }
-
-    /**
      * <p> SAML parameters are also populated into session if they are present in the request. This allows the IDP to retrieve them
      * later when handling a specific SAML request or response. </p>
->>>>>>> 1a7954299742935dfad4672e9b05f9938f308aa5
      *
      * @param request
      *
@@ -542,12 +515,10 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
             if (isNotNull(sigAlg)) {
                 session.setNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY, sigAlg.trim());
-<<<<<<< HEAD
-            if (isNotNull(samlBinding))
-            	session.setNote(GeneralConstants.SAML_BINDING, samlBinding);
-=======
             }
->>>>>>> 1a7954299742935dfad4672e9b05f9938f308aa5
+            if (isNotNull(samlBinding)) {
+                session.setNote(GeneralConstants.SAML_BINDING, samlBinding);
+            }
         }
     }
 
@@ -789,7 +760,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         String samlRequestMessage = (String) session.getNote(GeneralConstants.SAML_REQUEST_KEY);
 
         String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
-        
+
         String samlBinding = (String) session.getNote(GeneralConstants.SAML_BINDING);
 
         String contextPath = getContextPath();
@@ -1187,7 +1158,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         String signature = (String) session.getNote(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
         String sigAlg = (String) session.getNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
         String samlBinding = (String) session.getNote(GeneralConstants.SAML_BINDING);
-        
+
         if (logger.isTraceEnabled()) {
             StringBuilder builder = new StringBuilder();
             builder.append("Retrieved saml messages and relay state from session");
@@ -1216,12 +1187,10 @@ public abstract class AbstractIDPValve extends ValveBase {
         }
         if (isNotNull(sigAlg)) {
             session.removeNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
-<<<<<<< HEAD
-        if (isNotNull(samlBinding))
-        	session.removeNote(GeneralConstants.SAML_BINDING);
-=======
         }
->>>>>>> 1a7954299742935dfad4672e9b05f9938f308aa5
+        if (isNotNull(samlBinding)){
+            session.removeNote(GeneralConstants.SAML_BINDING);
+        }
     }
 
     protected void sendErrorResponseToSP(String referrer, Response response, String relayState, IDPWebRequestUtil webRequestUtil)
