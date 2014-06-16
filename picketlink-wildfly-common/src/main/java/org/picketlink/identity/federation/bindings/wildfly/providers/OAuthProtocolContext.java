@@ -38,7 +38,7 @@ public class OAuthProtocolContext implements ProtocolContext {
 
     @Override
     public String serviceName() {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     @Override
