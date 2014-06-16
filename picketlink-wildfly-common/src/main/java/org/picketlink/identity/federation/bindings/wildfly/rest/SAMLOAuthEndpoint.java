@@ -32,7 +32,6 @@ import org.jboss.logging.Logger;
 import org.picketlink.identity.federation.bindings.wildfly.providers.OAuthProtocolContext;
 import org.picketlink.identity.federation.core.parsers.saml.SAMLParser;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
-import org.picketlink.identity.federation.core.sts.PicketLinkCoreSTS;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
 import org.picketlink.identity.federation.web.util.PostBindingUtil;
 
@@ -43,7 +42,7 @@ import org.picketlink.identity.federation.web.util.PostBindingUtil;
  * @since April 30, 2014
  */
 @Path("/samloauth")
-public class SAMLOAuthEndpoint {
+public class SAMLOAuthEndpoint extends STSEndpoint {
     private static final long serialVersionUID = 1L;
     private static Logger log = Logger.getLogger(SAMLOAuthEndpoint.class.getName());
 
@@ -99,8 +98,9 @@ public class SAMLOAuthEndpoint {
 
         String assertionID = assertionType.getID();
 
+        checkAndSetUpSTS();
+
         // Ask the STS to issue a token
-        PicketLinkCoreSTS sts = PicketLinkCoreSTS.instance();
         OAuthProtocolContext oAuthProtocolContext = new OAuthProtocolContext();
         oAuthProtocolContext.setSamlAssertionID(assertionID);
         sts.issueToken(oAuthProtocolContext);

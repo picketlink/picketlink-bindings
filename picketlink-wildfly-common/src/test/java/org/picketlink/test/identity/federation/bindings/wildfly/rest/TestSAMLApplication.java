@@ -18,6 +18,8 @@
 package org.picketlink.test.identity.federation.bindings.wildfly.rest;
 
 import org.picketlink.identity.federation.bindings.wildfly.rest.SAMLEndpoint;
+import org.picketlink.identity.federation.bindings.wildfly.rest.SAMLOAuthEndpoint;
+import org.picketlink.identity.federation.bindings.wildfly.rest.SAMLOauthInfoBodyReader;
 
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.Path;
@@ -39,6 +41,8 @@ public class TestSAMLApplication extends Application {
     {
         HashSet<Class<?>> classes = new HashSet<Class<?>>();
         classes.add(SAMLEndpoint.class);
+        classes.add(SAMLOAuthEndpoint.class);
+        classes.add(SAMLOauthInfoBodyReader.class);
         return classes;
     }
 }
