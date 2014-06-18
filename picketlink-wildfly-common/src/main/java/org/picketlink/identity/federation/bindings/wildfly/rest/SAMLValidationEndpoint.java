@@ -26,6 +26,7 @@ import org.picketlink.identity.federation.core.saml.v2.common.SAMLProtocolContex
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
 
 /**
+ * REST endpoint to validate SAML Assertions
  * @author Anil Saldhana
  * @since June 17, 2014
  */
