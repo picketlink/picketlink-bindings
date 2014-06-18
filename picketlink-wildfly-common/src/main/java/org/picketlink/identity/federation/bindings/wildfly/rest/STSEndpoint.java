@@ -23,20 +23,29 @@ import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 import javax.xml.datatype.XMLGregorianCalendar;
 
+import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.common.constants.JBossSAMLURIConstants;
 import org.picketlink.common.exceptions.ConfigurationException;
+import org.picketlink.common.exceptions.ParsingException;
 import org.picketlink.common.exceptions.ProcessingException;
+import org.picketlink.config.federation.PicketLinkType;
+import org.picketlink.config.federation.STSType;
 import org.picketlink.identity.federation.bindings.wildfly.providers.OAuth2TokenProvider;
 import org.picketlink.identity.federation.bindings.wildfly.providers.OAuthProtocolContext;
+import org.picketlink.identity.federation.core.parsers.saml.SAMLParser;
 import org.picketlink.identity.federation.core.saml.v2.common.SAMLProtocolContext;
 import org.picketlink.identity.federation.core.saml.v2.util.XMLTimeUtil;
 import org.picketlink.identity.federation.core.sts.PicketLinkCoreSTS;
+import org.picketlink.identity.federation.core.wstrust.PicketLinkSTSConfiguration;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
 import org.picketlink.identity.federation.saml.v2.assertion.NameIDType;
 import org.picketlink.identity.federation.saml.v2.assertion.SubjectConfirmationDataType;
 import org.picketlink.identity.federation.saml.v2.assertion.SubjectConfirmationType;
 import org.picketlink.identity.federation.saml.v2.assertion.SubjectType;
+import org.picketlink.identity.federation.web.util.ConfigurationUtil;
+import org.picketlink.identity.federation.web.util.PostBindingUtil;
 
+import java.io.InputStream;
 import java.net.URI;
 
 /**
@@ -46,7 +55,13 @@ import java.net.URI;
  * @since June 16, 2014
  */
 public class STSEndpoint {
-    private String subjectConfirmationMethod = JBossSAMLURIConstants.SUBJECT_CONFIRMATION_BEARER.get();
+    protected String subjectConfirmationMethod = JBossSAMLURIConstants.SUBJECT_CONFIRMATION_BEARER.get();
+
+    protected static final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer";
+
+    protected static final String GRANT_TYPE_PARAMETER = "grant_type";
+
+    protected static final String ASSERTION_PARAMETER = "assertion";
 
     @Context
     protected ServletContext servletContext;
@@ -76,14 +91,10 @@ public class STSEndpoint {
             }
             if (sts == null) {
                 sts = PicketLinkCoreSTS.instance();
-                sts.installDefaultConfiguration();
                 try {
-                    sts.getConfiguration().addTokenProvider(OAuthProtocolContext.OAUTH_2_0_NS,
-                            OAuth2TokenProvider.class.newInstance());
-                } catch (InstantiationException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    loadConfiguration();
+                } catch (ParsingException e) {
+                    throw new RuntimeException(e);
                 }
                 if (servletContext != null) {
                     servletContext.setAttribute("STS", sts);
@@ -93,8 +104,7 @@ public class STSEndpoint {
     }
 
     /**
-     * Create a {@link org.picketlink.identity.federation.core.saml.v2.common.SAMLProtocolContext}
-     * given an user
+     * Create a {@link org.picketlink.identity.federation.core.saml.v2.common.SAMLProtocolContext} given an user
      *
      * @param userName
      * @return
@@ -137,8 +147,22 @@ public class STSEndpoint {
     }
 
     /**
-     * Given a {@link org.picketlink.identity.federation.core.saml.v2.common.SAMLProtocolContext},
-     * issue a {@link org.picketlink.identity.federation.saml.v2.assertion.AssertionType} using the STS
+     * Given a base64 encoded assertion string, parse into {@link org.picketlink.identity.federation.saml.v2.assertion.AssertionType}
+     * @param base64EncodedAssertion
+     * @return
+     * @throws ParsingException
+     */
+    protected AssertionType parseAssertion(String base64EncodedAssertion) throws ParsingException {
+        InputStream inputStream = PostBindingUtil.base64DecodeAsStream(base64EncodedAssertion);
+
+        // Load the assertion
+        SAMLParser samlParser = new SAMLParser();
+        return (AssertionType) samlParser.parse(inputStream);
+    }
+
+    /**
+     * Given a {@link org.picketlink.identity.federation.core.saml.v2.common.SAMLProtocolContext}, issue a
+     * {@link org.picketlink.identity.federation.saml.v2.assertion.AssertionType} using the STS
      *
      * @param samlProtocolContext
      * @return
@@ -155,6 +179,7 @@ public class STSEndpoint {
 
     /**
      * Given an assertion ID, issue an OAuth token using the STS
+     *
      * @param assertionID
      * @return
      * @throws ProcessingException
@@ -168,5 +193,49 @@ public class STSEndpoint {
         sts.issueToken(oAuthProtocolContext);
 
         return oAuthProtocolContext.getToken();
+    }
+
+    /**
+     * Given a SAML Assertion, validate
+     * @param samlProtocolContext
+     * @return
+     */
+    public boolean validate(SAMLProtocolContext samlProtocolContext) {
+        try {
+            checkAndSetUpSTS();
+            sts.validateToken(samlProtocolContext);
+            return true;
+        } catch (ProcessingException pe) {
+            return false;
+        }
+    }
+
+    /**
+     * Load the configuration
+     * @throws ParsingException
+     */
+    protected void loadConfiguration() throws ParsingException {
+        InputStream inputStream = null;
+        if(servletContext != null) {
+            inputStream = servletContext.getResourceAsStream(GeneralConstants.CONFIG_FILE_LOCATION);
+        }
+        if(inputStream == null) {
+            inputStream = getClass().getClassLoader().getResourceAsStream("picketlink.xml");
+        }
+        if(inputStream != null) {
+            PicketLinkType picketLinkConfiguration = ConfigurationUtil.getConfiguration(inputStream);
+            STSType stsType = picketLinkConfiguration.getStsType();
+            if(stsType != null) {
+                sts.initialize(new PicketLinkSTSConfiguration(stsType));
+            }
+        } else {
+            sts.installDefaultConfiguration();
+            try {
+                sts.getConfiguration().addTokenProvider(OAuthProtocolContext.OAUTH_2_0_NS,
+                        OAuth2TokenProvider.class.newInstance());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

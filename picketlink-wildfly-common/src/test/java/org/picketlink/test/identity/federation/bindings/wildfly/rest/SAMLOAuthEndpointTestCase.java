@@ -104,5 +104,20 @@ public class SAMLOAuthEndpointTestCase extends UndertowJaxrsBaseTest{
         SAMLOauthInfo samlOauthInfo = response.readEntity(SAMLOauthInfo.class);
         assertNotNull(samlOauthInfo);
         assertEquals(assertionID, samlOauthInfo.getSamlAssertionID());
+
+        //Let us call the endpoint to validate the assertion
+        form = new Form();
+        form.param(ASSERTION_PARAMETER,samlAssertionBase64Encoded);
+        entity = Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE);
+
+        webTarget = client.target(server_url).path("/test/testsaml/samlvalidate");
+        assertFalse(samlClient.hasExpired(assertionType));
+
+        response = webTarget.request().post(entity);
+        assertNotNull(response);
+        status = response.getStatus();
+        assertEquals("Expected 200", 200, status);
+
+        assertEquals("true", response.readEntity(String.class));
     }
 }

@@ -17,7 +17,6 @@
  */
 package org.picketlink.identity.federation.bindings.wildfly.rest;
 
-import java.io.InputStream;
 import java.security.Principal;
 
 import javax.servlet.http.HttpServletRequest;
@@ -29,10 +28,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.jboss.logging.Logger;
-import org.picketlink.identity.federation.core.parsers.saml.SAMLParser;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
-import org.picketlink.identity.federation.web.util.PostBindingUtil;
 
 /**
  * JAX-RS Endpoint for exchanging SAML Assertions with OAuth tokens
@@ -44,12 +41,6 @@ import org.picketlink.identity.federation.web.util.PostBindingUtil;
 public class SAMLOAuthEndpoint extends STSEndpoint {
     private static final long serialVersionUID = 1L;
     private static Logger log = Logger.getLogger(SAMLOAuthEndpoint.class.getName());
-
-    private final String GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer";
-
-    private final String GRANT_TYPE_PARAMETER = "grant_type";
-
-    private final String ASSERTION_PARAMETER = "assertion";
 
     private boolean debugEnabled = log.isDebugEnabled();
 
@@ -84,11 +75,7 @@ public class SAMLOAuthEndpoint extends STSEndpoint {
             return Response.status(Response.Status.NOT_FOUND).build();// no token
         }
 
-        InputStream inputStream = PostBindingUtil.base64DecodeAsStream(samlToken);
-
-        // Load the assertion
-        SAMLParser samlParser = new SAMLParser();
-        AssertionType assertionType = (AssertionType) samlParser.parse(inputStream);
+        AssertionType assertionType = parseAssertion(samlToken);
 
         if (AssertionUtil.hasExpired(assertionType)) {
             log.error("Expired Assertion with ID = " + assertionType.getID());
