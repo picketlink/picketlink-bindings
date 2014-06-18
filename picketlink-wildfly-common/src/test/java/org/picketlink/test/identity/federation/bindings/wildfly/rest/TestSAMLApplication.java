@@ -17,13 +17,15 @@
  */
 package org.picketlink.test.identity.federation.bindings.wildfly.rest;
 
-import org.picketlink.identity.federation.bindings.wildfly.rest.SAMLEndpoint;
-
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Application;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.core.Application;
+
+import org.picketlink.identity.federation.bindings.wildfly.rest.SAMLEndpoint;
+import org.picketlink.identity.federation.bindings.wildfly.rest.SAMLOAuthEndpoint;
+import org.picketlink.identity.federation.bindings.wildfly.rest.SAMLValidationEndpoint;
 
 /**
  * A test JAX-RS {@link javax.ws.rs.core.Application} to test the
@@ -39,6 +41,8 @@ public class TestSAMLApplication extends Application {
     {
         HashSet<Class<?>> classes = new HashSet<Class<?>>();
         classes.add(SAMLEndpoint.class);
+        classes.add(SAMLOAuthEndpoint.class);
+        classes.add(SAMLValidationEndpoint.class);
         return classes;
     }
 }

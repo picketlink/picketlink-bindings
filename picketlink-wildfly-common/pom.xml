@@ -13,6 +13,7 @@
 
   <properties>
     <resteasy.version>3.0.8.Final</resteasy.version>
+    <jackson.version>1.9.2</jackson.version>
     <jboss.servlet31-api.version>1.0.0.Final</jboss.servlet31-api.version>
     <jboss.jaxrs2.version>1.0.0.Alpha1</jboss.jaxrs2.version>
     <jbossxacml.version>2.0.4</jbossxacml.version>
@@ -75,6 +76,23 @@
       <version>${jbossxacml.version}</version>
       <optional>true</optional>
     </dependency>
+
+
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-jaxrs</artifactId>
+      <version>${jackson.version}</version>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+      <version>1.47</version>
+      <scope>provided</scope>
+      <optional>true</optional>
+     </dependency>
 
     <dependency>
       <groupId>org.jboss.resteasy</groupId>

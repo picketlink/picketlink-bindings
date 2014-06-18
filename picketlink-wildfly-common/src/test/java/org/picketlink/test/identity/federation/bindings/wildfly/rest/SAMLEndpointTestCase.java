@@ -36,6 +36,7 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.picketlink.identity.federation.api.saml.api.SAMLClient;
@@ -58,56 +59,11 @@ import io.undertow.servlet.api.WebResourceCollection;
  * @author Anil Saldhana
  * @since June 09, 2014
  */
-public class SAMLEndpointTestCase {
-    private static final String server_url = "http://localhost:8080";
-
-    private static UndertowJaxrsServer server;
-
-    @BeforeClass
-    public static void init() throws Exception {
-        System.setProperty("org.jboss.resteasy.port", "8080");
-
-        server = new UndertowJaxrsServer().start();
-        deployApplication();
-    }
-
-    @AfterClass
-    public static void stop() throws Exception {
-        server.stop();
-    }
-
-    protected static void deployApplication() throws Exception {
-        TestIdentityManager identityManager = new TestIdentityManager();
-        identityManager.addUser("user1", "password1", "role1");
-
-        LoginConfig loginConfig = new LoginConfig("FORM", "Test Realm", "/FormLoginServlet","/error.html");
-
-        LoginConfig basicLoginConfig = new LoginConfig("BASIC", "TESTREALM");
-        DeploymentInfo di = server.undertowDeployment(TestSAMLApplication.class);
-        di.setContextPath("/test").setDeploymentName("testsaml");
-
-        di.setClassIntrospecter(TestClassIntrospector.INSTANCE)
-                .setIdentityManager(identityManager)
-                .setLoginConfig(basicLoginConfig);
-
-        SecurityConstraint securityConstraint = new SecurityConstraint();
-        securityConstraint.addWebResourceCollection(new WebResourceCollection()
-                .addUrlPattern("/test/*"))
-                .addRoleAllowed("role1")
-                .setEmptyRoleSemantic(SecurityInfo.EmptyRoleSemantic.DENY);
-
-
-        ServletInfo restEasyServlet = di.getServlets().values().iterator().next();
-        restEasyServlet.setServletSecurityInfo(new ServletSecurityInfo().addRoleAllowed("role1"));
-
-        di.addSecurityConstraint(securityConstraint);
-
-        server.deploy(di);
-    }
+public class SAMLEndpointTestCase extends UndertowJaxrsBaseTest {
 
     @Test
     public void testSAML() throws Exception{
-        Client client = ClientBuilder.newClient().register(new Authenticator("user1", "password1"));
+        Client client = restClient("user1", "password1");
         WebTarget webTarget = client.target(server_url).path("/test/testsaml/saml");
         Form form = new Form();
         form.param("x", "foo");
@@ -130,31 +86,5 @@ public class SAMLEndpointTestCase {
         assertFalse(samlClient.hasExpired(assertionType));
         NameIDType nameIDType = (NameIDType) assertionType.getSubject().getSubType().getBaseID();
         assertEquals("user1", nameIDType.getValue());
-    }
-
-    public class Authenticator implements ClientRequestFilter {
-
-        private final String user;
-        private final String password;
-
-        public Authenticator(String user, String password) {
-            this.user = user;
-            this.password = password;
-        }
-
-        public void filter(ClientRequestContext requestContext) throws IOException {
-            MultivaluedMap<String, Object> headers = requestContext.getHeaders();
-            final String basicAuthentication = getBasicAuthentication();
-            headers.add("Authorization", basicAuthentication);
-        }
-
-        private String getBasicAuthentication() {
-            String token = this.user + ":" + this.password;
-            try {
-                return "Basic " + DatatypeConverter.printBase64Binary(token.getBytes("UTF-8"));
-            } catch (UnsupportedEncodingException ex) {
-                throw new IllegalStateException("Cannot encode with UTF-8", ex);
-            }
-        }
     }
 }
