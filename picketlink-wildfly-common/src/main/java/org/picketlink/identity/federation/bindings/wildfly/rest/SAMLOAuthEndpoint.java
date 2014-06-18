@@ -29,7 +29,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.jboss.logging.Logger;
-import org.picketlink.identity.federation.bindings.wildfly.providers.OAuthProtocolContext;
 import org.picketlink.identity.federation.core.parsers.saml.SAMLParser;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
@@ -98,14 +97,7 @@ public class SAMLOAuthEndpoint extends STSEndpoint {
 
         String assertionID = assertionType.getID();
 
-        checkAndSetUpSTS();
-
-        // Ask the STS to issue a token
-        OAuthProtocolContext oAuthProtocolContext = new OAuthProtocolContext();
-        oAuthProtocolContext.setSamlAssertionID(assertionID);
-        sts.issueToken(oAuthProtocolContext);
-
-        String oauthToken = oAuthProtocolContext.getToken();
+        String oauthToken = issueOAuthToken(assertionID);
         if (oauthToken == null) {
             Response.serverError().build();
         }
