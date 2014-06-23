@@ -296,6 +296,10 @@ public class SPFormAuthenticator extends FormAuthenticator {
      */
     private Authentication generalUserRequest(ServletRequest servletRequest, ServletResponse servletResponse, boolean mandatory)
             throws IOException, ServerAuthException {
+        //only perform SAML Authentication if it is mandatory
+        if(!mandatory){
+            return Authentication.UNAUTHENTICATED;
+        }
         ServiceProviderSAMLWorkflow serviceProviderSAMLWorkflow = new ServiceProviderSAMLWorkflow();
         serviceProviderSAMLWorkflow.setRedirectionHandler(new JettyRedirectionHandler());
 
