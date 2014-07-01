@@ -38,6 +38,7 @@
     </jboss.releases.repo.url>
     <jboss.snapshots.repo.url>https://repository.jboss.org/nexus/content/repositories/snapshots/
     </jboss.snapshots.repo.url>
+    <jboss.modules.version>1.3.3.Final</jboss.modules.version>
   </properties>
 
   <modules>
@@ -64,6 +65,12 @@
         <version>${project.version}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.modules</groupId>
+        <artifactId>jboss-modules</artifactId>
+        <version>${jboss.modules.version}</version>
+        <scope>provided</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
