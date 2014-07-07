@@ -533,6 +533,10 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                     principal = getGenericPrincipal(request, username, roles);
                 }
 
+                if(principal == null) {
+                    throw new RuntimeException(ErrorCodes.NULL_VALUE + " principal");
+                }
+
                 session.setNote(Constants.SESS_USERNAME_NOTE, username);
                 session.setNote(Constants.SESS_PASSWORD_NOTE, password);
                 request.setUserPrincipal(principal);
