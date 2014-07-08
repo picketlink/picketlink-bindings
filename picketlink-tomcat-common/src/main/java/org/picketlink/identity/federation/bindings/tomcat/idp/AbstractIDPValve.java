@@ -378,6 +378,10 @@ public abstract class AbstractIDPValve extends ValveBase {
         if (userPrincipal != null) {
             handleSAMLMessage(request, response);
         }
+
+        if (!response.isCommitted()) {
+            getNext().invoke(request, response);
+        }
     }
 
     /**
