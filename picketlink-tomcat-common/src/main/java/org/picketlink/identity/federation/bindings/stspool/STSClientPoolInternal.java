@@ -20,7 +20,6 @@ package org.picketlink.identity.federation.bindings.stspool;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
-
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
 import org.picketlink.identity.federation.bindings.util.ModuleUtils;
@@ -146,7 +145,10 @@ class STSClientPoolInternal {
                 throw logger.cannotGetSTSConfigByKey(substKey);
             }
             if (configData.callBack != null) {
-                internalInitialize(DEFAULT_NUM_STS_CLIENTS, null, configs.get(substKey).callBack);
+                internalInitialize(DEFAULT_NUM_STS_CLIENTS, null, configData.callBack);
+            }
+            else if (configData.config != null) {
+                internalInitialize(DEFAULT_NUM_STS_CLIENTS, configData.config, configData.callBack);
             }
             client = takeOutInternal(substKey);
         }
@@ -239,10 +241,16 @@ class STSClientPoolInternal {
 
     private synchronized void putInInternal(String key, STSClient client) {
         // no key substitution
+        STSConfigData configData = configs.get(key);
+        if (configData == null) {
+            // attempt to return client not from pool, we can silently ignore it
+            return;
+        }
+
         ArrayList<STSClient> freeClients = free.get(key);
         ArrayList<STSClient> usedClients = inUse.get(key);
 
-        if (!usedClients.remove(client)) {
+        if (usedClients != null && !usedClients.remove(client)) {
             // removing non existing client from used clients by key:
             throw logger.removingNonExistingClientFromUsedClientsByKey(key);
         }
