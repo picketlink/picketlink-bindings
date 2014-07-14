@@ -17,7 +17,7 @@
  */
 package org.picketlink.social.openid.providers;
 
-import org.jboss.security.xacml.sunxacml.ProcessingException;
+import org.picketlink.common.exceptions.ProcessingException;
 import org.picketlink.identity.federation.core.interfaces.ProtocolContext;
 import org.picketlink.identity.federation.core.interfaces.SecurityTokenProvider;
 import org.picketlink.identity.federation.core.sts.AbstractSecurityTokenProvider;
@@ -116,7 +116,7 @@ public class OpenIDTokenProvider extends AbstractSecurityTokenProvider implement
                 case CHECK_ID_IMMEDIATE:
                     OpenIDProtocolContext.AUTH_HOLDER authHolder = openIDProtoCtx.getAuthenticationHolder();
                     if (authHolder == null) {
-                        throw new ProcessingException("Authentication Holder is null");
+                        throw new org.picketlink.common.exceptions.ProcessingException("Authentication Holder is null");
                     }
 
                     responsem = serverManager.processAuthenticationRequest(requestp, authHolder.getUserSelectedId(),

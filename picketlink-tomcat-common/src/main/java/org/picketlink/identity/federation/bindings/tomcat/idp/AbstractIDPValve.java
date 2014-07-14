@@ -21,6 +21,40 @@
  */
 package org.picketlink.identity.federation.bindings.tomcat.idp;
 
+import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
+import static org.picketlink.common.constants.GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION;
+import static org.picketlink.common.util.StringUtil.isNotNull;
+import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.security.Principal;
+import java.security.PublicKey;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.catalina.Context;
 import org.apache.catalina.Globals;
 import org.apache.catalina.LifecycleException;
@@ -106,40 +140,6 @@ import org.picketlink.identity.federation.web.util.IDPWebRequestUtil;
 import org.picketlink.identity.federation.web.util.IDPWebRequestUtil.WebRequestUtilHolder;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.security.GeneralSecurityException;
-import java.security.Principal;
-import java.security.PublicKey;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
-import static org.picketlink.common.constants.GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION;
-import static org.picketlink.common.util.StringUtil.isNotNull;
-import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 
 /**
  * Base Class for the IDPWebBrowserSSOValve
@@ -371,12 +371,18 @@ public abstract class AbstractIDPValve extends ValveBase {
         // first, we populate all required parameters sent into session for later retrieval. If they exists.
         populateSessionWithSAMLParameters(request);
 
+        // Check is user is already authorized. If not, then the next valve will
+        // be called by getUserPrincipal and does not need to be called in
+        // handleSAMLMessage. Otherwise, for authenticated users and for
+        // requests other than SAML or Hosted page, just call the valve sequence.
+        boolean wasAuthorized = (request.getPrincipal() != null);
+
         // get an authenticated user or tries to authenticate if this is a authentication request
         Principal userPrincipal = getUserPrincipal(request, response);
 
         // we only handle SAML messages for authenticated users.
         if (userPrincipal != null) {
-            handleSAMLMessage(request, response);
+            handleSAMLMessage(request, response, wasAuthorized);
         }
 
         if (!response.isCommitted()) {
@@ -393,7 +399,7 @@ public abstract class AbstractIDPValve extends ValveBase {
      * @throws IOException
      * @throws ServletException
      */
-    private void handleSAMLMessage(Request request, Response response) throws IOException, ServletException {
+    private void handleSAMLMessage(Request request, Response response, boolean wasAuthorized) throws IOException, ServletException {
         if (isUnsolicitedResponse(request)) {
             String samlVersion = request.getParameter(JBossSAMLConstants.UNSOLICITED_RESPONSE_SAML_VERSION.get());
 
@@ -438,6 +444,9 @@ public abstract class AbstractIDPValve extends ValveBase {
             } else if (request.getRequestURI().equals(request.getContextPath() + "/")) {
                 // no SAML processing and the request is asking for /.
                 forwardHosted(request, response);
+            } else if (wasAuthorized) {
+                // call next valve if user was authorized (for unauthorized next valve is called in getUserPrincipal)
+                getNext().invoke(request, response);
             }
         }
     }
@@ -460,34 +469,14 @@ public abstract class AbstractIDPValve extends ValveBase {
             .getRequestDispatcher(this.idpConfiguration.getHostedURI());
 
         recycle(response);
+        response.reset();
 
         try {
-            includeResource(request, response, dispatch);
+            dispatch.forward(request, response);
         } catch (ClassCastException cce) {
             // JBAS5.1 and 6 quirkiness
-            includeResource(request.getRequest(), response, dispatch);
+            dispatch.forward(request.getRequest(), response);
         }
-    }
-
-    /**
-     * <p> Before forwarding we need to know the content length of the target resource in order to configure the response properly.
-     * This is necessary because the valve already have written to the response, and we want to override with the target resource
-     * data. </p>
-     *
-     * @param request
-     * @param response
-     * @param dispatch
-     *
-     * @throws ServletException
-     * @throws IOException
-     */
-    private void includeResource(ServletRequest request, Response response, RequestDispatcher dispatch)
-        throws ServletException, IOException {
-        dispatch.include(request, response);
-
-        // we need to re-configure the content length because Tomcat will truncate the output with the size of the welcome page
-        // (eg.: index.html).
-        response.getCoyoteResponse().setContentLength(response.getContentCount());
     }
 
     /**
@@ -510,6 +499,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         String signature = request.getParameter(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
         String sigAlg = request.getParameter(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
         String relayState = request.getParameter(GeneralConstants.RELAY_STATE);
+        String samlBinding = request.getMethod();
 
         Session session = request.getSessionInternal();
 
@@ -529,6 +519,9 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
             if (isNotNull(sigAlg)) {
                 session.setNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY, sigAlg.trim());
+            }
+            if (isNotNull(samlBinding)) {
+                session.setNote(GeneralConstants.SAML_BINDING, samlBinding);
             }
         }
     }
@@ -772,6 +765,8 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
 
+        String samlBinding = (String) session.getNote(GeneralConstants.SAML_BINDING);
+
         String contextPath = getContextPath();
 
         boolean willSendRequest = false;
@@ -784,7 +779,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         boolean isSecure = request.isSecure();
         String loginType = determineLoginType(isSecure);
 
-        IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
+        IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(samlBinding, request, idpConfiguration, keyManager);
         SAMLDocumentHolder samlDocumentHolder = null;
         SAML2Object samlObject = null;
 
@@ -1166,6 +1161,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
         String signature = (String) session.getNote(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
         String sigAlg = (String) session.getNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
+        String samlBinding = (String) session.getNote(GeneralConstants.SAML_BINDING);
 
         if (logger.isTraceEnabled()) {
             StringBuilder builder = new StringBuilder();
@@ -1175,6 +1171,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             builder.append(samlResponseMessage).append(":").append("relay state=").append(relayState);
 
             builder.append("Signature=").append(signature).append("::sigAlg=").append(sigAlg);
+            builder.append(" SamlBinding=").append(samlBinding);
             logger.trace(builder.toString());
         }
 
@@ -1194,6 +1191,9 @@ public abstract class AbstractIDPValve extends ValveBase {
         }
         if (isNotNull(sigAlg)) {
             session.removeNote(GeneralConstants.SAML_SIG_ALG_REQUEST_KEY);
+        }
+        if (isNotNull(samlBinding)){
+            session.removeNote(GeneralConstants.SAML_BINDING);
         }
     }
 
