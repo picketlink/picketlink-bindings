@@ -21,24 +21,11 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.URL;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionEvent;
-
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.catalina.valves.ValveBase;
 import org.junit.Test;
 import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.identity.federation.api.saml.v2.request.SAML2Request;
@@ -58,6 +45,23 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRealm;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionEvent;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.URL;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test the SAML2 Logout Mechanism for Tomcat bindings
@@ -152,7 +156,7 @@ public class SAML2LogoutTomcatWorkflowUnitTestCase {
         IdentityServer server = this.getIdentityServer(session);
         catalinaContext.setAttribute("IDENTITY_SERVER", server);
 
-        IDPWebBrowserSSOValve idp = new IDPWebBrowserSSOValve();
+        IDPWebBrowserSSOValve idp = createIdPAuthenticator();
 
         idp.setContainer(catalinaContext);
         idp.setSignOutgoingMessages(false);
@@ -303,6 +307,19 @@ public class SAML2LogoutTomcatWorkflowUnitTestCase {
 
         // Finally the session should be invalidated
         assertTrue(session.isInvalidated());
+    }
+
+    private IDPWebBrowserSSOValve createIdPAuthenticator() {
+        IDPWebBrowserSSOValve idpWebBrowserSSOValve = new IDPWebBrowserSSOValve();
+
+        idpWebBrowserSSOValve.setNext(new ValveBase() {
+            @Override
+            public void invoke(Request request, Response response) throws IOException, ServletException {
+
+            }
+        });
+
+        return idpWebBrowserSSOValve;
     }
 
     private MockCatalinaContextClassLoader setupTCL(String resource) {

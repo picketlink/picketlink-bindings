@@ -21,20 +21,12 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.net.URL;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionEvent;
-
 import junit.framework.TestCase;
-
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.catalina.valves.ValveBase;
 import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.common.util.Base64;
 import org.picketlink.common.util.DocumentUtil;
@@ -56,6 +48,17 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionEvent;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Anil.Saldhana@redhat.com
@@ -127,7 +130,7 @@ public class SAML2PostTomcatWorkflowUnitTestCase extends TestCase {
         response.setOutputStream(baos);
 
         context = new MockCatalinaContext();
-        IDPWebBrowserSSOValve idp = new IDPWebBrowserSSOValve();
+        IDPWebBrowserSSOValve idp = createIdPAuthenticator();
         idp.setContainer(context);
         idp.setSignOutgoingMessages(false);
         idp.start();
@@ -171,6 +174,19 @@ public class SAML2PostTomcatWorkflowUnitTestCase extends TestCase {
         ResponseType rt = saml2Response.getResponseType(new ByteArrayInputStream(samlIDPResponse));
 
         assertEquals("Match Identity URL:", this.identity, rt.getIssuer().getValue());
+    }
+
+    private IDPWebBrowserSSOValve createIdPAuthenticator() {
+        IDPWebBrowserSSOValve idpWebBrowserSSOValve = new IDPWebBrowserSSOValve();
+
+        idpWebBrowserSSOValve.setNext(new ValveBase() {
+            @Override
+            public void invoke(Request request, Response response) throws IOException, ServletException {
+
+            }
+        });
+
+        return idpWebBrowserSSOValve;
     }
 
     private MockCatalinaContextClassLoader setupTCL(String resource) {

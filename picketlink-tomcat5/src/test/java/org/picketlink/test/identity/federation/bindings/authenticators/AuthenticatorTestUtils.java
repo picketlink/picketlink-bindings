@@ -22,15 +22,12 @@
 
 package org.picketlink.test.identity.federation.bindings.authenticators;
 
-import java.net.URL;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
 import junit.framework.Assert;
-
 import org.apache.catalina.LifecycleException;
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
 import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.catalina.valves.ValveBase;
 import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.identity.federation.bindings.tomcat.idp.IDPWebBrowserSSOValve;
 import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
@@ -39,6 +36,13 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRealm;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.net.URL;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author <a href="mailto:psilva@redhat.com">Pedro Silva</a>
@@ -50,6 +54,13 @@ public class AuthenticatorTestUtils {
         Thread.currentThread().setContextClassLoader(createContextClassLoader(baseClassLoaderPath));
 
         IDPWebBrowserSSOValve idpWebBrowserSSOValve = new IDPWebBrowserSSOValve();
+
+        idpWebBrowserSSOValve.setNext(new ValveBase() {
+            @Override
+            public void invoke(Request request, Response response) throws IOException, ServletException {
+
+            }
+        });
 
         MockCatalinaContext catalinaContext = new MockCatalinaContext();
 

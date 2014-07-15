@@ -35,8 +35,11 @@ import javax.xml.crypto.dsig.SignatureMethod;
 import junit.framework.Assert;
 
 import org.apache.catalina.LifecycleException;
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.catalina.valves.ValveBase;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.picketlink.common.constants.JBossSAMLConstants;
@@ -482,6 +485,13 @@ public class SAML2WrappingAttackWorkflowUnitTestCase extends AbstractSAML2Redire
 
         idpAuthenticator.setConfigProvider(new MockSAMLConfigurationProvider(idpType));
         idpAuthenticator.setContainer(this.idpContext);
+
+        idpAuthenticator.setNext(new ValveBase() {
+            @Override
+            public void invoke(Request request, Response response) throws IOException, ServletException {
+
+            }
+        });
 
         idpAuthenticator.start();
 
