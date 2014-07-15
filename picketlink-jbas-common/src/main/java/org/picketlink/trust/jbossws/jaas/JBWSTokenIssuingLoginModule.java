@@ -96,31 +96,33 @@ public class JBWSTokenIssuingLoginModule extends STSIssuingLoginModule {
     @Override
     protected STSClient createWSTrustClient(final STSClientConfig config) {
         try {
-            return STSClientFactory.getInstance(maxClientsInPool).createPool(initialNumberOfClients,
-                    new STSClientCreationCallBack() {
-                        @Override
-                        public STSClient createClient() {
+            STSClientFactory cf = STSClientFactory.getInstance(maxClientsInPool);
+            cf.createPool(initialNumberOfClients, new STSClientCreationCallBack() {
+                @Override
+                public STSClient createClient() {
 
-                            String binaryTokenKey = (String) options.get(MapBasedTokenHandler.SYS_PROP_TOKEN_KEY);
-                            if (binaryTokenKey == null) {
-                                binaryTokenKey = SecurityActions.getSystemProperty(MapBasedTokenHandler.SYS_PROP_TOKEN_KEY,
-                                        MapBasedTokenHandler.DEFAULT_TOKEN_KEY);
-                            }
-                            Object binaryToken = sharedState.get(binaryTokenKey);
+                    String binaryTokenKey = (String) options.get(MapBasedTokenHandler.SYS_PROP_TOKEN_KEY);
+                    if (binaryTokenKey == null) {
+                        binaryTokenKey = SecurityActions.getSystemProperty(MapBasedTokenHandler.SYS_PROP_TOKEN_KEY,
+                                MapBasedTokenHandler.DEFAULT_TOKEN_KEY);
+                    }
+                    Object binaryToken = sharedState.get(binaryTokenKey);
 
-                            Map<String, ? super Object> STSClientOptions = new HashMap<String, Object>(options);
-                            if (binaryToken != null) {
-                                STSClientOptions.put(binaryTokenKey, binaryToken);
-                            }
+                    Map<String, ? super Object> STSClientOptions = new HashMap<String, Object>(options);
+                    if (binaryToken != null) {
+                        STSClientOptions.put(binaryTokenKey, binaryToken);
+                    }
 
-                            return new JBWSTokenClient(config, STSClientOptions);
-                        }
+                    return new JBWSTokenClient(config, STSClientOptions);
+                }
 
-                        @Override
-                        public String getKey() {
-                            return config.getServiceName() + "|" + config.getPortName() + "|" + config.getEndPointAddress();
-                        }
-                    });
+                @Override
+                public String getKey() {
+                    return STSClientConfig.computeSTSClientConfigKey(config.getServiceName(), config.getPortName(),
+                            config.getEndPointAddress(), config.getUsername());
+                }
+            });
+            return cf.getClient(config);
         } catch (final Exception e) {
             throw logger.authCouldNotCreateWSTrustClient(e);
         }
