@@ -1626,4 +1626,7 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
         return MESSAGES.cannotSetMaxPoolSizeToNegative(max);
     }
 
+    public RuntimeException parserFeatureNotSupported(String feature) {
+        return MESSAGES.parserFeatureNotSupported(feature);
+    }
 }
