@@ -73,6 +73,7 @@ import org.picketlink.identity.federation.saml.v2.metadata.IDPSSODescriptorType;
 import org.picketlink.identity.federation.saml.v2.metadata.KeyDescriptorType;
 import org.picketlink.identity.federation.web.config.AbstractSAMLConfigurationProvider;
 import org.picketlink.identity.federation.web.core.HTTPContext;
+import org.picketlink.identity.federation.web.core.SessionManager;
 import org.picketlink.identity.federation.web.process.ServiceProviderBaseProcessor;
 import org.picketlink.identity.federation.web.process.ServiceProviderSAMLRequestProcessor;
 import org.picketlink.identity.federation.web.process.ServiceProviderSAMLResponseProcessor;
@@ -90,6 +91,7 @@ import javax.servlet.annotation.WebListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionListener;
 import javax.xml.crypto.dsig.CanonicalizationMethod;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -686,6 +688,13 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
             this.picketLinkConfiguration.setIdpOrSP(spConfiguration);
             this.picketLinkConfiguration.setHandlers(handlers);
         }
+
+        new SessionManager(servletContext, new SessionManager.InitializationCallback() {
+            @Override
+            public void registerSessionListener(Class<? extends HttpSessionListener> listener) {
+                servletContext.addListener(listener);
+            }
+        });
     }
 
     /**

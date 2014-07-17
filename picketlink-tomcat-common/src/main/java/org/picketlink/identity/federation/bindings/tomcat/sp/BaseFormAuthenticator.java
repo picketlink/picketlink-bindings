@@ -60,6 +60,7 @@ import org.picketlink.identity.federation.saml.v2.metadata.EntityDescriptorType;
 import org.picketlink.identity.federation.saml.v2.metadata.IDPSSODescriptorType;
 import org.picketlink.identity.federation.saml.v2.metadata.KeyDescriptorType;
 import org.picketlink.identity.federation.web.config.AbstractSAMLConfigurationProvider;
+import org.picketlink.identity.federation.web.core.SessionManager;
 import org.picketlink.identity.federation.web.util.ConfigurationUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
@@ -69,6 +70,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSessionListener;
 import javax.xml.crypto.dsig.CanonicalizationMethod;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -696,6 +698,13 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             this.picketLinkConfiguration.setIdpOrSP(getConfiguration());
             this.picketLinkConfiguration.setHandlers(handlers);
         }
+
+        new SessionManager(servletContext, new SessionManager.InitializationCallback() {
+            @Override
+            public void registerSessionListener(Class<? extends HttpSessionListener> listener) {
+                context.addApplicationListener(listener.getName());
+            }
+        });
     }
 
     /**

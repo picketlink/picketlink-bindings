@@ -77,6 +77,7 @@ import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerCh
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerRequest;
 import org.picketlink.identity.federation.core.saml.v2.interfaces.SAML2HandlerResponse;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
+import org.picketlink.identity.federation.core.saml.v2.util.DocumentUtil;
 import org.picketlink.identity.federation.core.saml.v2.util.HandlerUtil;
 import org.picketlink.identity.federation.core.saml.v2.util.XMLTimeUtil;
 import org.picketlink.identity.federation.core.sts.PicketLinkCoreSTS;
@@ -92,9 +93,11 @@ import org.picketlink.identity.federation.saml.v1.assertion.SAML11SubjectType.SA
 import org.picketlink.identity.federation.saml.v1.protocol.SAML11ResponseType;
 import org.picketlink.identity.federation.saml.v1.protocol.SAML11StatusType;
 import org.picketlink.identity.federation.saml.v2.SAML2Object;
+import org.picketlink.identity.federation.saml.v2.assertion.NameIDType;
 import org.picketlink.identity.federation.saml.v2.metadata.EntityDescriptorType;
 import org.picketlink.identity.federation.saml.v2.metadata.SPSSODescriptorType;
 import org.picketlink.identity.federation.saml.v2.protocol.AuthnRequestType;
+import org.picketlink.identity.federation.saml.v2.protocol.LogoutRequestType;
 import org.picketlink.identity.federation.saml.v2.protocol.RequestAbstractType;
 import org.picketlink.identity.federation.saml.v2.protocol.StatusResponseType;
 import org.picketlink.identity.federation.web.config.AbstractSAMLConfigurationProvider;
@@ -104,6 +107,7 @@ import org.picketlink.identity.federation.web.core.IdentityServer;
 import org.picketlink.identity.federation.web.util.ConfigurationUtil;
 import org.picketlink.identity.federation.web.util.IDPWebRequestUtil;
 import org.picketlink.identity.federation.web.util.IDPWebRequestUtil.WebRequestUtilHolder;
+import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
 import org.picketlink.identity.federation.web.util.SAMLConfigurationProvider;
 import org.w3c.dom.Document;
 
@@ -138,6 +142,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
 import static org.picketlink.common.constants.GeneralConstants.DEPRECATED_CONFIG_FILE_LOCATION;
+import static org.picketlink.common.constants.GeneralConstants.SAML_REQUEST_KEY;
 import static org.picketlink.common.util.StringUtil.isNotNull;
 import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 
@@ -292,7 +297,7 @@ public abstract class AbstractIDPValve extends ValveBase {
     @Deprecated
     public void setIgnoreIncomingSignatures(Boolean ignoreIncomingSignature) {
         logger.warn("Option 'ignoreIncomingSignatures' is deprecated and not used. Signatures are verified if "
-                + "SAML2SignatureValidationHandler is available.");
+            + "SAML2SignatureValidationHandler is available.");
     }
 
     /**
@@ -376,12 +381,50 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         // we only handle SAML messages for authenticated users.
         if (userPrincipal != null) {
+            if (isGlobalLogout(request)) {
+                prepareLocalGlobalLogoutRequest(request, userPrincipal);
+            }
+
             handleSAMLMessage(request, response);
         }
 
-        if (!response.isCommitted()) {
+        if (!response.isCommitted() && !response.getResponse().isCommitted()) {
             getNext().invoke(request, response);
         }
+    }
+
+    /**
+     * <p>This method populate the request and session with a logout requests to start a global logout from the IdP.</p>
+     *
+     * @param request
+     * @param userPrincipal
+     */
+    private void prepareLocalGlobalLogoutRequest(Request request, Principal userPrincipal) {
+        try {
+            SAML2Request saml2Request = new SAML2Request();
+            LogoutRequestType lort = saml2Request.createLogoutRequest(getIdentityURL());
+
+            NameIDType nameID = new NameIDType();
+
+            nameID.setValue(userPrincipal.getName());
+            nameID.setFormat(URI.create(JBossSAMLURIConstants.NAMEID_FORMAT_PERSISTENT.get()));
+
+            lort.setNameID(nameID);
+            lort.setDestination(URI.create(getIdentityURL()));
+
+            byte[] responseBytes = DocumentUtil.getDocumentAsString(saml2Request.convert(lort)).getBytes("UTF-8");
+            String samlRequest = RedirectBindingUtil.deflateBase64Encode(responseBytes);
+
+            Session session = request.getSessionInternal();
+
+            session.setNote(SAML_REQUEST_KEY, samlRequest);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not perform IdP Initiated Single Logout.", e);
+        }
+    }
+
+    private boolean isGlobalLogout(Request request) {
+        return request.getParameter(GeneralConstants.GLOBAL_LOGOUT) != null;
     }
 
     /**
@@ -432,7 +475,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
 
             if (isNotNull(samlRequestMessage)) {
-                processSAMLRequestMessage(request, response, null, false);
+                processSAMLRequestMessage(request, response, null, isGlobalLogout(request));
             } else if (isNotNull(samlResponseMessage)) {
                 processSAMLResponseMessage(request, response);
             } else if (request.getRequestURI().equals(request.getContextPath() + "/")) {
@@ -924,7 +967,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             // will be probably redirected to the idp hosted page.
             if (destination == null) {
                 response.sendRedirect(getIdentityURL());
-            } else {
+            } else if (samlResponse != null) {
                 WebRequestUtilHolder holder = webRequestUtil.getHolder();
                 holder.setResponseDoc(samlResponse).setDestination(destination).setRelayState(relayState)
                     .setAreWeSendingRequest(willSendRequest).setPrivateKey(null).setSupportSignature(false)
@@ -956,6 +999,8 @@ public abstract class AbstractIDPValve extends ValveBase {
                 }
 
                 webRequestUtil.send(holder);
+            } else if (destination != null) {
+                response.sendRedirect(destination);
             }
         } catch (ParsingException e) {
             logger.samlAssertionPasingFailed(e);
@@ -1112,39 +1157,45 @@ public abstract class AbstractIDPValve extends ValveBase {
             isErrorResponse = true;
         } finally {
             try {
-                WebRequestUtilHolder holder = webRequestUtil.getHolder();
                 if (destination == null) {
                     throw new ServletException(logger.nullValueError("Destination"));
                 }
-                holder.setResponseDoc(samlResponse).setDestination(destination).setRelayState(relayState)
-                    .setAreWeSendingRequest(willSendRequest).setPrivateKey(null).setSupportSignature(false)
-                    .setErrorResponse(isErrorResponse).setServletResponse(response)
-                    .setPostBindingRequested(requestedPostProfile)
-                    .setDestinationQueryStringWithSignature(destinationQueryStringWithSignature);
+
+                if (samlResponse != null) {
+                    WebRequestUtilHolder holder = webRequestUtil.getHolder();
+
+                    holder.setResponseDoc(samlResponse).setDestination(destination).setRelayState(relayState)
+                        .setAreWeSendingRequest(willSendRequest).setPrivateKey(null).setSupportSignature(false)
+                        .setErrorResponse(isErrorResponse).setServletResponse(response)
+                        .setPostBindingRequested(requestedPostProfile)
+                        .setDestinationQueryStringWithSignature(destinationQueryStringWithSignature);
 
                 /*
                  * if (requestedPostProfile) holder.setPostBindingRequested(requestedPostProfile); else
                  * holder.setPostBindingRequested(postProfile);
                  */
 
-                if (this.idpConfiguration.isSupportsSignature()) {
-                    holder.setPrivateKey(keyManager.getSigningKey()).setSupportSignature(true);
-                }
+                    if (this.idpConfiguration.isSupportsSignature()) {
+                        holder.setPrivateKey(keyManager.getSigningKey()).setSupportSignature(true);
+                    }
 
-                holder.setStrictPostBinding(this.idpConfiguration.isStrictPostBinding());
+                    holder.setStrictPostBinding(this.idpConfiguration.isStrictPostBinding());
 
-                if (holder.isPostBinding()) {
-                    recycle(response);
-                }
+                    if (holder.isPostBinding()) {
+                        recycle(response);
+                    }
 
-                if (enableAudit) {
-                    PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
-                    auditEvent.setType(PicketLinkAuditEventType.RESPONSE_TO_SP);
-                    auditEvent.setWhoIsAuditing(contextPath);
-                    auditEvent.setDestination(destination);
-                    auditHelper.audit(auditEvent);
+                    if (enableAudit) {
+                        PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
+                        auditEvent.setType(PicketLinkAuditEventType.RESPONSE_TO_SP);
+                        auditEvent.setWhoIsAuditing(contextPath);
+                        auditEvent.setDestination(destination);
+                        auditHelper.audit(auditEvent);
+                    }
+                    webRequestUtil.send(holder);
+                } else {
+                    response.sendRedirect(destination);
                 }
-                webRequestUtil.send(holder);
             } catch (ParsingException e) {
                 logger.samlAssertionPasingFailed(e);
             } catch (GeneralSecurityException e) {
@@ -1694,4 +1745,5 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         return this.sslAuthenticator;
     }
+
 }

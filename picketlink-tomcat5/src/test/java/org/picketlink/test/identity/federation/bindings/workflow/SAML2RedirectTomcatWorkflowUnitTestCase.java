@@ -82,6 +82,8 @@ public class SAML2RedirectTomcatWorkflowUnitTestCase extends TestCase {
 
         MockCatalinaSession session = new MockCatalinaSession();
 
+        session.setServletContext(context);
+
         sp.setContainer(context);
         sp.testStart();
 

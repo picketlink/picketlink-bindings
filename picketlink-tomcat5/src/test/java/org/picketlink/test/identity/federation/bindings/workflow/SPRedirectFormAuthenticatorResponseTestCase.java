@@ -21,9 +21,16 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.catalina.deploy.LoginConfig;
+import org.junit.Test;
+import org.picketlink.common.constants.GeneralConstants;
+import org.picketlink.identity.federation.bindings.tomcat.sp.SPRedirectFormAuthenticator;
+import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContextClassLoader;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -35,16 +42,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.catalina.deploy.LoginConfig;
-import org.junit.Test;
-import org.picketlink.common.constants.GeneralConstants;
-import org.picketlink.identity.federation.bindings.tomcat.sp.SPRedirectFormAuthenticator;
-import org.picketlink.identity.federation.web.util.RedirectBindingUtil;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContextClassLoader;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test to validate the handling of a saml response by the {@link SPRedirectFormAuthenticator}
@@ -61,7 +61,6 @@ public class SPRedirectFormAuthenticatorResponseTestCase {
     @Test
     public void testSP() throws Exception {
         System.setProperty("picketlink.schema.validate", "false");
-        MockCatalinaSession session = new MockCatalinaSession();
         // First we go to the employee application
         MockCatalinaContextClassLoader mclSPEmp = setupTCL(profile + "/responses");
         Thread.currentThread().setContextClassLoader(mclSPEmp);
@@ -72,7 +71,14 @@ public class SPRedirectFormAuthenticatorResponseTestCase {
         spEmpl.testStart();
         spEmpl.getConfiguration().setIdpUsesPostBinding(false);
 
+        MockCatalinaSession session = new MockCatalinaSession();
+
+        session.setServletContext(context);
+
         MockCatalinaRequest catalinaRequest = new MockCatalinaRequest();
+
+        catalinaRequest.setSession(session);
+
         catalinaRequest.setSession(session);
         catalinaRequest.setContext(context);
         catalinaRequest.setMethod("GET");

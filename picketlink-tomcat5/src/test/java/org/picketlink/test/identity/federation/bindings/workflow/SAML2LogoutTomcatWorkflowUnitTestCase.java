@@ -219,9 +219,7 @@ public class SAML2LogoutTomcatWorkflowUnitTestCase {
         MockCatalinaContextClassLoader mclSPEmp = setupTCL(profile + "/sp/employee");
         Thread.currentThread().setContextClassLoader(mclSPEmp);
 
-        MockCatalinaContext context = new MockCatalinaContext();
-        context.setRealm(realm);
-        session.setServletContext(context);
+        MockCatalinaContext context = createServletContext(session, realm);
 
         SPRedirectFormAuthenticator sp = new SPRedirectFormAuthenticator();
         sp.setContainer(context);
@@ -285,7 +283,7 @@ public class SAML2LogoutTomcatWorkflowUnitTestCase {
         MockCatalinaContextClassLoader mclSPSales = setupTCL(profile + "/sp/employee");
         Thread.currentThread().setContextClassLoader(mclSPSales);
         sp = new SPRedirectFormAuthenticator();
-        sp.setContainer(context);
+        sp.setContainer(createServletContext(session, realm));
         sp.testStart();
 
         session.clear();
@@ -307,6 +305,13 @@ public class SAML2LogoutTomcatWorkflowUnitTestCase {
 
         // Finally the session should be invalidated
         assertTrue(session.isInvalidated());
+    }
+
+    private MockCatalinaContext createServletContext(MockCatalinaSession session, MockCatalinaRealm realm) {
+        MockCatalinaContext context = new MockCatalinaContext();
+        context.setRealm(realm);
+        session.setServletContext(context);
+        return context;
     }
 
     private IDPWebBrowserSSOValve createIdPAuthenticator() {
