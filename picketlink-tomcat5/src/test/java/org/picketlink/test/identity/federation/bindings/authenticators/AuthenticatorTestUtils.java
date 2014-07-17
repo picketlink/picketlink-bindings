@@ -94,8 +94,15 @@ public class AuthenticatorTestUtils {
         request = new MockCatalinaRequest();
         request.setMethod("GET");
         request.setRemoteAddr(userAddress);
-        request.setSession(new MockCatalinaSession());
-        request.setContext(new MockCatalinaContext());
+        MockCatalinaContext context = new MockCatalinaContext();
+
+        request.setContext(context);
+
+        MockCatalinaSession session = new MockCatalinaSession();
+
+        session.setServletContext(context);
+
+        request.setSession(session);
 
         if (withUserPrincipal) {
             request.setUserPrincipal(createPrincipal());

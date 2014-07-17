@@ -21,12 +21,7 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import java.io.IOException;
-
-import javax.servlet.http.HttpSession;
-
 import junit.framework.Assert;
-
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Session;
 import org.picketlink.common.constants.GeneralConstants;
@@ -40,6 +35,9 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
 
 /**
  * Abstract class to create SAML2 Redirect Binding testcases using signatures.

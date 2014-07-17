@@ -21,27 +21,29 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-
-import javax.servlet.ServletException;
-
 import junit.framework.Assert;
-
 import org.apache.catalina.LifecycleException;
+import org.junit.Before;
 import org.junit.Test;
 import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.identity.federation.bindings.tomcat.idp.IDPWebBrowserSSOValve;
 import org.picketlink.identity.federation.bindings.tomcat.sp.SPRedirectSignatureFormAuthenticator;
+import org.picketlink.identity.federation.web.core.SessionManager;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaLoginConfig;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * <p>
@@ -74,6 +76,12 @@ public class SAML2LogoutSignatureTomcatWorkflowUnitTestCase extends AbstractSAML
 
     private SPRedirectSignatureFormAuthenticator employeeServiceProvider;
 
+    @Before
+    public void onBefore() {
+        this.employeeHttpSession.setServletContext(new MockCatalinaContext());
+        this.salesHttpSession.setServletContext(new MockCatalinaContext());
+    }
+
     /**
      * Tests the GLO logout mechanism.
      *
@@ -90,7 +98,7 @@ public class SAML2LogoutSignatureTomcatWorkflowUnitTestCase extends AbstractSAML
         originalEmployeeLogoutRequest.setParameter(GeneralConstants.GLOBAL_LOGOUT, "true");
 
         MockCatalinaResponse originalEmployeeLogoutResponse = sendSPRequest(originalEmployeeLogoutRequest,
-                getEmployeeServiceProvider());
+                getEmployeeServiceProvider(), this.salesHttpSession);
 
         assertNotNull(originalEmployeeLogoutResponse);
 
@@ -106,7 +114,7 @@ public class SAML2LogoutSignatureTomcatWorkflowUnitTestCase extends AbstractSAML
 
         setQueryStringFromResponse(idpLogoutResponse, salesLogoutRequest);
 
-        MockCatalinaResponse salesLogoutResponse = sendSPRequest(salesLogoutRequest, getSalesServiceProvider());
+        MockCatalinaResponse salesLogoutResponse = sendSPRequest(salesLogoutRequest, getSalesServiceProvider(), this.salesHttpSession);
 
         // At this moment the user is not logged in Sales SP anymore.
         assertTrue(this.salesHttpSession.isInvalidated());
@@ -123,7 +131,7 @@ public class SAML2LogoutSignatureTomcatWorkflowUnitTestCase extends AbstractSAML
 
         setQueryStringFromResponse(salesStatusResponse, employeeLogoutRequest);
 
-        MockCatalinaResponse employeeLogoutResponse = sendSPRequest(employeeLogoutRequest, getEmployeeServiceProvider());
+        MockCatalinaResponse employeeLogoutResponse = sendSPRequest(employeeLogoutRequest, getEmployeeServiceProvider(), this.employeeHttpSession);
 
         // At this moment the user is not logged in Employee SP anymore.
         assertTrue(this.employeeHttpSession.isInvalidated());
@@ -139,10 +147,18 @@ public class SAML2LogoutSignatureTomcatWorkflowUnitTestCase extends AbstractSAML
         assertTrue(getIDPHttpSession().isInvalidated());
     }
 
-    private MockCatalinaResponse sendSPRequest(MockCatalinaRequest request, SPRedirectSignatureFormAuthenticator sp)
+    private MockCatalinaResponse sendSPRequest(MockCatalinaRequest request, SPRedirectSignatureFormAuthenticator sp, MockCatalinaSession session)
             throws LifecycleException, IOException, ServletException {
         MockCatalinaResponse response = new MockCatalinaResponse();
         response.setWriter(new PrintWriter(new ByteArrayOutputStream()));
+
+        ServletContext servletContext = (ServletContext) sp.getContainer();
+
+        session.setServletContext(servletContext);
+
+        SessionManager sessionManager = SessionManager.get(servletContext);
+
+        sessionManager.add(request.getPrincipal(), session);
 
         sp.authenticate(request, response, new MockCatalinaLoginConfig());
 
@@ -153,6 +169,11 @@ public class SAML2LogoutSignatureTomcatWorkflowUnitTestCase extends AbstractSAML
     private MockCatalinaResponse sendIDPRequest(MockCatalinaRequest request) throws LifecycleException, IOException,
             ServletException {
         IDPWebBrowserSSOValve idp = getIDPWebBrowserSSOValve();
+
+        MockCatalinaSession session = (MockCatalinaSession) request.getSession(false);
+
+        session.setServletContext((MockCatalinaContext) idp.getContainer());
+
         idp.setStrictPostBinding(false);
 
         MockCatalinaResponse response = new MockCatalinaResponse();

@@ -21,6 +21,13 @@
  */
 package org.picketlink.test.identity.federation.bindings.mock;
 
+import org.apache.catalina.Manager;
+import org.apache.catalina.Session;
+import org.apache.catalina.SessionListener;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionContext;
 import java.security.Principal;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -28,14 +35,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionContext;
-
-import org.apache.catalina.Manager;
-import org.apache.catalina.Session;
-import org.apache.catalina.SessionListener;
 
 /**
  * Mock session for the catalina infrastructure

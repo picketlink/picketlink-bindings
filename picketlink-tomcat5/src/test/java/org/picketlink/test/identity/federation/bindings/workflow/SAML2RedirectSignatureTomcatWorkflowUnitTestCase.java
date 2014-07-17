@@ -21,16 +21,7 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-
-import javax.servlet.ServletException;
-
 import junit.framework.Assert;
-
 import org.apache.catalina.LifecycleException;
 import org.junit.Test;
 import org.picketlink.identity.federation.bindings.tomcat.idp.IDPWebBrowserSSOValve;
@@ -40,6 +31,14 @@ import org.picketlink.test.identity.federation.bindings.authenticators.Authentic
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaLoginConfig;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+
+import javax.servlet.ServletException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * <p>
@@ -148,6 +147,10 @@ public class SAML2RedirectSignatureTomcatWorkflowUnitTestCase extends AbstractSA
             throws LifecycleException, IOException {
 
         MockCatalinaResponse response = new MockCatalinaResponse();
+
+        MockCatalinaSession session = (MockCatalinaSession) request.getSession();
+
+        session.setServletContext((javax.servlet.ServletContext) getEmployeeServiceProvider().getContainer());
 
         if (validateAuthentication) {
             Assert.assertTrue("Employee app succesfully authenticated.",

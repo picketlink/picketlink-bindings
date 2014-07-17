@@ -21,9 +21,16 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.catalina.deploy.LoginConfig;
+import org.junit.Test;
+import org.picketlink.common.constants.GeneralConstants;
+import org.picketlink.identity.federation.bindings.tomcat.sp.SPPostFormAuthenticator;
+import org.picketlink.identity.federation.web.util.PostBindingUtil;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContextClassLoader;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
+import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -35,16 +42,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.catalina.deploy.LoginConfig;
-import org.junit.Test;
-import org.picketlink.common.constants.GeneralConstants;
-import org.picketlink.identity.federation.bindings.tomcat.sp.SPPostFormAuthenticator;
-import org.picketlink.identity.federation.web.util.PostBindingUtil;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContext;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaContextClassLoader;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
-import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Validating PicketLink SP Handling of a response from Ping Federate IDP.
@@ -61,17 +61,24 @@ public class PingFederateResponseTestCase {
     @Test
     public void testSP() throws Exception {
         System.setProperty("picketlink.schema.validate", "false");
-        MockCatalinaSession session = new MockCatalinaSession();
         // First we go to the employee application
         MockCatalinaContextClassLoader mclSPEmp = setupTCL(profile + "/ping");
         Thread.currentThread().setContextClassLoader(mclSPEmp);
         SPPostFormAuthenticator spEmpl = new SPPostFormAuthenticator();
 
         MockCatalinaContext context = new MockCatalinaContext();
+
         spEmpl.setContainer(context);
         spEmpl.testStart();
 
+        MockCatalinaSession session = new MockCatalinaSession();
+
+        session.setServletContext(context);
+
         MockCatalinaRequest catalinaRequest = new MockCatalinaRequest();
+
+        catalinaRequest.setSession(session);
+
         catalinaRequest.setSession(session);
         catalinaRequest.setContext(context);
         catalinaRequest.setMethod("POST");

@@ -21,25 +21,14 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.KeyPair;
-import java.security.Principal;
-
-import javax.servlet.ServletException;
-import javax.xml.crypto.dsig.DigestMethod;
-import javax.xml.crypto.dsig.SignatureMethod;
-
 import junit.framework.Assert;
-
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.valves.ValveBase;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.picketlink.common.constants.JBossSAMLConstants;
@@ -69,6 +58,16 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import javax.servlet.ServletException;
+import javax.xml.crypto.dsig.DigestMethod;
+import javax.xml.crypto.dsig.SignatureMethod;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyPair;
+import java.security.Principal;
+
 /**
  * <p>
  * Tests some scenarios trying to perform a SAML Assertion Wrapping Attack.
@@ -90,6 +89,11 @@ public class SAML2WrappingAttackWorkflowUnitTestCase extends AbstractSAML2Redire
 
     private MockCatalinaSession spSession = new MockCatalinaSession();
     private MockCatalinaSession idpSession = new MockCatalinaSession();
+
+    @Before
+    public void onBefore() {
+        this.spSession.setServletContext(this.idpContext);
+    }
 
     /**
      * <p>
@@ -245,6 +249,7 @@ public class SAML2WrappingAttackWorkflowUnitTestCase extends AbstractSAML2Redire
 
         request.setRemoteAddr("http://localhost/idp");
         request.setSession(this.spSession);
+        this.spSession.setServletContext(this.spContext);
         request.setParameter("SAMLResponse", idpResponse);
 
         request.setMethod("POST");
