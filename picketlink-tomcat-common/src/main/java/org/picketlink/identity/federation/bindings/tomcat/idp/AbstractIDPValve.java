@@ -388,9 +388,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             handleSAMLMessage(request, response);
         }
 
-        if (!response.isCommitted() && !response.getResponse().isCommitted()) {
-            getNext().invoke(request, response);
-        }
+        getNext().invoke(request, response);
     }
 
     /**
