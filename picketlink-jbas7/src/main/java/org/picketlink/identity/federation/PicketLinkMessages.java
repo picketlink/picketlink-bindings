@@ -533,4 +533,6 @@ public interface PicketLinkMessages {
     @Message(id = 187, value = "Cannot set maximum STS client pool size to negative number (%s)")
     RuntimeException cannotSetMaxPoolSizeToNegative(String max);
 
+    @Message(id = 188, value = "Parser feature %s not supported.")
+    RuntimeException parserFeatureNotSupported(String feature);
 }
