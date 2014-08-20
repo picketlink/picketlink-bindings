@@ -388,7 +388,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             handleSAMLMessage(request, response);
         }
 
-        if (!response.isCommitted() && !response.getResponse().isCommitted()) {
+        if (!response.isCommitted() && !response.getResponse().isCommitted() || getNext().getClass().getName().contains("LockingValve")) {
             getNext().invoke(request, response);
         }
     }
