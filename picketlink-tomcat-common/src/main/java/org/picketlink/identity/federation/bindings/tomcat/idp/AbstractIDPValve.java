@@ -388,11 +388,8 @@ public abstract class AbstractIDPValve extends ValveBase {
             handleSAMLMessage(request, response);
         }
 
-        try {
-          getNext().invoke(request, response);
-        } catch (IllegalStateException ignore) {
-          // probably because the response was already commited, but we still need to
-          // invoke next valve. For instance, when in a clustered environment.
+        if (!response.isCommitted() && !response.getResponse().isCommitted() || getNext().getClass().getName().contains("LockingValve")) {
+            getNext().invoke(request, response);
         }
     }
 
