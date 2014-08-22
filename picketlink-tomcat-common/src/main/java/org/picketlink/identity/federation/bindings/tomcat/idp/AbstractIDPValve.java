@@ -560,6 +560,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             logger.trace("Storing the SAMLRequest/SAMLResponse and RelayState in session");
             if (isNotNull(samlRequestMessage)) {
                 session.setNote(GeneralConstants.SAML_REQUEST_KEY, samlRequestMessage);
+                session.setNote(JBossSAMLConstants.BINDING.get(), request.getMethod());
             }
             if (isNotNull(samlResponseMessage)) {
                 session.setNote(GeneralConstants.SAML_RESPONSE_KEY, samlResponseMessage);
@@ -812,6 +813,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         Boolean requestedPostProfile = null;
 
         String samlRequestMessage = (String) session.getNote(GeneralConstants.SAML_REQUEST_KEY);
+        String samlRequestMessageBinding = (String) session.getNote(JBossSAMLConstants.BINDING.get());
 
         String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
 
@@ -828,6 +830,11 @@ public abstract class AbstractIDPValve extends ValveBase {
         String loginType = determineLoginType(isSecure);
 
         IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
+
+        if (samlRequestMessageBinding != null && "POST".equals(samlRequestMessageBinding)) {
+            webRequestUtil.setRedirectProfile(false);
+        }
+
         SAMLDocumentHolder samlDocumentHolder = null;
         SAML2Object samlObject = null;
 
@@ -1212,7 +1219,7 @@ public abstract class AbstractIDPValve extends ValveBase {
          * state from the SP
          */
         String samlRequestMessage = (String) session.getNote(GeneralConstants.SAML_REQUEST_KEY);
-
+        String samlRequestMesssageBinding = (String) session.getNote(JBossSAMLConstants.BINDING.get());
         String samlResponseMessage = (String) session.getNote(GeneralConstants.SAML_RESPONSE_KEY);
         String relayState = (String) session.getNote(GeneralConstants.RELAY_STATE);
         String signature = (String) session.getNote(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY);
@@ -1222,6 +1229,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             StringBuilder builder = new StringBuilder();
             builder.append("Retrieved saml messages and relay state from session");
             builder.append("saml Request message=").append(samlRequestMessage);
+            builder.append("Binding=").append(samlRequestMesssageBinding);
             builder.append("::").append("SAMLResponseMessage=");
             builder.append(samlResponseMessage).append(":").append("relay state=").append(relayState);
 
@@ -1231,6 +1239,7 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         if (isNotNull(samlRequestMessage)) {
             session.removeNote(GeneralConstants.SAML_REQUEST_KEY);
+            session.removeNote(JBossSAMLConstants.BINDING.get());
         }
         if (isNotNull(samlResponseMessage)) {
             session.removeNote(GeneralConstants.SAML_RESPONSE_KEY);
