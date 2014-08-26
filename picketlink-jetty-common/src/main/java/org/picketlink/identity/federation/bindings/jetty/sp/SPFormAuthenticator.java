@@ -297,6 +297,11 @@ public class SPFormAuthenticator extends FormAuthenticator {
      */
     private Authentication generalUserRequest(ServletRequest servletRequest, ServletResponse servletResponse, boolean mandatory)
             throws IOException, ServerAuthException {
+        //only perform SAML Authentication if it is mandatory
+        if(!mandatory){
+            Request request = (Request) servletRequest;
+            return request.getAuthentication();
+        }
         ServiceProviderSAMLWorkflow serviceProviderSAMLWorkflow = new ServiceProviderSAMLWorkflow();
         serviceProviderSAMLWorkflow.setRedirectionHandler(new JettyRedirectionHandler());
 
@@ -394,7 +399,7 @@ public class SPFormAuthenticator extends FormAuthenticator {
         session.setAttribute(FORM_ROLES_NOTE, roles);
         Request request = (Request) httpServletRequest;
         Authentication authentication = request.getAuthentication();
-        if (authentication == null) {
+        if (!(authentication instanceof UserAuthentication)) {
             Subject theSubject = new Subject();
             String[] theRoles = new String[roles.size()];
             roles.toArray(theRoles);
@@ -649,7 +654,7 @@ public class SPFormAuthenticator extends FormAuthenticator {
                     int redirectCode = (base_request.getHttpVersion().getVersion() < HttpVersion.HTTP_1_1.getVersion() ? HttpServletResponse.SC_MOVED_TEMPORARILY
                             : HttpServletResponse.SC_SEE_OTHER);
                     base_response.sendRedirect(redirectCode, response.encodeRedirectURL(nuri));
-                    return registeredAuthentication;
+                    return Authentication.SEND_SUCCESS; //since a redirect was made to the original requested URL inform Jetty the response has already been handled
 
                     // restoreRequest(request,session);
 
