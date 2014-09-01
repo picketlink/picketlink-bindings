@@ -377,7 +377,24 @@ public abstract class AbstractIDPValve extends ValveBase {
         populateSessionWithSAMLParameters(request);
 
         // get an authenticated user or tries to authenticate if this is a authentication request
-        Principal userPrincipal = getUserPrincipal(request, response);
+        Principal userPrincipal = request.getPrincipal();
+
+        if (userPrincipal == null) {
+            if (this.idpConfiguration.isSSLClientAuthentication()) {
+                if (request.isSecure()) {
+                    getSSLAuthenticator().invoke(request, response);
+
+                    // we always reset/recycle the response to remove any data written to the response by the ssl
+                    // authenticator
+                    response.resetBuffer();
+                    response.recycle();
+                }
+            }
+        }
+
+        invokeNextValve(request, response);
+
+        userPrincipal = request.getUserPrincipal();
 
         // we only handle SAML messages for authenticated users.
         if (userPrincipal != null) {
@@ -386,10 +403,6 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
 
             handleSAMLMessage(request, response);
-        }
-
-        if (!response.isCommitted() && !response.getResponse().isCommitted() || getNext().getClass().getName().contains("LockingValve")) {
-            getNext().invoke(request, response);
         }
     }
 
@@ -618,44 +631,8 @@ public abstract class AbstractIDPValve extends ValveBase {
         return response.getStatus() == HttpServletResponse.SC_FORBIDDEN;
     }
 
-    /**
-     * <p> Returns the authenticated principal. If there is no principal associated with the {@link Request}, null is returned.
-     * </p>
-     *
-     * @param request
-     * @param response
-     *
-     * @return
-     *
-     * @throws IOException
-     * @throws ServletException
-     */
-    private Principal getUserPrincipal(Request request, Response response) throws IOException, ServletException {
-        Principal userPrincipal = request.getPrincipal();
-
-        if (userPrincipal == null) {
-            if (this.idpConfiguration.isSSLClientAuthentication()) {
-                if (request.isSecure()) {
-                    getSSLAuthenticator().invoke(request, response);
-
-                    // we always reset/recycle the response to remove any data written to the response by the ssl
-                    // authenticator
-                    response.resetBuffer();
-                    response.recycle();
-                }
-            }
-
-            userPrincipal = request.getPrincipal();
-
-            // we always fall back to the configured authentication method.
-            if (userPrincipal == null) {
-                getNext().invoke(request, response);
-            }
-
-            userPrincipal = request.getPrincipal();
-        }
-
-        return userPrincipal;
+    private void invokeNextValve(Request request, Response response) throws IOException, ServletException {
+        getNext().invoke(request, response);
     }
 
     public Principal authenticateSSL(Request request, Response response) throws IOException {
