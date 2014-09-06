@@ -783,6 +783,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
         SAMLDocumentHolder samlDocumentHolder = null;
         SAML2Object samlObject = null;
+        String responseDestination = referer;
 
         try {
             if (requestType == null) {
@@ -807,6 +808,13 @@ public abstract class AbstractIDPValve extends ValveBase {
 
             RequestAbstractType requestAbstractType = (RequestAbstractType) samlObject;
             String issuer = requestAbstractType.getIssuer().getValue();
+            // get the destination attribute for the response
+            if (requestAbstractType instanceof AuthnRequestType) {
+                AuthnRequestType authnRequestType = (AuthnRequestType) requestAbstractType;
+                if(authnRequestType.getAssertionConsumerServiceURL() != null) {
+                	responseDestination = authnRequestType.getAssertionConsumerServiceURL().toString();
+                }
+            }
 
             IssuerInfoHolder idpIssuer = new IssuerInfoHolder(getIdentityURL());
             ProtocolContext protocolContext = new HTTPContext(request, response, getContext().getServletContext());
@@ -902,7 +910,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                 status = JBossSAMLURIConstants.STATUS_REQUEST_DENIED.get();
             }
             logger.samlIDPRequestProcessingError(e);
-            samlResponse = webRequestUtil.getErrorResponse(referer, status, getIdentityURL(),
+            samlResponse = webRequestUtil.getErrorResponse(responseDestination, status, getIdentityURL(),
                 this.idpConfiguration.isSupportsSignature());
             isErrorResponse = true;
         }
