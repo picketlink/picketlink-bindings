@@ -375,7 +375,7 @@ public interface PicketLinkMessages {
     @Message(id = 135, value = "Unknown role object type : %s")
     RuntimeException unsupportedRoleType(Object attrValue);
 
-    @Message(id = 136, value = "Issuer not Trusted by the IDP: %s")
+    @Message(id = 136, value = "Issuer not Trusted: %s")
     IssuerNotTrustedException samlHandlerIssuerNotTrustedError(String issuer);
 
     @Message(id = 137, value = "Error while checking the trusted domains.")
