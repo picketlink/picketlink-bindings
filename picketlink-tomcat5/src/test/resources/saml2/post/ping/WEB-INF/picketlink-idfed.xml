@@ -5,7 +5,7 @@
     <ServiceURL>https://201.000.000.00/gctxyz</ServiceURL> 
     <Trust>
 
-        <Domains>localhost,jboss.com,jboss.org,fedtst.company.com,201.000.000.00</Domains>
+        <Domains>localhost,jboss.com,jboss.org,fedtst.company.com,201.000.000.00,test.xyz.com</Domains>
 
     </Trust> 
     <KeyProvider
