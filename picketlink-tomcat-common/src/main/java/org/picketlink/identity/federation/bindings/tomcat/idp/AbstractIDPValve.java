@@ -843,7 +843,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             if (requestAbstractType instanceof AuthnRequestType) {
                 AuthnRequestType authnRequestType = (AuthnRequestType) requestAbstractType;
                 if(authnRequestType.getAssertionConsumerServiceURL() != null) {
-                	responseDestination = authnRequestType.getAssertionConsumerServiceURL().toString();
+                    responseDestination = authnRequestType.getAssertionConsumerServiceURL().toString();
                 }
             }
 
