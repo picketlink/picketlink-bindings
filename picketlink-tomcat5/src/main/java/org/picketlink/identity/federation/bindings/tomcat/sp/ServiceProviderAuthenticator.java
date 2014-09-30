@@ -21,6 +21,12 @@ public class ServiceProviderAuthenticator extends AbstractSPFormAuthenticator {
     }
 
     @Override
+    public void stop() throws LifecycleException {
+        super.stop();
+        stopPicketLink();
+    }
+
+    @Override
     protected String getContextPath() {
         return getContext().getServletContext().getContextPath();
     }

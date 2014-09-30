@@ -26,6 +26,12 @@ public class ServiceProviderAuthenticator extends AbstractSPFormAuthenticator {
     }
 
     @Override
+    protected synchronized void stopInternal() throws LifecycleException {
+        super.stopInternal();
+        stopPicketLink();
+    }
+
+    @Override
     protected String getContextPath() {
         return getContext().getServletContext().getContextPath();
     }

@@ -44,6 +44,6 @@ public class SPRedirectFormAuthenticator extends ServiceProviderAuthenticator {
     @Override
     protected void startPicketLink() throws LifecycleException {
         super.startPicketLink();
-        this.spConfiguration.setBindingType("REDIRECT");
+        getConfiguration().setBindingType("REDIRECT");
     }
 }

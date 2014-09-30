@@ -155,17 +155,13 @@ public abstract class AbstractIDPValve extends ValveBase {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
 
-    protected boolean enableAudit = false;
-
     protected PicketLinkAuditHelper auditHelper = null;
 
-    protected IDPType idpConfiguration = null;
+    protected volatile PicketLinkType picketLinkConfiguration = null;
 
-    protected PicketLinkType picketLinkConfiguration = null;
+    private volatile RoleGenerator roleGenerator = new TomcatRoleGenerator();
 
-    private RoleGenerator roleGenerator = new TomcatRoleGenerator();
-
-    private TrustKeyManager keyManager;
+    private volatile TrustKeyManager keyManager;
 
     private transient DelegatedAttributeManager attribManager = new DelegatedAttributeManager();
 
@@ -194,7 +190,6 @@ public abstract class AbstractIDPValve extends ValveBase {
 
     private Map<String, SPSSODescriptorType> spSSOMetadataMap = new HashMap<String, SPSSODescriptorType>();
     private SSLAuthenticator sslAuthenticator;
-    private Handlers handlers;
 
     private Boolean passUserPrincipalToAttributeManager = false;
     /**
@@ -380,7 +375,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         Principal userPrincipal = request.getPrincipal();
 
         if (userPrincipal == null) {
-            if (this.idpConfiguration.isSSLClientAuthentication()) {
+            if (getIdpConfiguration().isSSLClientAuthentication()) {
                 if (request.isSecure()) {
                     getSSLAuthenticator().invoke(request, response);
 
@@ -398,12 +393,16 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         // we only handle SAML messages for authenticated users.
         if (userPrincipal != null) {
-            if (isGlobalLogout(request)) {
+            if (isGlobalLogout(request) && request.getParameter(SAML_REQUEST_KEY) == null) {
                 prepareLocalGlobalLogoutRequest(request, userPrincipal);
             }
 
             handleSAMLMessage(request, response);
         }
+    }
+
+    private IDPType getIdpConfiguration() {
+        return (IDPType) getConfiguration().getIdpOrSP();
     }
 
     /**
@@ -513,7 +512,7 @@ public abstract class AbstractIDPValve extends ValveBase {
     private void forwardHosted(Request request, Response response) throws ServletException, IOException {
         logger.trace("SAML 1.1::Proceeding to IDP index page");
         RequestDispatcher dispatch = getContext().getServletContext()
-            .getRequestDispatcher(this.idpConfiguration.getHostedURI());
+            .getRequestDispatcher(getIdpConfiguration().getHostedURI());
 
         recycle(response);
 
@@ -600,14 +599,16 @@ public abstract class AbstractIDPValve extends ValveBase {
      * @throws ServletException
      */
     private void handleUnauthorizedResponse(Request request, Response response) throws IOException, ServletException {
-        IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
+        IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, getIdpConfiguration(), keyManager);
         Document samlErrorResponse = null;
         String referer = request.getHeader("Referer");
         String relayState = request.getParameter(GeneralConstants.RELAY_STATE);
 
         try {
+            IDPType idpConfiguration = getIdpConfiguration();
+
             samlErrorResponse = webRequestUtil.getErrorResponse(referer, JBossSAMLURIConstants.STATUS_AUTHNFAILED.get(),
-                getIdentityURL(), this.idpConfiguration.isSupportsSignature());
+                getIdentityURL(), idpConfiguration.isSupportsSignature());
 
             WebRequestUtilHolder holder = webRequestUtil.getHolder();
             holder.setResponseDoc(samlErrorResponse).setDestination(referer).setRelayState(relayState)
@@ -615,11 +616,11 @@ public abstract class AbstractIDPValve extends ValveBase {
                 .setErrorResponse(true);
             holder.setPostBindingRequested(webRequestUtil.hasSAMLRequestInPostProfile());
 
-            if (this.idpConfiguration.isSupportsSignature()) {
+            if (idpConfiguration.isSupportsSignature()) {
                 holder.setSupportSignature(true).setPrivateKey(keyManager.getSigningKey());
             }
 
-            holder.setStrictPostBinding(this.idpConfiguration.isStrictPostBinding());
+            holder.setStrictPostBinding(idpConfiguration.isStrictPostBinding());
 
             webRequestUtil.send(holder);
         } catch (GeneralSecurityException e) {
@@ -678,7 +679,7 @@ public abstract class AbstractIDPValve extends ValveBase {
 
     protected void handleSAML11UnsolicitedResponse(Request request, Response response) throws ServletException, IOException {
         try {
-            IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
+            IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, getIdpConfiguration(), keyManager);
 
             Principal userPrincipal = request.getPrincipal();
             String contextPath = getContextPath();
@@ -737,7 +738,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                 holder.setPostBindingRequested(true);
             }
 
-            if (enableAudit) {
+            if (isEnableAudit()) {
                 PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                 auditEvent.setType(PicketLinkAuditEventType.RESPONSE_TO_SP);
                 auditEvent.setDestination(target);
@@ -752,6 +753,10 @@ public abstract class AbstractIDPValve extends ValveBase {
             logger.samlIDPHandlingSAML11Error(e);
             throw new ServletException();
         }
+    }
+
+    private boolean isEnableAudit() {
+        return getConfiguration().isEnableAudit();
     }
 
     private void handleSAML2UnsolicitedResponse(Request request, Response response) throws ServletException {
@@ -806,6 +811,7 @@ public abstract class AbstractIDPValve extends ValveBase {
         boolean isSecure = request.isSecure();
         String loginType = determineLoginType(isSecure);
 
+        IDPType idpConfiguration = getIdpConfiguration();
         IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
 
         if (samlRequestMessageBinding != null && "POST".equals(samlRequestMessageBinding)) {
@@ -871,9 +877,9 @@ public abstract class AbstractIDPValve extends ValveBase {
             requestOptions.put(GeneralConstants.IGNORE_SIGNATURES, ignoreSignatures);
             requestOptions.put(GeneralConstants.SP_SSO_METADATA_DESCRIPTOR, spSSOMetadataMap.get(issuer));
             requestOptions.put(GeneralConstants.ROLE_GENERATOR, roleGenerator);
-            requestOptions.put(GeneralConstants.CONFIGURATION, this.idpConfiguration);
-            requestOptions.put(GeneralConstants.SAML_IDP_STRICT_POST_BINDING, this.idpConfiguration.isStrictPostBinding());
-            requestOptions.put(GeneralConstants.SUPPORTS_SIGNATURES, this.idpConfiguration.isSupportsSignature());
+            requestOptions.put(GeneralConstants.CONFIGURATION, idpConfiguration);
+            requestOptions.put(GeneralConstants.SAML_IDP_STRICT_POST_BINDING, idpConfiguration.isStrictPostBinding());
+            requestOptions.put(GeneralConstants.SUPPORTS_SIGNATURES, idpConfiguration.isSupportsSignature());
 
             if (assertionID != null) {
                 requestOptions.put(GeneralConstants.ASSERTION_ID, assertionID);
@@ -942,7 +948,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
             logger.samlIDPRequestProcessingError(e);
             samlResponse = webRequestUtil.getErrorResponse(responseDestination, status, getIdentityURL(),
-                this.idpConfiguration.isSupportsSignature());
+                idpConfiguration.isSupportsSignature());
             isErrorResponse = true;
         }
 
@@ -966,7 +972,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                     .setErrorResponse(isErrorResponse).setServletResponse(response)
                     .setDestinationQueryStringWithSignature(destinationQueryStringWithSignature);
 
-                holder.setStrictPostBinding(this.idpConfiguration.isStrictPostBinding());
+                holder.setStrictPostBinding(idpConfiguration.isStrictPostBinding());
 
                 if (requestedPostProfile != null) {
                     holder.setPostBindingRequested(requestedPostProfile);
@@ -974,7 +980,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                     holder.setPostBindingRequested(webRequestUtil.hasSAMLRequestInPostProfile());
                 }
 
-                if (this.idpConfiguration.isSupportsSignature()) {
+                if (idpConfiguration.isSupportsSignature()) {
                     holder.setPrivateKey(keyManager.getSigningKey()).setSupportSignature(true);
                 }
 
@@ -982,7 +988,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                     recycle(response);
                 }
 
-                if (enableAudit) {
+                if (isEnableAudit()) {
                     PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                     auditEvent.setType(PicketLinkAuditEventType.RESPONSE_TO_SP);
                     auditEvent.setDestination(destination);
@@ -1071,6 +1077,7 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         cleanUpSessionNote(request);
 
+        IDPType idpConfiguration = getIdpConfiguration();
         IDPWebRequestUtil webRequestUtil = new IDPWebRequestUtil(request, idpConfiguration, keyManager);
 
         try {
@@ -1097,13 +1104,13 @@ public abstract class AbstractIDPValve extends ValveBase {
                 samlDocumentHolder, HANDLER_TYPE.IDP);
             Map<String, Object> options = new HashMap<String, Object>();
 
-            if (this.idpConfiguration.isSupportsSignature() || this.idpConfiguration.isEncrypt()) {
+            if (idpConfiguration.isSupportsSignature() || idpConfiguration.isEncrypt()) {
                 PublicKey publicKey = getIssuerPublicKey(request, issuer);
                 options.put(GeneralConstants.SENDER_PUBLIC_KEY, publicKey);
             }
 
-            options.put(GeneralConstants.SAML_IDP_STRICT_POST_BINDING, this.idpConfiguration.isStrictPostBinding());
-            options.put(GeneralConstants.SUPPORTS_SIGNATURES, this.idpConfiguration.isSupportsSignature());
+            options.put(GeneralConstants.SAML_IDP_STRICT_POST_BINDING, idpConfiguration.isStrictPostBinding());
+            options.put(GeneralConstants.SUPPORTS_SIGNATURES, idpConfiguration.isSupportsSignature());
             if (auditHelper != null) {
                 options.put(GeneralConstants.AUDIT_HELPER, auditHelper);
                 options.put(GeneralConstants.CONTEXT_PATH, contextPath);
@@ -1145,7 +1152,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
             logger.samlIDPRequestProcessingError(e);
             samlResponse = webRequestUtil.getErrorResponse(referer, status, getIdentityURL(),
-                this.idpConfiguration.isSupportsSignature());
+                idpConfiguration.isSupportsSignature());
             isErrorResponse = true;
         } finally {
             try {
@@ -1167,17 +1174,17 @@ public abstract class AbstractIDPValve extends ValveBase {
                  * holder.setPostBindingRequested(postProfile);
                  */
 
-                    if (this.idpConfiguration.isSupportsSignature()) {
+                    if (idpConfiguration.isSupportsSignature()) {
                         holder.setPrivateKey(keyManager.getSigningKey()).setSupportSignature(true);
                     }
 
-                    holder.setStrictPostBinding(this.idpConfiguration.isStrictPostBinding());
+                    holder.setStrictPostBinding(idpConfiguration.isStrictPostBinding());
 
                     if (holder.isPostBinding()) {
                         recycle(response);
                     }
 
-                    if (enableAudit) {
+                    if (isEnableAudit()) {
                         PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                         auditEvent.setType(PicketLinkAuditEventType.RESPONSE_TO_SP);
                         auditEvent.setWhoIsAuditing(contextPath);
@@ -1249,8 +1256,9 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         String contextPath = getContextPath();
 
+        IDPType idpConfiguration = getIdpConfiguration();
         Document samlResponse = webRequestUtil.getErrorResponse(referrer, JBossSAMLURIConstants.STATUS_RESPONDER.get(),
-            getIdentityURL(), this.idpConfiguration.isSupportsSignature());
+            getIdentityURL(), idpConfiguration.isSupportsSignature());
         try {
 
             WebRequestUtilHolder holder = webRequestUtil.getHolder();
@@ -1258,17 +1266,17 @@ public abstract class AbstractIDPValve extends ValveBase {
                 .setAreWeSendingRequest(false).setPrivateKey(null).setSupportSignature(false).setServletResponse(response);
             holder.setPostBindingRequested(webRequestUtil.hasSAMLRequestInPostProfile());
 
-            if (this.idpConfiguration.isSupportsSignature()) {
+            if (idpConfiguration.isSupportsSignature()) {
                 holder.setPrivateKey(keyManager.getSigningKey()).setSupportSignature(true);
             }
 
-            holder.setStrictPostBinding(this.idpConfiguration.isStrictPostBinding());
+            holder.setStrictPostBinding(idpConfiguration.isStrictPostBinding());
 
             if (holder.isPostBinding()) {
                 recycle(response);
             }
 
-            if (enableAudit) {
+            if (isEnableAudit()) {
                 PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                 auditEvent.setType(PicketLinkAuditEventType.ERROR_RESPONSE_TO_SP);
                 auditEvent.setWhoIsAuditing(contextPath);
@@ -1287,6 +1295,8 @@ public abstract class AbstractIDPValve extends ValveBase {
      * <p> Initializes the {@link IdentityServer}. </p>
      */
     protected void initIdentityServer() {
+        IDPType idpConfiguration = getIdpConfiguration();
+
         // The Identity Server on the servlet context gets set
         // in the implementation of IdentityServer
         // Create an Identity Server and set it on the context
@@ -1295,11 +1305,11 @@ public abstract class AbstractIDPValve extends ValveBase {
         if (identityServer == null) {
             identityServer = new IdentityServer();
             getContext().getServletContext().setAttribute(GeneralConstants.IDENTITY_SERVER, identityServer);
-            if (StringUtil.isNotNull(this.idpConfiguration.getIdentityParticipantStack())) {
+            if (StringUtil.isNotNull(idpConfiguration.getIdentityParticipantStack())) {
                 try {
-                    Class<?> clazz = SecurityActions.loadClass(getClass(), this.idpConfiguration.getIdentityParticipantStack());
+                    Class<?> clazz = SecurityActions.loadClass(getClass(), idpConfiguration.getIdentityParticipantStack());
                     if (clazz == null) {
-                        throw logger.classNotLoadedError(this.idpConfiguration.getIdentityParticipantStack());
+                        throw logger.classNotLoadedError(idpConfiguration.getIdentityParticipantStack());
                     }
 
                     identityServer.setStack((IdentityParticipantStack) clazz.newInstance());
@@ -1317,19 +1327,20 @@ public abstract class AbstractIDPValve extends ValveBase {
      */
     protected void initHandlersChain() throws LifecycleException {
         try {
-            if (picketLinkConfiguration != null) {
-                this.handlers = picketLinkConfiguration.getHandlers();
-            } else {
+            Handlers handlers = this.picketLinkConfiguration.getHandlers();
+
+            if (handlers == null) {
                 // Get the handlers
                 String handlerConfigFileName = GeneralConstants.HANDLER_CONFIG_FILE_LOCATION;
-                this.handlers = ConfigurationUtil.getHandlers(getContext().getServletContext().getResourceAsStream(
+                handlers = ConfigurationUtil.getHandlers(getContext().getServletContext().getResourceAsStream(
                     handlerConfigFileName));
             }
 
             // Get the chain from config
-            String handlerChainClass = this.handlers.getHandlerChainClass();
+            String handlerChainClass = handlers.getHandlerChainClass();
+            SAML2HandlerChain chain;
 
-            if (StringUtil.isNullOrEmpty(handlerChainClass)) {
+            if (isNullOrEmpty(handlerChainClass)) {
                 chain = SAML2HandlerChainFactory.createChain();
             } else {
                 try {
@@ -1339,12 +1350,13 @@ public abstract class AbstractIDPValve extends ValveBase {
                 }
             }
 
-            chain.addAll(HandlerUtil.getHandlers(this.handlers));
+            chain.addAll(HandlerUtil.getHandlers(handlers));
 
             Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
             chainConfigOptions.put(GeneralConstants.ROLE_GENERATOR, roleGenerator);
-            chainConfigOptions.put(GeneralConstants.CONFIGURATION, idpConfiguration);
-            if (this.keyManager != null) {
+            chainConfigOptions.put(GeneralConstants.CONFIGURATION, getIdpConfiguration());
+
+            if (keyManager != null) {
                 chainConfigOptions.put(GeneralConstants.KEYPAIR, keyManager.getSigningKeyPair());
                 // If there is a need for X509Data in signedinfo
                 String certificateAlias = (String) keyManager.getAdditionalOption(GeneralConstants.X509CERTIFICATE);
@@ -1360,6 +1372,9 @@ public abstract class AbstractIDPValve extends ValveBase {
             for (SAML2Handler handler : samlHandlers) {
                 handler.initChainConfig(handlerChainConfig);
             }
+
+            this.chain = chain;
+            this.picketLinkConfiguration.setHandlers(handlers);
         } catch (Exception e) {
             logger.samlHandlerConfigurationError(e);
             throw new LifecycleException(e.getLocalizedMessage());
@@ -1367,15 +1382,19 @@ public abstract class AbstractIDPValve extends ValveBase {
     }
 
     protected void initKeyManager() throws LifecycleException {
-        if (this.idpConfiguration.isSupportsSignature() || this.idpConfiguration.isEncrypt()) {
-            KeyProviderType keyProvider = this.idpConfiguration.getKeyProvider();
+        IDPType idpConfiguration = getIdpConfiguration();
+
+        if (idpConfiguration.isSupportsSignature() || idpConfiguration.isEncrypt()) {
+            KeyProviderType keyProvider = idpConfiguration.getKeyProvider();
             if (keyProvider == null) {
                 throw new LifecycleException(
                     logger.nullValueError("Key Provider is null for context=" + getContext().getName()));
             }
 
+            TrustKeyManager keyManager;
+
             try {
-                this.keyManager = CoreConfigUtil.getTrustKeyManager(keyProvider);
+                keyManager = CoreConfigUtil.getTrustKeyManager(keyProvider);
 
                 List<AuthPropertyType> authProperties = CoreConfigUtil.getKeyProviderProperties(keyProvider);
                 keyManager.setAuthProperties(authProperties);
@@ -1401,6 +1420,8 @@ public abstract class AbstractIDPValve extends ValveBase {
             XMLSignatureUtil.setCanonicalizationMethodType(idpConfiguration.getCanonicalizationMethod());
 
             logger.trace("Key Provider=" + keyProvider.getClassName());
+
+            this.keyManager = keyManager;
         }
     }
 
@@ -1421,6 +1442,8 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
         }
 
+        PicketLinkType picketLinkType = null;
+
         // Work on the IDP Configuration
         if (configProvider != null) {
             try {
@@ -1439,8 +1462,8 @@ public abstract class AbstractIDPValve extends ValveBase {
                     }
                 }
 
-                picketLinkConfiguration = configProvider.getPicketLinkConfiguration();
-                idpConfiguration = configProvider.getIDPConfiguration();
+                picketLinkType = configProvider.getPicketLinkConfiguration();
+                picketLinkType.setIdpOrSP(configProvider.getIDPConfiguration());
             } catch (ProcessingException e) {
                 throw logger.samlIDPConfigurationError(e);
             } catch (ParsingException e) {
@@ -1448,11 +1471,10 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
         }
 
-        if (idpConfiguration == null) {
+        if (picketLinkType == null) {
             if (is != null) {
                 try {
-                    picketLinkConfiguration = ConfigurationUtil.getConfiguration(is);
-                    idpConfiguration = (IDPType) picketLinkConfiguration.getIdpOrSP();
+                    picketLinkType = ConfigurationUtil.getConfiguration(is);
                 } catch (ParsingException e) {
                     logger.trace(e);
                     logger.samlIDPConfigurationError(e);
@@ -1466,7 +1488,9 @@ public abstract class AbstractIDPValve extends ValveBase {
                     throw logger.configurationFileMissing(DEPRECATED_CONFIG_FILE_LOCATION);
                 }
                 try {
-                    idpConfiguration = ConfigurationUtil.getIDPConfiguration(is);
+                    picketLinkType = new PicketLinkType();
+
+                    picketLinkType.setIdpOrSP(ConfigurationUtil.getIDPConfiguration(is));
                 } catch (ParsingException e) {
                     logger.samlIDPConfigurationError(e);
                 }
@@ -1482,9 +1506,11 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
         }
 
+        IDPType idpConfiguration = (IDPType) picketLinkType.getIdpOrSP();
+
         try {
-            if (this.picketLinkConfiguration != null) {
-                enableAudit = picketLinkConfiguration.isEnableAudit();
+            if (picketLinkType != null) {
+                Boolean enableAudit = picketLinkType.isEnableAudit();
 
                 // See if we have the system property enabled
                 if (!enableAudit) {
@@ -1503,7 +1529,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                 }
             }
 
-            logger.trace("Identity Provider URL=" + getIdentityURL());
+            logger.trace("Identity Provider URL=" + idpConfiguration.getIdentityURL());
 
             // Get the attribute manager
             String attributeManager = idpConfiguration.getAttributeManager();
@@ -1542,7 +1568,8 @@ public abstract class AbstractIDPValve extends ValveBase {
             throw logger.samlIDPConfigurationError(e);
         }
 
-        initHostedURI();
+        initHostedURI(idpConfiguration);
+        this.picketLinkConfiguration = picketLinkType;
     }
 
     /**
@@ -1572,7 +1599,7 @@ public abstract class AbstractIDPValve extends ValveBase {
     }
 
     protected String getIdentityURL() {
-        return this.idpConfiguration.getIdentityURL();
+        return getIdpConfiguration().getIdentityURL();
     }
 
     protected Context getContext() {
@@ -1617,38 +1644,37 @@ public abstract class AbstractIDPValve extends ValveBase {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    // Clear
-                    picketLinkConfiguration = null;
-                    idpConfiguration = null;
-                    initIDPConfiguration();
                     try {
-                        initKeyManager();
-                        initHandlersChain();
+                        logger.info("Reloading configuration for " + getContext().getName());
+                        processConfiguration();
                     } catch (LifecycleException e) {
-                        logger.trace(e.getMessage());
+                        logger.error(e);
                     }
                 }
             }, timerInterval, timerInterval);
         }
 
-        initIDPConfiguration();
-        initSTSConfiguration();
-        initKeyManager();
-        initHandlersChain();
-        initIdentityServer();
+        processConfiguration();
 
         // Add some keys to the attibutes
         String[] ak = new String[]{"mail", "cn", "commonname", "givenname", "surname", "employeeType", "employeeNumber",
             "facsimileTelephoneNumber"};
 
         this.attributeKeys.addAll(Arrays.asList(ak));
+    }
 
-        if (this.picketLinkConfiguration == null) {
-            this.picketLinkConfiguration = new PicketLinkType();
-
-            this.picketLinkConfiguration.setIdpOrSP(this.idpConfiguration);
-            this.picketLinkConfiguration.setHandlers(this.handlers);
+    protected void stopPicketLink() {
+        if (timer != null) {
+            timer.cancel();
         }
+    }
+
+    private void processConfiguration() throws LifecycleException {
+        initIDPConfiguration();
+        initSTSConfiguration();
+        initKeyManager();
+        initHandlersChain();
+        initIdentityServer();
     }
 
     /**
@@ -1701,8 +1727,8 @@ public abstract class AbstractIDPValve extends ValveBase {
         return !isRequestSigned;
     }
 
-    private void initHostedURI() {
-        String hostedURI = this.idpConfiguration.getHostedURI();
+    private void initHostedURI(IDPType idpConfiguration) {
+        String hostedURI = idpConfiguration.getHostedURI();
 
         if (isNullOrEmpty(hostedURI)) {
             hostedURI = "/hosted/";
@@ -1711,7 +1737,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             hostedURI = hostedURI + "/";
         }
 
-        this.idpConfiguration.setHostedURI(hostedURI);
+        idpConfiguration.setHostedURI(hostedURI);
     }
 
     private SSLAuthenticator getSSLAuthenticator() {

@@ -104,6 +104,7 @@ public class IDPWebBrowserSSOValve extends AbstractIDPValve implements Lifecycle
         if (!started) {
             throw new LifecycleException(ErrorCodes.IDP_WEBBROWSER_VALVE_NOT_STARTED);
         }
+        stopPicketLink();
         lifecycle.fireLifecycleEvent(STOP_EVENT, null);
         started = false;
     }
