@@ -42,7 +42,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -98,8 +97,15 @@ public class SPRedirectFormAuthenticatorResponseTestCase {
 
         Map<String, List<Object>> sessionMap = (Map<String, List<Object>>) session
                 .getAttribute(GeneralConstants.SESSION_ATTRIBUTE_MAP);
+
         assertNotNull(sessionMap);
-        assertEquals("sales", sessionMap.get("Role").get(0));
+
+        List<Object> roles = sessionMap.get("Role");
+
+        assertNotNull(roles);
+        assertTrue(hasValue("manager", roles));
+        assertTrue(hasValue("sales", roles));
+        assertTrue(hasValue("employee", roles));
     }
 
     private byte[] readIDPResponse() throws IOException {
@@ -138,4 +144,13 @@ public class SPRedirectFormAuthenticatorResponseTestCase {
         return mcl;
     }
 
+    private boolean hasValue(String value, List values) {
+        for (Object valueFromList : values) {
+            if (value.equals(valueFromList)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
