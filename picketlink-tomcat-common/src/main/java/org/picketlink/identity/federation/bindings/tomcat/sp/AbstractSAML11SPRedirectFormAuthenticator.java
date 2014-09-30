@@ -138,6 +138,6 @@ public abstract class AbstractSAML11SPRedirectFormAuthenticator extends Abstract
 
     protected void startPicketLink() throws LifecycleException {
         super.startPicketLink();
-        this.spConfiguration.setBindingType("REDIRECT");
+        getConfiguration().setBindingType("REDIRECT");
     }
 }

@@ -37,7 +37,6 @@ import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.exceptions.ParsingException;
 import org.picketlink.common.exceptions.ProcessingException;
 import org.picketlink.common.util.DocumentUtil;
-import org.picketlink.common.util.StringUtil;
 import org.picketlink.common.util.SystemPropertiesUtil;
 import org.picketlink.config.federation.PicketLinkType;
 import org.picketlink.config.federation.SPType;
@@ -89,6 +88,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.picketlink.common.constants.GeneralConstants.CONFIG_FILE_LOCATION;
+import static org.picketlink.common.util.StringUtil.isNotNull;
 import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 
 /**
@@ -103,20 +103,15 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     public static final String DESIRED_IDP = "picketlink.desired.idp";
 
-    protected boolean enableAudit = false;
-    protected PicketLinkAuditHelper auditHelper = null;
+    protected volatile PicketLinkAuditHelper auditHelper = null;
 
-    protected TrustKeyManager keyManager;
+    protected volatile TrustKeyManager keyManager;
 
-    protected SPType spConfiguration = null;
+    protected volatile PicketLinkType picketLinkConfiguration = null;
 
-    protected PicketLinkType picketLinkConfiguration = null;
+    protected volatile String serviceURL = null;
 
-    protected String serviceURL = null;
-
-    protected String identityURL = null;
-
-    protected String issuerID = null;
+    protected volatile String issuerID = null;
 
     protected String configFile;
 
@@ -129,7 +124,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     protected transient String samlHandlerChainClass = null;
 
-    protected Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
+    protected Map<String, Object> chainConfigOptions;
 
     // Whether the authenticator has to to save and restore request
     protected boolean saveRestoreRequest = true;
@@ -139,7 +134,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      */
     protected Lock chainLock = new ReentrantLock();
 
-    protected String canonicalizationMethod = CanonicalizationMethod.EXCLUSIVE_WITH_COMMENTS;
+    protected volatile String canonicalizationMethod = CanonicalizationMethod.EXCLUSIVE_WITH_COMMENTS;
 
     /**
      * The user can inject a fully qualified name of a {@link SAMLConfigurationProvider}
@@ -256,7 +251,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * @return
      */
     public SPType getConfiguration() {
-        return spConfiguration;
+        return (SPType) this.picketLinkConfiguration.getIdpOrSP();
     }
 
     /**
@@ -283,7 +278,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * @param value an integer value that represents timer value (in miliseconds)
      */
     public void setTimerInterval(String value) {
-        if (StringUtil.isNotNull(value)) {
+        if (isNotNull(value)) {
             timerInterval = Integer.parseInt(value);
         }
     }
@@ -305,7 +300,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * @return
      */
     public String getIdentityURL() {
-        return identityURL;
+        return getConfiguration().getIdentityURL();
     }
 
     /**
@@ -395,10 +390,11 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     /**
      * Attempt to process a metadata file available locally
+     * @param configuration
      */
-    protected void processIDPMetadataFile(String idpMetadataFile) {
+    protected void processIDPMetadataFile(SPType configuration) {
         ServletContext servletContext = context.getServletContext();
-        InputStream is = servletContext.getResourceAsStream(idpMetadataFile);
+        InputStream is = servletContext.getResourceAsStream(configuration.getIdpMetadataFile());
         if (is == null) {
             return;
         }
@@ -430,8 +426,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             } else if (endpointBinding.contains("HTTP-Redirect")) {
                 endpointBinding = "REDIRECT";
             }
-            if (getBinding().equals(endpointBinding)) {
-                identityURL = endpoint.getLocation().toString();
+            if (configuration.getBindingType().equals(endpointBinding)) {
+                configuration.setIdentityURL(endpoint.getLocation().toString());
                 break;
             }
         }
@@ -447,11 +443,10 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     @SuppressWarnings("deprecation")
     protected void processConfiguration() {
         ServletContext servletContext = context.getServletContext();
-        InputStream is = null;
+        InputStream is;
 
         if (isNullOrEmpty(this.configFile)) {
-            this.configFile = CONFIG_FILE_LOCATION;
-            is = servletContext.getResourceAsStream(this.configFile);
+            is = servletContext.getResourceAsStream(CONFIG_FILE_LOCATION);
         } else {
             try {
                 is = new FileInputStream(this.configFile);
@@ -459,6 +454,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                 throw logger.samlIDPConfigurationError(e);
             }
         }
+
+        PicketLinkType picketLinkType;
 
         try {
             // Work on the IDP Configuration
@@ -479,8 +476,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                         }
                     }
 
-                    picketLinkConfiguration = configProvider.getPicketLinkConfiguration();
-                    spConfiguration = configProvider.getSPConfiguration();
+                    picketLinkType = configProvider.getPicketLinkConfiguration();
+                    picketLinkType.setIdpOrSP(configProvider.getSPConfiguration());
                 } catch (ProcessingException e) {
                     throw logger.samlSPConfigurationError(e);
                 } catch (ParsingException e) {
@@ -489,8 +486,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             } else {
                 if (is != null) {
                     try {
-                        picketLinkConfiguration = ConfigurationUtil.getConfiguration(is);
-                        spConfiguration = (SPType) picketLinkConfiguration.getIdpOrSP();
+                        picketLinkType = ConfigurationUtil.getConfiguration(is);
                     } catch (ParsingException e) {
                         logger.trace(e);
                         throw logger.samlSPConfigurationError(e);
@@ -500,7 +496,10 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                     if (is == null) {
                         throw logger.configurationFileMissing(configFile);
                     }
-                    spConfiguration = ConfigurationUtil.getSPConfiguration(is);
+
+                    picketLinkType = new PicketLinkType();
+
+                    picketLinkType.setIdpOrSP(ConfigurationUtil.getSPConfiguration(is));
                 }
             }
 
@@ -513,38 +512,45 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                 }
             }
 
-            if (this.picketLinkConfiguration != null) {
-                enableAudit = picketLinkConfiguration.isEnableAudit();
+            Boolean enableAudit = picketLinkType.isEnableAudit();
 
-                //See if we have the system property enabled
-                if (!enableAudit) {
-                    String sysProp = SecurityActions.getSystemProperty(GeneralConstants.AUDIT_ENABLE, "NULL");
-                    if (!"NULL".equals(sysProp)) {
-                        enableAudit = Boolean.parseBoolean(sysProp);
-                    }
-                }
-
-                if (enableAudit) {
-                    if (auditHelper == null) {
-                        String securityDomainName = PicketLinkAuditHelper.getSecurityDomainName(servletContext);
-
-                        auditHelper = new PicketLinkAuditHelper(securityDomainName);
-                    }
+            //See if we have the system property enabled
+            if (!enableAudit) {
+                String sysProp = SecurityActions.getSystemProperty(GeneralConstants.AUDIT_ENABLE, "NULL");
+                if (!"NULL".equals(sysProp)) {
+                    enableAudit = Boolean.parseBoolean(sysProp);
                 }
             }
 
-            if (StringUtil.isNotNull(spConfiguration.getIdpMetadataFile())) {
-                processIDPMetadataFile(spConfiguration.getIdpMetadataFile());
-            } else {
-                this.identityURL = spConfiguration.getIdentityURL();
+            if (enableAudit) {
+                if (auditHelper == null) {
+                    String securityDomainName = PicketLinkAuditHelper.getSecurityDomainName(servletContext);
+
+                    auditHelper = new PicketLinkAuditHelper(securityDomainName);
+                }
             }
+
+            SPType spConfiguration = (SPType) picketLinkType.getIdpOrSP();
+
+            if (isNotNull(spConfiguration.getIdpMetadataFile())) {
+                processIDPMetadataFile(spConfiguration);
+            }
+
             this.serviceURL = spConfiguration.getServiceURL();
             this.canonicalizationMethod = spConfiguration.getCanonicalizationMethod();
+            this.picketLinkConfiguration = picketLinkType;
 
             logger.samlSPSettingCanonicalizationMethod(canonicalizationMethod);
             XMLSignatureUtil.setCanonicalizationMethodType(canonicalizationMethod);
 
-            logger.trace("Identity Provider URL=" + this.identityURL);
+            try {
+                this.initKeyProvider(context);
+                this.initializeHandlerChain(picketLinkType);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            logger.trace("Identity Provider URL=" + getConfiguration().getIdentityURL());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -583,19 +589,49 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         return null;
     }
 
-    protected void initializeHandlerChain() throws ConfigurationException, ProcessingException {
-        populateChainConfig();
+    protected void initializeHandlerChain(PicketLinkType picketLinkType) throws Exception {
+        SAML2HandlerChain handlerChain;
+
+        // Get the chain from config
+        if (isNullOrEmpty(samlHandlerChainClass)) {
+            handlerChain = SAML2HandlerChainFactory.createChain();
+        } else {
+            try {
+                handlerChain = SAML2HandlerChainFactory.createChain(this.samlHandlerChainClass);
+            } catch (ProcessingException e1) {
+                throw new LifecycleException(e1);
+            }
+        }
+
+        Handlers handlers = picketLinkType.getHandlers();
+
+        if (handlers == null) {
+            // Get the handlers
+            String handlerConfigFileName = GeneralConstants.HANDLER_CONFIG_FILE_LOCATION;
+            ServletContext servletContext = context.getServletContext();
+            handlers = ConfigurationUtil.getHandlers(servletContext.getResourceAsStream(handlerConfigFileName));
+        }
+
+        picketLinkType.setHandlers(handlers);
+
+        handlerChain.addAll(HandlerUtil.getHandlers(handlers));
+
+        populateChainConfig(picketLinkType);
         SAML2HandlerChainConfig handlerChainConfig = new DefaultSAML2HandlerChainConfig(chainConfigOptions);
 
-        Set<SAML2Handler> samlHandlers = chain.handlers();
+        Set<SAML2Handler> samlHandlers = handlerChain.handlers();
 
         for (SAML2Handler handler : samlHandlers) {
             handler.initChainConfig(handlerChainConfig);
         }
+
+        chain = handlerChain;
     }
 
-    protected void populateChainConfig() throws ConfigurationException, ProcessingException {
-        chainConfigOptions.put(GeneralConstants.CONFIGURATION, spConfiguration);
+    protected void populateChainConfig(PicketLinkType picketLinkType) throws ConfigurationException, ProcessingException {
+        Map<String, Object> chainConfigOptions = new HashMap<String, Object>();
+
+        chainConfigOptions.put(GeneralConstants.CONFIGURATION, picketLinkType.getIdpOrSP());
         chainConfigOptions.put(GeneralConstants.ROLE_VALIDATOR_IGNORE, "false"); // No validator as tomcat realm does validn
 
         if (doSupportSignature()) {
@@ -606,6 +642,8 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
                 chainConfigOptions.put(GeneralConstants.X509CERTIFICATE, keyManager.getCertificate(certificateAlias));
             }
         }
+
+        this.chainConfigOptions = chainConfigOptions;
     }
 
     protected void sendToLogoutPage(Request request, Response response, Session session) throws IOException, ServletException {
@@ -646,58 +684,15 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    //clear the configuration
-                    picketLinkConfiguration = null;
-                    spConfiguration = null;
+                    logger.info("Reloading configuration for " + context.getName());
                     processConfiguration();
-                    try {
-                        initKeyProvider(context);
-                    } catch (LifecycleException e) {
-                        logger.trace(e.getMessage());
-                    }
                 }
             }, timerInterval, timerInterval);
-        }
-
-        // Get the chain from config
-        if (StringUtil.isNullOrEmpty(samlHandlerChainClass)) {
-            chain = SAML2HandlerChainFactory.createChain();
-        } else {
-            try {
-                chain = SAML2HandlerChainFactory.createChain(this.samlHandlerChainClass);
-            } catch (ProcessingException e1) {
-                throw new LifecycleException(e1);
-            }
         }
 
         ServletContext servletContext = context.getServletContext();
 
         this.processConfiguration();
-
-        try {
-            if (picketLinkConfiguration != null) {
-                handlers = picketLinkConfiguration.getHandlers();
-            } else {
-                // Get the handlers
-                String handlerConfigFileName = GeneralConstants.HANDLER_CONFIG_FILE_LOCATION;
-                handlers = ConfigurationUtil.getHandlers(servletContext.getResourceAsStream(handlerConfigFileName));
-            }
-
-            chain.addAll(HandlerUtil.getHandlers(handlers));
-
-            this.initKeyProvider(context);
-            this.populateChainConfig();
-            this.initializeHandlerChain();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        if (this.picketLinkConfiguration == null) {
-            this.picketLinkConfiguration = new PicketLinkType();
-
-            this.picketLinkConfiguration.setIdpOrSP(getConfiguration());
-            this.picketLinkConfiguration.setHandlers(handlers);
-        }
 
         new SessionManager(servletContext, new SessionManager.InitializationCallback() {
             @Override
@@ -707,6 +702,12 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         });
     }
 
+    protected void stopPicketLink() {
+        if (timer != null) {
+            timer.cancel();
+        }
+    }
+
     /**
      * <p> Indicates if digital signatures/validation of SAML assertions are enabled. Subclasses that supports signature should
      * override this method. </p>
@@ -714,10 +715,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * @return
      */
     protected boolean doSupportSignature() {
-        if (spConfiguration != null) {
-            return spConfiguration.isSupportsSignature();
-        }
-        return false;
+        return getConfiguration().isSupportsSignature();
     }
 
     private Class<?> getAuthenticatorBaseClass() {

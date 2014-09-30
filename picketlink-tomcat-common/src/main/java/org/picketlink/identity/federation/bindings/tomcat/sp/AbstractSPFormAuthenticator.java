@@ -41,6 +41,7 @@ import org.picketlink.common.util.DocumentUtil;
 import org.picketlink.common.util.StringUtil;
 import org.picketlink.config.federation.AuthPropertyType;
 import org.picketlink.config.federation.KeyProviderType;
+import org.picketlink.config.federation.SPType;
 import org.picketlink.identity.federation.bindings.tomcat.sp.holder.ServiceProviderSAMLContext;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEvent;
 import org.picketlink.identity.federation.core.audit.PicketLinkAuditEventType;
@@ -196,7 +197,8 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             return;
         }
 
-        KeyProviderType keyProvider = this.spConfiguration.getKeyProvider();
+        SPType configuration = getConfiguration();
+        KeyProviderType keyProvider = configuration.getKeyProvider();
 
         if (keyProvider == null && doSupportSignature()) {
             throw new LifecycleException(ErrorCodes.NULL_VALUE + "KeyProvider is null for context=" + context.getName());
@@ -213,14 +215,15 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             if (clazz == null) {
                 throw new ClassNotFoundException(ErrorCodes.CLASS_NOT_LOADED + keyManagerClassName);
             }
-            this.keyManager = (TrustKeyManager) clazz.newInstance();
+
+            TrustKeyManager keyManager = (TrustKeyManager) clazz.newInstance();
 
             List<AuthPropertyType> authProperties = CoreConfigUtil.getKeyProviderProperties(keyProvider);
 
             keyManager.setAuthProperties(authProperties);
             keyManager.setValidatingAlias(keyProvider.getValidatingAlias());
 
-            String identityURL = this.spConfiguration.getIdentityURL();
+            String identityURL = configuration.getIdentityURL();
 
             //Special case when you need X509Data in SignedInfo
             if (authProperties != null) {
@@ -234,6 +237,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                 }
             }
             keyManager.addAdditionalOption(ServiceProviderBaseProcessor.IDP_KEY, new URL(identityURL).getHost());
+            this.keyManager = keyManager;
         } catch (Exception e) {
             logger.trustKeyManagerCreationError(e);
             throw new LifecycleException(e.getLocalizedMessage());
@@ -340,11 +344,13 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
             return localAuthentication(request, response, loginConfig);
         } catch (IOException e) {
-            if (StringUtil.isNotNull(spConfiguration.getErrorPage())) {
+            SPType configuration = getConfiguration();
+
+            if (StringUtil.isNotNull(configuration.getErrorPage())) {
                 try {
-                    request.getRequestDispatcher(spConfiguration.getErrorPage()).forward(request.getRequest(), response);
+                    request.getRequestDispatcher(configuration.getErrorPage()).forward(request.getRequest(), response);
                 } catch (ServletException e1) {
-                    logger.samlErrorPageForwardError(spConfiguration.getErrorPage(), e1);
+                    logger.samlErrorPageForwardError(configuration.getErrorPage(), e1);
                 }
                 return false;
             } else {
@@ -399,7 +405,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             requestProcessor.setTrustKeyManager(keyManager);
             boolean result = requestProcessor.process(samlRequest, httpContext, handlers, chainLock);
 
-            if (enableAudit) {
+            if (isEnableAudit()) {
                 PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                 auditEvent.setType(PicketLinkAuditEventType.REQUEST_FROM_IDP);
                 auditEvent.setWhoIsAuditing(getContextPath());
@@ -420,6 +426,10 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         }
 
         return localAuthentication(request, response, loginConfig);
+    }
+
+    private boolean isEnableAudit() {
+        return this.picketLinkConfiguration.isEnableAudit();
     }
 
     private Document toSAMLResponseDocument(String samlResponse, boolean isPostBinding) throws ParsingException {
@@ -541,7 +551,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                 session.setNote(Constants.SESS_PASSWORD_NOTE, password);
                 request.setUserPrincipal(principal);
 
-                if (enableAudit) {
+                if (isEnableAudit()) {
                     PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                     auditEvent.setType(PicketLinkAuditEventType.RESPONSE_FROM_IDP);
                     auditEvent.setSubjectName(username);
@@ -573,7 +583,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             Throwable t = pe.getCause();
             if (t != null && t instanceof AssertionExpiredException) {
                 logger.error("Assertion has expired. Asking IDP for reissue");
-                if (enableAudit) {
+                if (isEnableAudit()) {
                     PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                     auditEvent.setType(PicketLinkAuditEventType.EXPIRED_ASSERTION);
                     auditEvent.setAssertionID(((AssertionExpiredException) t).getId());
@@ -617,10 +627,6 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         return version;
     }
 
-    protected boolean isPOSTBindingResponse() {
-        return spConfiguration.isIdpUsesPostBinding();
-    }
-
     /*
      * (non-Javadoc)
      *
@@ -628,7 +634,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
      */
     @Override
     protected String getBinding() {
-        return spConfiguration.getBindingType();
+        return getConfiguration().getBindingType();
     }
 
     /**
@@ -648,7 +654,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         HTTPContext httpContext = new HTTPContext(request, response, context.getServletContext());
         Set<SAML2Handler> handlers = chain.handlers();
 
-        boolean postBinding = spConfiguration.getBindingType().equals("POST");
+        boolean postBinding = getConfiguration().getBindingType().equals("POST");
 
         // Neither saml request nor response from IDP
         // So this is a user request
@@ -664,7 +670,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             if (StringUtil.isNotNull(idp)) {
                 baseProcessor.setIdentityURL(idp);
             } else {
-                baseProcessor.setIdentityURL(identityURL);
+                baseProcessor.setIdentityURL(getIdentityURL());
             }
             baseProcessor.setAuditHelper(auditHelper);
 
@@ -693,7 +699,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                 if (saveRestoreRequest && !isGlobalLogout(request)) {
                     this.saveRequest(request, session);
                 }
-                if (enableAudit) {
+                if (isEnableAudit()) {
                     PicketLinkAuditEvent auditEvent = new PicketLinkAuditEvent(AuditLevel.INFO);
                     auditEvent.setType(PicketLinkAuditEventType.REQUEST_TO_IDP);
                     auditEvent.setWhoIsAuditing(getContextPath());
