@@ -136,6 +136,9 @@ public class SAML2RedirectSignatureTomcatWorkflowUnitTestCase extends AbstractSA
         MockCatalinaResponse response = new MockCatalinaResponse();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        response.setOutputStream(baos);
+
         response.setWriter(new PrintWriter(baos));
 
         idp.invoke(request, response);

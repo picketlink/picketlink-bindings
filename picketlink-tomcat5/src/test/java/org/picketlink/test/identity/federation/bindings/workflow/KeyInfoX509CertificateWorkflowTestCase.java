@@ -17,7 +17,7 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import org.apache.catalina.LifecycleException;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.picketlink.identity.federation.api.saml.v2.response.SAML2Response;
 import org.picketlink.identity.federation.bindings.tomcat.idp.IDPWebBrowserSSOValve;
@@ -30,8 +30,6 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRespons
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import javax.servlet.ServletException;
-import java.io.IOException;
 import java.io.InputStream;
 
 import static junit.framework.Assert.assertTrue;
@@ -43,6 +41,7 @@ import static org.junit.Assert.assertNotNull;
  * @author Anil Saldhana
  * @since January 13, 2014
  */
+@Ignore
 public class KeyInfoX509CertificateWorkflowTestCase extends SAML2RedirectSignatureTomcatWorkflowUnitTestCase{
 
     //We provide a different picketlink.xml for the IDP which has the X509CERTIFICATE auth key value

@@ -44,6 +44,7 @@ public class MockCatalinaResponse extends Response {
     public String redirectString;
     private PrintWriter mywriter;
     private ServletOutputStream os;
+    private ByteArrayOutputStream byteArray;
 
     @Override
     public void setCharacterEncoding(String charset) {
@@ -111,12 +112,17 @@ public class MockCatalinaResponse extends Response {
     }
 
     public void setOutputStream(final ByteArrayOutputStream os) {
+        this.byteArray = os;
         this.os = new ServletOutputStream() {
             @Override
             public void write(int b) throws IOException {
                 os.write(b);
             }
         };
+    }
+
+    public ByteArrayOutputStream getByteArrayOutputStream() {
+        return this.byteArray;
     }
 
     @Override

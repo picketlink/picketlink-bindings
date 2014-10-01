@@ -125,6 +125,7 @@ public class IDPWebBrowserSSOTestCase {
         logger.info("testRoleGeneratorConfiguration");
 
         MockCatalinaRequest request = AuthenticatorTestUtils.createRequest(SERVICE_PROVIDER_HOST_ADDRESS, true);
+
         MockCatalinaResponse response = new MockCatalinaResponse();
 
         sendAuthenticationRequest(request, response, SERVICE_PROVIDER_URL, true);
@@ -525,6 +526,7 @@ public class IDPWebBrowserSSOTestCase {
             logger.info("AuthRequestType:" + prettyPrintDocument(authnRequestDocument).toString());
 
             if (signToken) {
+                request.setParameter(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY, "");
                 request.setQueryString(RedirectBindingSignatureUtil.getSAMLRequestURLWithSignature(authnRequestType, null,
                         getAuthenticator().getKeyManager().getSigningKey()));
                 AuthenticatorTestUtils.populateParametersWithQueryString(request.getQueryString(), request);

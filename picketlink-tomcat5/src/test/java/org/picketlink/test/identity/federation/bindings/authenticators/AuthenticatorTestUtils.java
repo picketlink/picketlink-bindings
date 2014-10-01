@@ -95,7 +95,7 @@ public class AuthenticatorTestUtils {
         request.setMethod("GET");
         request.setRemoteAddr(userAddress);
         MockCatalinaContext context = new MockCatalinaContext();
-
+        request.setParameter(GeneralConstants.SAML_SIGNATURE_REQUEST_KEY, "");
         request.setContext(context);
 
         MockCatalinaSession session = new MockCatalinaSession();

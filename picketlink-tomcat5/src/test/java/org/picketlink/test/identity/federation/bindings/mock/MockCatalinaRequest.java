@@ -91,6 +91,11 @@ public class MockCatalinaRequest extends Request {
     }
 
     @Override
+    public Map getParameterMap() {
+        return params;
+    }
+
+    @Override
     public Enumeration getParameterNames() {
         return getEmptyEnumeration();
     }
