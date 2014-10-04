@@ -39,6 +39,7 @@ import org.picketlink.identity.federation.api.saml.v2.request.SAML2Request;
 import org.picketlink.identity.federation.api.saml.v2.response.SAML2Response;
 import org.picketlink.identity.federation.bindings.tomcat.idp.IDPWebBrowserSSOValve;
 import org.picketlink.identity.federation.core.saml.v2.common.IDGenerator;
+import org.picketlink.identity.federation.core.saml.v2.util.StatementUtil;
 import org.picketlink.identity.federation.saml.v2.assertion.AssertionType;
 import org.picketlink.identity.federation.saml.v2.assertion.AttributeStatementType;
 import org.picketlink.identity.federation.saml.v2.assertion.AttributeStatementType.ASTChoiceType;
@@ -69,7 +70,10 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -358,6 +362,60 @@ public class IDPWebBrowserSSOTestCase {
 
         // The response should redirect back to the caller SP
         assertTrue("Expected a redirect to the SP.", response.redirectString.contains(SERVICE_PROVIDER_URL));
+    }
+
+    /**
+     * <p>
+     * Tests if the IDP respond with a valid {@link AssertionType} given a valid {@link AuthnRequestType}.
+     * </p>
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testSAML2AttributeManager() throws Exception {
+        logger.info("testSimpleAuthenticationRequest");
+        MockCatalinaRequest request = AuthenticatorTestUtils.createRequest(SERVICE_PROVIDER_HOST_ADDRESS, true);
+        MockCatalinaResponse response = new MockCatalinaResponse();
+
+        sendAuthenticationRequest(request, response, SERVICE_PROVIDER_URL, true);
+
+        ResponseType responseType = getResponseTypeAndCheckSignature(response, null);
+
+        assertNotNull(responseType);
+        assertEquals(1, responseType.getAssertions().size());
+
+        AssertionType assertion = responseType.getAssertions().get(0).getAssertion();
+
+        assertEquals(assertion.getIssuer().getValue(), IDENTITY_PROVIDER_URL);
+
+        Map<String, Object> attributes = StatementUtil.asMap(assertion.getAttributeStatements());
+
+        assertTrue(attributes.containsKey("Role"));
+        assertTrue(hasValue(attributes, "attribute1", "attributeValue1"));
+        assertTrue(attributes.containsKey("attribute2"));
+        assertTrue(hasValue(attributes, "attribute2", "attributeValue2"));
+        assertTrue(attributes.containsKey("attribute3"));
+        assertTrue(hasValue(attributes, "attribute3", "attributeValue3"));
+
+        // The response should redirect back to the caller SP
+        assertTrue("Expected a redirect to the SP.", response.redirectString.contains(SERVICE_PROVIDER_URL));
+    }
+
+    private boolean hasValue(Map<String, Object> attributes, String key, String value) {
+        Object values = attributes.get(key);
+
+        if (Collection.class.isInstance(values)) {
+            Collection collection = (Collection) values;
+            Iterator iterator = collection.iterator();
+
+            while (iterator.hasNext()) {
+                if (iterator.next().equals(value)) {
+                    return true;
+                }
+            }
+        }
+
+        return values.equals(value);
     }
 
     /**
