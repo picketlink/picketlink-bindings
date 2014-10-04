@@ -2,7 +2,8 @@
 	<PicketLinkIDP xmlns="urn:picketlink:identity-federation:config:1.0"
 		StrictPostBinding="false" SupportsSignatures="true"
 		IdentityParticipantStack="org.picketlink.test.identity.federation.bindings.authenticators.idp.TestIdentityParticipantStack"
-		RoleGenerator="org.picketlink.test.identity.federation.bindings.authenticators.idp.TestRoleGenerator">
+		RoleGenerator="org.picketlink.test.identity.federation.bindings.authenticators.idp.TestRoleGenerator"
+        AttributeManager="org.picketlink.test.identity.federation.bindings.authenticators.idp.TestSAML2AttributeManager">
 		<IdentityURL>${idp-sig.url::http://192.168.1.1:8080/idp-sig/}
 		</IdentityURL>
 		<Trust>

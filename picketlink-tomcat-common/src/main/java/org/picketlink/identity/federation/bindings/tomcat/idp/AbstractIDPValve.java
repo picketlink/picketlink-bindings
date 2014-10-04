@@ -163,7 +163,7 @@ public abstract class AbstractIDPValve extends ValveBase {
 
     private volatile TrustKeyManager keyManager;
 
-    private transient DelegatedAttributeManager attribManager = new DelegatedAttributeManager();
+    private transient DelegatedAttributeManager attribManager;
 
     private final List<String> attributeKeys = new ArrayList<String>();
 
@@ -898,12 +898,10 @@ public abstract class AbstractIDPValve extends ValveBase {
                 List<String> roles = roleGenerator.generateRoles(userPrincipal);
                 session.getSession().setAttribute(GeneralConstants.ROLES_ID, roles);
 
-                Map<String, Object> attribs = this.attribManager.getAttributes(
+                Map<String, Object> attribs = this.attribManager.getAttributesMap((AuthnRequestType) requestAbstractType,
                     passUserPrincipalToAttributeManager == true
                         ? request.getUserPrincipal()
-                        : userPrincipal,
-                    attributeKeys
-                );
+                        : userPrincipal);
                 requestOptions.put(GeneralConstants.ATTRIBUTES, attribs);
             }
 
@@ -1541,7 +1539,11 @@ public abstract class AbstractIDPValve extends ValveBase {
                     throw new RuntimeException(logger.classNotLoadedError(attributeManager));
                 }
                 AttributeManager delegate = (AttributeManager) clazz.newInstance();
-                this.attribManager.setDelegate(delegate);
+                // Add some keys to the attibutes
+                String[] ak = new String[]{"mail", "cn", "commonname", "givenname", "surname", "employeeType", "employeeNumber",
+                    "facsimileTelephoneNumber"};
+
+                this.attribManager = new DelegatedAttributeManager(delegate, Arrays.asList(ak));
             }
 
             // Get the role generator
@@ -1657,12 +1659,6 @@ public abstract class AbstractIDPValve extends ValveBase {
         }
 
         processConfiguration();
-
-        // Add some keys to the attibutes
-        String[] ak = new String[]{"mail", "cn", "commonname", "givenname", "surname", "employeeType", "employeeNumber",
-            "facsimileTelephoneNumber"};
-
-        this.attributeKeys.addAll(Arrays.asList(ak));
     }
 
     protected void stopPicketLink() {
