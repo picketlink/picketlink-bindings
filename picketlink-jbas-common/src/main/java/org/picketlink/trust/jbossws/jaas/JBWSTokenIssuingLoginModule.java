@@ -27,11 +27,13 @@ import org.picketlink.common.constants.WSTrustConstants;
 import org.picketlink.common.exceptions.fed.WSTrustException;
 import org.picketlink.common.util.StringUtil;
 import org.picketlink.identity.federation.bindings.jboss.subject.PicketLinkPrincipal;
+import org.picketlink.identity.federation.bindings.stspool.STSClientPoolFactory;
+import org.picketlink.identity.federation.bindings.util.ModuleUtils;
 import org.picketlink.identity.federation.core.wstrust.STSClient;
 import org.picketlink.identity.federation.core.wstrust.STSClientConfig;
 import org.picketlink.identity.federation.core.wstrust.STSClientConfig.Builder;
 import org.picketlink.identity.federation.core.wstrust.STSClientCreationCallBack;
-import org.picketlink.identity.federation.core.wstrust.STSClientFactory;
+import org.picketlink.identity.federation.core.wstrust.STSClientPool;
 import org.picketlink.identity.federation.core.wstrust.SamlCredential;
 import org.picketlink.identity.federation.core.wstrust.auth.STSIssuingLoginModule;
 import org.picketlink.identity.federation.core.wstrust.wrappers.RequestSecurityToken;
@@ -96,8 +98,9 @@ public class JBWSTokenIssuingLoginModule extends STSIssuingLoginModule {
     @Override
     protected STSClient createWSTrustClient(final STSClientConfig config) {
         try {
-            STSClientFactory cf = STSClientFactory.getInstance(maxClientsInPool);
-            cf.createPool(initialNumberOfClients, new STSClientCreationCallBack() {
+
+            STSClientPool pool = STSClientPoolFactory.getPoolInstance();
+            pool.createPool(initialClientsInPool, new STSClientCreationCallBack() {
                 @Override
                 public STSClient createClient() {
 
@@ -118,11 +121,10 @@ public class JBWSTokenIssuingLoginModule extends STSIssuingLoginModule {
 
                 @Override
                 public String getKey() {
-                    return STSClientConfig.computeSTSClientConfigKey(config.getServiceName(), config.getPortName(),
-                            config.getEndPointAddress(), config.getUsername());
+                    return  STSClientConfig.computeSTSClientConfigKey(ModuleUtils.getCurrentModuleId(), config.getServiceName(), config.getPortName(), config.getEndPointAddress(), config.getUsername());
                 }
             });
-            return cf.getClient(config);
+            return pool.getClient(config);
         } catch (final Exception e) {
             throw logger.authCouldNotCreateWSTrustClient(e);
         }

@@ -37,7 +37,8 @@ import org.picketlink.identity.federation.core.factories.JBossAuthCacheInvalidat
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
 import org.picketlink.identity.federation.core.wstrust.STSClient;
 import org.picketlink.identity.federation.core.wstrust.STSClientConfig;
-import org.picketlink.identity.federation.core.wstrust.STSClientFactory;
+import org.picketlink.identity.federation.core.wstrust.STSClientPool;
+import org.picketlink.identity.federation.bindings.stspool.STSClientPoolFactory;
 import org.picketlink.identity.federation.core.wstrust.STSClientConfig.Builder;
 import org.picketlink.identity.federation.core.wstrust.SamlCredential;
 import org.picketlink.identity.federation.core.wstrust.auth.AbstractSTSLoginModule;
@@ -126,12 +127,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
     /**
      * Maximal number of clients in the STS Client Pool.
      */
-    protected int maxClientsInPool = 0;
-
-    /**
-     * Number of clients initialized for in case pool is out of free clients.
-     */
-    protected int initialNumberOfClients = 0;
+    protected int initialClientsInPool = 0;
 
     /**
      * Options that are computed by this login module. Few options are removed and the rest are set in the dispatch sts call
@@ -179,12 +175,7 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
     /**
      * Paramater name.
      */
-    public static final String MAX_CLIENTS_IN_POOL = "maxClientsInPool";
-
-    /**
-     * Paramater name.
-     */
-    public static final String INITIAL_NUMBER_OF_CLIENTS = "initialNumberOfClients";
+    public static final String INITIAL_CLIENTS_IN_POOL = AbstractSTSLoginModule.INITIAL_CLIENTS_IN_POOL;
 
     /*
      * (non-Javadoc)
@@ -239,23 +230,15 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             }
         }
 
-        String maxClientsString = (String) options.get(MAX_CLIENTS_IN_POOL);
-        if (StringUtil.isNotNull(maxClientsString)) {
+        String initialClientsInPoolString = (String) options.get(INITIAL_CLIENTS_IN_POOL);
+        if (StringUtil.isNotNull(initialClientsInPoolString)) {
             try {
-                this.maxClientsInPool = Integer.parseInt(maxClientsString);
+                this.initialClientsInPool = Integer.parseInt(initialClientsInPoolString);
             } catch (Exception e) {
-                logger.cannotParseParameterValue(MAX_CLIENTS_IN_POOL, e);
+                logger.cannotParseParameterValue(initialClientsInPoolString, e);
             }
         }
 
-        String initialNumberOfClientsString = (String) options.get(INITIAL_NUMBER_OF_CLIENTS);
-        if (StringUtil.isNotNull(initialNumberOfClientsString)) {
-            try {
-                this.initialNumberOfClients = Integer.parseInt(initialNumberOfClientsString);
-            } catch (Exception e) {
-                logger.cannotParseParameterValue(INITIAL_NUMBER_OF_CLIENTS, e);
-            }
-        }
     }
 
     /*
@@ -510,10 +493,14 @@ public abstract class SAML2STSCommonLoginModule extends SAMLTokenFromHttpRequest
             }
 
         }
-        STSClientFactory cf = STSClientFactory.getInstance(maxClientsInPool);
+
         STSClientConfig config = builder.build();
-        cf.createPool(initialNumberOfClients, config);
-        client = cf.getClient(config);
+        STSClientPool pool = STSClientPoolFactory.getPoolInstance();
+
+        if (initialClientsInPool > 0) {
+            pool.createPool(initialClientsInPool, config);
+        }
+        client = pool.getClient(config);
 
         // if the login module options map still contains any properties, assume they are for configuring the connection
         // to the STS and set them in the Dispatch request context.
