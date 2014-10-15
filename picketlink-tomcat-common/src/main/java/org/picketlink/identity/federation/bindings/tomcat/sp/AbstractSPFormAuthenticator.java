@@ -112,17 +112,17 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
      * @param samlDocument request or response document
      * @param relayState
      * @param response
-     * @param willSendRequest are we sending Request or Response to IDP
+     * @param request
+     *@param willSendRequest are we sending Request or Response to IDP
      * @param destinationQueryStringWithSignature used only with Redirect binding and with signature enabled.
-     *
-     * @throws ProcessingException
+ *   @throws ProcessingException
      * @throws ConfigurationException
      * @throws IOException
      */
     protected void sendRequestToIDP(String destination, Document samlDocument, String relayState, Response response,
-        boolean willSendRequest, String destinationQueryStringWithSignature) throws ProcessingException, ConfigurationException, IOException {
+        Request request, boolean willSendRequest, String destinationQueryStringWithSignature) throws ProcessingException, ConfigurationException, IOException {
 
-        if (isAjaxRequest(response.getRequest())) {
+        if (isAjaxRequest(request)) {
             response.sendError(Response.SC_FORBIDDEN);
 
             response.setHeader("X-PicketLink-SAML-Destination", destination);
@@ -545,7 +545,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             String destinationQueryStringWithSignature = saml2HandlerResponse.getDestinationQueryStringWithSignature();
 
             if (destination != null && samlResponseDocument != null) {
-                sendRequestToIDP(destination, samlResponseDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+                sendRequestToIDP(destination, samlResponseDocument, relayState, response, request, willSendRequest, destinationQueryStringWithSignature);
             } else {
                 // See if the session has been invalidated
 
@@ -742,7 +742,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                     auditEvent.setWhoIsAuditing(getContextPath());
                     auditHelper.audit(auditEvent);
                 }
-                sendRequestToIDP(destination, samlResponseDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+                sendRequestToIDP(destination, samlResponseDocument, relayState, response, request, willSendRequest, destinationQueryStringWithSignature);
                 return false;
             } catch (Exception e) {
                 logger.samlSPHandleRequestError(e);
