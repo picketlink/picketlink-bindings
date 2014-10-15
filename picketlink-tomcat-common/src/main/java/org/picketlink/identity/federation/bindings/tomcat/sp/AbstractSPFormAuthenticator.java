@@ -120,11 +120,21 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
      */
     protected void sendRequestToIDP(String destination, Document samlDocument, String relayState, Response response,
         boolean willSendRequest, String destinationQueryStringWithSignature) throws ProcessingException, ConfigurationException, IOException {
-        if (isHttpPostBinding()) {
-            sendHttpPostBindingRequest(destination, samlDocument, relayState, response, willSendRequest);
+
+        if (isAjaxRequest(response.getRequest())) {
+            response.sendError(Response.SC_FORBIDDEN);
         } else {
-            sendHttpRedirectRequest(destination, samlDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+            if (isHttpPostBinding()) {
+                sendHttpPostBindingRequest(destination, samlDocument, relayState, response, willSendRequest);
+            } else {
+                sendHttpRedirectRequest(destination, samlDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+            }
         }
+    }
+
+    private boolean isAjaxRequest(Request request) {
+        String requestedWithHeader = request.getHeader(GeneralConstants.HTTP_HEADER_X_REQUESTED_WITH);
+        return requestedWithHeader != null && "XMLHttpRequest".equalsIgnoreCase(requestedWithHeader);
     }
 
     /**
