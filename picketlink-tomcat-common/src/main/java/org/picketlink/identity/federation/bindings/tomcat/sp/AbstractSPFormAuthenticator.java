@@ -33,6 +33,7 @@ import org.jboss.security.audit.AuditLevel;
 import org.picketlink.common.ErrorCodes;
 import org.picketlink.common.constants.GeneralConstants;
 import org.picketlink.common.constants.JBossSAMLConstants;
+import org.picketlink.common.constants.JBossSAMLURIConstants;
 import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.exceptions.ParsingException;
 import org.picketlink.common.exceptions.ProcessingException;
@@ -123,6 +124,22 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
         if (isAjaxRequest(response.getRequest())) {
             response.sendError(Response.SC_FORBIDDEN);
+
+            response.setHeader("X-PicketLink-SAML-Destination", destination);
+
+            String samlMessage;
+            String samlBinding;
+
+            if (isHttpPostBinding()) {
+                samlMessage = asHttpPostSamlRequest(samlDocument);
+                samlBinding = JBossSAMLURIConstants.SAML_HTTP_POST_BINDING.get();
+            } else {
+                samlMessage = asHttpRedirectSamlRequest(samlDocument, relayState, willSendRequest, destinationQueryStringWithSignature);
+                samlBinding = JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.get();
+            }
+
+            response.setHeader("X-PicketLink-SAML-Message", samlMessage);
+            response.setHeader("X-PicketLink-SAML-Binding", samlBinding);
         } else {
             if (isHttpPostBinding()) {
                 sendHttpPostBindingRequest(destination, samlDocument, relayState, response, willSendRequest);
@@ -153,6 +170,16 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
     protected void sendHttpRedirectRequest(String destination, Document samlDocument, String relayState, Response response,
         boolean willSendRequest, String destinationQueryStringWithSignature) throws IOException,
         ProcessingException, ConfigurationException {
+        String destinationQueryString = asHttpRedirectSamlRequest(samlDocument, relayState, willSendRequest, destinationQueryStringWithSignature);
+
+        RedirectBindingUtilDestHolder holder = new RedirectBindingUtilDestHolder();
+
+        holder.setDestination(destination).setDestinationQueryString(destinationQueryString);
+
+        HTTPRedirectUtil.sendRedirectForRequestor(RedirectBindingUtil.getDestinationURL(holder), response);
+    }
+
+    private String asHttpRedirectSamlRequest(Document samlDocument, String relayState, boolean willSendRequest, String destinationQueryStringWithSignature) throws ProcessingException, ConfigurationException, IOException {
         String destinationQueryString = null;
 
         // We already have queryString with signature from SAML2SignatureGenerationHandler
@@ -164,11 +191,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             destinationQueryString = RedirectBindingUtil.getDestinationQueryString(base64Request, relayState, willSendRequest);
         }
 
-        RedirectBindingUtilDestHolder holder = new RedirectBindingUtilDestHolder();
-
-        holder.setDestination(destination).setDestinationQueryString(destinationQueryString);
-
-        HTTPRedirectUtil.sendRedirectForRequestor(RedirectBindingUtil.getDestinationURL(holder), response);
+        return destinationQueryString;
     }
 
     /**
@@ -187,11 +210,15 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
     protected void sendHttpPostBindingRequest(String destination, Document samlDocument, String relayState, Response response,
         boolean willSendRequest) throws ProcessingException, IOException,
         ConfigurationException {
-        String samlMessage = PostBindingUtil.base64Encode(DocumentUtil.getDocumentAsString(samlDocument));
+        String samlMessage = asHttpPostSamlRequest(samlDocument);
 
         DestinationInfoHolder destinationHolder = new DestinationInfoHolder(destination, samlMessage, relayState);
 
         PostBindingUtil.sendPost(destinationHolder, response, willSendRequest);
+    }
+
+    private String asHttpPostSamlRequest(Document samlDocument) throws IOException, ProcessingException, ConfigurationException {
+        return PostBindingUtil.base64Encode(DocumentUtil.getDocumentAsString(samlDocument));
     }
 
     /**
