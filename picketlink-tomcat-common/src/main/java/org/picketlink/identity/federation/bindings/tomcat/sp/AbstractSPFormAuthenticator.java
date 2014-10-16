@@ -111,19 +111,24 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
      * @param samlDocument request or response document
      * @param relayState
      * @param response
-     * @param willSendRequest are we sending Request or Response to IDP
+     * @param request
+     *@param willSendRequest are we sending Request or Response to IDP
      * @param destinationQueryStringWithSignature used only with Redirect binding and with signature enabled.
-     *
-     * @throws ProcessingException
+     *   @throws ProcessingException
      * @throws ConfigurationException
      * @throws IOException
      */
-    protected void sendRequestToIDP(String destination, Document samlDocument, String relayState, Response response,
+    protected void sendRequestToIDP(String destination, Document samlDocument, String relayState, Request request, Response response,
         boolean willSendRequest, String destinationQueryStringWithSignature) throws ProcessingException, ConfigurationException, IOException {
-        if (isHttpPostBinding()) {
-            sendHttpPostBindingRequest(destination, samlDocument, relayState, response, willSendRequest);
+
+        if (isAjaxRequest(request) && request.getUserPrincipal() == null) {
+            response.sendError(Response.SC_FORBIDDEN);
         } else {
-            sendHttpRedirectRequest(destination, samlDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+            if (isHttpPostBinding()) {
+                sendHttpPostBindingRequest(destination, samlDocument, relayState, response, willSendRequest);
+            } else {
+                sendHttpRedirectRequest(destination, samlDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+            }
         }
     }
 
@@ -508,7 +513,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
             String destinationQueryStringWithSignature = saml2HandlerResponse.getDestinationQueryStringWithSignature();
 
             if (destination != null && samlResponseDocument != null) {
-                sendRequestToIDP(destination, samlResponseDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+                sendRequestToIDP(destination, samlResponseDocument, relayState, request, response, willSendRequest, destinationQueryStringWithSignature);
             } else {
                 // See if the session has been invalidated
 
@@ -705,7 +710,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                     auditEvent.setWhoIsAuditing(getContextPath());
                     auditHelper.audit(auditEvent);
                 }
-                sendRequestToIDP(destination, samlResponseDocument, relayState, response, willSendRequest, destinationQueryStringWithSignature);
+                sendRequestToIDP(destination, samlResponseDocument, relayState, request, response, willSendRequest, destinationQueryStringWithSignature);
                 return false;
             } catch (Exception e) {
                 logger.samlSPHandleRequestError(e);
@@ -743,5 +748,10 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
     protected Principal getGenericPrincipal(Request request, String username, List<String> roles) {
         return (new SPUtil()).createGenericPrincipal(request, username, roles);
+    }
+
+    private boolean isAjaxRequest(Request request) {
+        String requestedWithHeader = request.getHeader(GeneralConstants.HTTP_HEADER_X_REQUESTED_WITH);
+        return requestedWithHeader != null && "XMLHttpRequest".equalsIgnoreCase(requestedWithHeader);
     }
 }
