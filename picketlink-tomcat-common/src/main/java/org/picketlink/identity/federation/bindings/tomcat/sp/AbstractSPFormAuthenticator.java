@@ -406,7 +406,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
         try {
             ServiceProviderSAMLRequestProcessor requestProcessor = new ServiceProviderSAMLRequestProcessor(
-                request.getMethod().equals("POST"), this.serviceURL, this.picketLinkConfiguration);
+                request.getMethod().equals("POST"), this.serviceURL, this.picketLinkConfiguration, this.idpMetadata);
             requestProcessor.setTrustKeyManager(keyManager);
             boolean result = requestProcessor.process(samlRequest, httpContext, handlers, chainLock);
 
@@ -493,7 +493,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
 
         try {
             ServiceProviderSAMLResponseProcessor responseProcessor = new ServiceProviderSAMLResponseProcessor(request.getMethod()
-                .equals("POST"), serviceURL, this.picketLinkConfiguration);
+                .equals("POST"), serviceURL, this.picketLinkConfiguration, this.idpMetadata);
             if (auditHelper != null) {
                 responseProcessor.setAuditHelper(auditHelper);
             }
@@ -665,7 +665,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
         // So this is a user request
         SAML2HandlerResponse saml2HandlerResponse = null;
         try {
-            ServiceProviderBaseProcessor baseProcessor = new ServiceProviderBaseProcessor(postBinding, serviceURL, this.picketLinkConfiguration);
+            ServiceProviderBaseProcessor baseProcessor = new ServiceProviderBaseProcessor(postBinding, serviceURL, this.picketLinkConfiguration, this.idpMetadata);
             if (issuerID != null) {
                 baseProcessor.setIssuer(issuerID);
             }

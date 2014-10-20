@@ -535,4 +535,7 @@ public interface PicketLinkMessages {
 
     @Message(id = 188, value = "Parser feature %s not supported.")
     RuntimeException parserFeatureNotSupported(String feature);
+
+    @Message(id = 189, value = "KeyStoreKeyManager : Encryption Key Pass is null")
+    RuntimeException keyStoreNullEncryptionKeyPass();
 }
