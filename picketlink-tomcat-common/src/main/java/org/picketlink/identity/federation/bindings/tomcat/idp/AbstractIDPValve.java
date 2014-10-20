@@ -878,6 +878,7 @@ public abstract class AbstractIDPValve extends ValveBase {
 
             requestOptions.put(GeneralConstants.IGNORE_SIGNATURES, ignoreSignatures);
             requestOptions.put(GeneralConstants.SP_SSO_METADATA_DESCRIPTOR, spSSOMetadataMap.get(issuer));
+            requestOptions.put(GeneralConstants.SSO_METADATA_DESCRIPTOR, spSSOMetadataMap.get(issuer));
             requestOptions.put(GeneralConstants.ROLE_GENERATOR, roleGenerator);
             requestOptions.put(GeneralConstants.CONFIGURATION, idpConfiguration);
             requestOptions.put(GeneralConstants.SAML_IDP_STRICT_POST_BINDING, idpConfiguration.isStrictPostBinding());
@@ -890,7 +891,7 @@ public abstract class AbstractIDPValve extends ValveBase {
             if (this.keyManager != null) {
                 PublicKey validatingKey = getIssuerPublicKey(request, issuer);
                 requestOptions.put(GeneralConstants.SENDER_PUBLIC_KEY, validatingKey);
-                requestOptions.put(GeneralConstants.DECRYPTING_KEY, keyManager.getSigningKey());
+                requestOptions.put(GeneralConstants.DECRYPTING_KEY, keyManager.getEncryptionKey());
             }
 
             // if this is a SAML AuthnRequest load the roles using the generator.

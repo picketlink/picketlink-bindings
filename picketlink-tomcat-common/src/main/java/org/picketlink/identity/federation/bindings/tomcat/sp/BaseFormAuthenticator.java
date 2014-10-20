@@ -156,6 +156,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
     protected int timerInterval = -1;
 
     protected Timer timer = null;
+    protected IDPSSODescriptorType idpMetadata;
 
     public BaseFormAuthenticator() {
         super();
@@ -392,11 +393,11 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
      * Attempt to process a metadata file available locally
      * @param configuration
      */
-    protected void processIDPMetadataFile(SPType configuration) {
+    protected IDPSSODescriptorType getIdpMetadataFromFile(SPType configuration) {
         ServletContext servletContext = context.getServletContext();
         InputStream is = servletContext.getResourceAsStream(configuration.getIdpMetadataFile());
         if (is == null) {
-            return;
+            return null;
         }
 
         Object metadata = null;
@@ -416,25 +417,10 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         }
         if (idpSSO == null) {
             logger.samlSPUnableToGetIDPDescriptorFromMetadata();
-            return;
+            return idpSSO;
         }
-        List<EndpointType> endpoints = idpSSO.getSingleSignOnService();
-        for (EndpointType endpoint : endpoints) {
-            String endpointBinding = endpoint.getBinding().toString();
-            if (endpointBinding.contains("HTTP-POST")) {
-                endpointBinding = "POST";
-            } else if (endpointBinding.contains("HTTP-Redirect")) {
-                endpointBinding = "REDIRECT";
-            }
-            if (configuration.getBindingType().equals(endpointBinding)) {
-                configuration.setIdentityURL(endpoint.getLocation().toString());
-                break;
-            }
-        }
-        List<KeyDescriptorType> keyDescriptors = idpSSO.getKeyDescriptor();
-        if (keyDescriptors.size() > 0) {
-            this.idpCertificate = MetaDataExtractor.getCertificate(keyDescriptors.get(0));
-        }
+
+        return idpSSO;
     }
 
     /**
@@ -531,10 +517,7 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
             }
 
             SPType spConfiguration = (SPType) picketLinkType.getIdpOrSP();
-
-            if (isNotNull(spConfiguration.getIdpMetadataFile())) {
-                processIDPMetadataFile(spConfiguration);
-            }
+            processIdPMetadata(spConfiguration);
 
             this.serviceURL = spConfiguration.getServiceURL();
             this.canonicalizationMethod = spConfiguration.getCanonicalizationMethod();
@@ -554,6 +537,55 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void processIdPMetadata(SPType spConfiguration) {
+        IDPSSODescriptorType idpssoDescriptorType = null;
+
+        if (isNotNull(spConfiguration.getIdpMetadataFile())) {
+            idpssoDescriptorType = getIdpMetadataFromFile(spConfiguration);
+        } else {
+            idpssoDescriptorType = getIdpMetadataFromProvider(spConfiguration);
+        }
+
+        if (idpssoDescriptorType != null) {
+            List<EndpointType> endpoints = idpssoDescriptorType.getSingleSignOnService();
+            for (EndpointType endpoint : endpoints) {
+                String endpointBinding = endpoint.getBinding().toString();
+                if (endpointBinding.contains("HTTP-POST")) {
+                    endpointBinding = "POST";
+                } else if (endpointBinding.contains("HTTP-Redirect")) {
+                    endpointBinding = "REDIRECT";
+                }
+                if (spConfiguration.getBindingType().equals(endpointBinding)) {
+                    spConfiguration.setIdentityURL(endpoint.getLocation().toString());
+                    break;
+                }
+            }
+            List<KeyDescriptorType> keyDescriptors = idpssoDescriptorType.getKeyDescriptor();
+            if (keyDescriptors.size() > 0) {
+                this.idpCertificate = MetaDataExtractor.getCertificate(keyDescriptors.get(0));
+            }
+
+            this.idpMetadata = idpssoDescriptorType;
+        }
+    }
+
+    private IDPSSODescriptorType getIdpMetadataFromProvider(SPType spConfiguration) {
+        List<EntityDescriptorType> entityDescriptors = CoreConfigUtil.getMetadataConfiguration(spConfiguration,
+            this.context.getServletContext());
+
+        if (entityDescriptors != null) {
+            for (EntityDescriptorType entityDescriptorType : entityDescriptors) {
+                IDPSSODescriptorType idpssoDescriptorType = handleMetadata(entityDescriptorType);
+
+                if (idpssoDescriptorType != null) {
+                    return idpssoDescriptorType;
+                }
+            }
+        }
+
+        return null;
     }
 
     protected IDPSSODescriptorType handleMetadata(EntitiesDescriptorType entities) {
