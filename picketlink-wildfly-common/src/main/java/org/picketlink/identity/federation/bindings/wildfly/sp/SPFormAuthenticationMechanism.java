@@ -177,6 +177,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
     protected PicketLinkAuditHelper auditHelper;
     protected TrustKeyManager keyManager;
+    private IDPSSODescriptorType idpMetadata;
 
     public SPFormAuthenticationMechanism(FormParserFactory parserFactory, String name, String loginPage, String errorPage, ServletContext servletContext, SAMLConfigurationProvider configProvider, PicketLinkAuditHelper auditHelper) {
         super(parserFactory, name, loginPage, errorPage);
@@ -326,7 +327,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         SAML2HandlerResponse saml2HandlerResponse = null;
         try {
             ServiceProviderBaseProcessor baseProcessor = new ServiceProviderBaseProcessor(postBinding, serviceURL,
-                    this.picketLinkConfiguration);
+                    this.picketLinkConfiguration, this.idpMetadata);
             if (issuerID != null)
                 baseProcessor.setIssuer(issuerID);
 
@@ -440,7 +441,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
         try {
             ServiceProviderSAMLRequestProcessor requestProcessor = new ServiceProviderSAMLRequestProcessor(
-                    request.getMethod().equals("POST"), this.serviceURL, this.picketLinkConfiguration);
+                    request.getMethod().equals("POST"), this.serviceURL, this.picketLinkConfiguration, this.idpMetadata);
             requestProcessor.setTrustKeyManager(keyManager);
             boolean result = requestProcessor.process(samlRequest, httpContext, handlers, chainLock);
 
@@ -496,7 +497,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
         // deal with SAML response from IDP
         try {
-            ServiceProviderSAMLResponseProcessor responseProcessor = new ServiceProviderSAMLResponseProcessor(request.getMethod().equals("POST"), serviceURL, this.picketLinkConfiguration);
+            ServiceProviderSAMLResponseProcessor responseProcessor = new ServiceProviderSAMLResponseProcessor(request.getMethod().equals("POST"), serviceURL, this.picketLinkConfiguration, this.idpMetadata);
             if(auditHelper !=  null){
                 responseProcessor.setAuditHelper(auditHelper);
             }
@@ -852,11 +853,9 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                 }
             }
 
-            if (StringUtil.isNotNull(spConfiguration.getIdpMetadataFile())) {
-                processIDPMetadataFile(spConfiguration.getIdpMetadataFile());
-            } else {
-                this.identityURL = spConfiguration.getIdentityURL();
-            }
+            processIdPMetadata(spConfiguration);
+
+            this.identityURL = spConfiguration.getIdentityURL();
             this.serviceURL = spConfiguration.getServiceURL();
             this.canonicalizationMethod = spConfiguration.getCanonicalizationMethod();
 
@@ -868,13 +867,62 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
             throw new RuntimeException(e);
         }
     }
-    /**
-     * Attempt to process a metadata file available locally
-     */
-    protected void processIDPMetadataFile(String idpMetadataFile) {
-        InputStream is = servletContext.getResourceAsStream(idpMetadataFile);
-        if (is == null)
-            return;
+
+    private void processIdPMetadata(SPType spConfiguration) {
+        IDPSSODescriptorType idpssoDescriptorType = null;
+
+        if (isNotNull(spConfiguration.getIdpMetadataFile())) {
+            idpssoDescriptorType = getIdpMetadataFromFile(spConfiguration);
+        } else {
+            idpssoDescriptorType = getIdpMetadataFromProvider(spConfiguration);
+        }
+
+        if (idpssoDescriptorType != null) {
+            List<EndpointType> endpoints = idpssoDescriptorType.getSingleSignOnService();
+            for (EndpointType endpoint : endpoints) {
+                String endpointBinding = endpoint.getBinding().toString();
+                if (endpointBinding.contains("HTTP-POST")) {
+                    endpointBinding = "POST";
+                } else if (endpointBinding.contains("HTTP-Redirect")) {
+                    endpointBinding = "REDIRECT";
+                }
+                if (spConfiguration.getBindingType().equals(endpointBinding)) {
+                    spConfiguration.setIdentityURL(endpoint.getLocation().toString());
+                    break;
+                }
+            }
+            List<KeyDescriptorType> keyDescriptors = idpssoDescriptorType.getKeyDescriptor();
+            if (keyDescriptors.size() > 0) {
+                this.idpCertificate = MetaDataExtractor.getCertificate(keyDescriptors.get(0));
+            }
+
+            this.idpMetadata = idpssoDescriptorType;
+        }
+    }
+
+    private IDPSSODescriptorType getIdpMetadataFromProvider(SPType spConfiguration) {
+        List<EntityDescriptorType> entityDescriptors = CoreConfigUtil.getMetadataConfiguration(spConfiguration,
+            this.servletContext);
+
+        if (entityDescriptors != null) {
+            for (EntityDescriptorType entityDescriptorType : entityDescriptors) {
+                IDPSSODescriptorType idpssoDescriptorType = handleMetadata(entityDescriptorType);
+
+                if (idpssoDescriptorType != null) {
+                    return idpssoDescriptorType;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected IDPSSODescriptorType getIdpMetadataFromFile(SPType configuration) {
+        ServletContext servletContext = this.servletContext;
+        InputStream is = servletContext.getResourceAsStream(configuration.getIdpMetadataFile());
+        if (is == null) {
+            return null;
+        }
 
         Object metadata = null;
         try {
@@ -893,25 +941,12 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         }
         if (idpSSO == null) {
             logger.samlSPUnableToGetIDPDescriptorFromMetadata();
-            return;
+            return idpSSO;
         }
-        List<EndpointType> endpoints = idpSSO.getSingleSignOnService();
-        for (EndpointType endpoint : endpoints) {
-            String endpointBinding = endpoint.getBinding().toString();
-            if (endpointBinding.contains("HTTP-POST"))
-                endpointBinding = "POST";
-            else if (endpointBinding.contains("HTTP-Redirect"))
-                endpointBinding = "REDIRECT";
-            if (spConfiguration.getBindingType().equals(endpointBinding)) {
-                identityURL = endpoint.getLocation().toString();
-                break;
-            }
-        }
-        List<KeyDescriptorType> keyDescriptors = idpSSO.getKeyDescriptor();
-        if (keyDescriptors.size() > 0) {
-            this.idpCertificate = MetaDataExtractor.getCertificate(keyDescriptors.get(0));
-        }
+
+        return idpSSO;
     }
+
     protected IDPSSODescriptorType handleMetadata(EntitiesDescriptorType entities) {
         IDPSSODescriptorType idpSSO = null;
 
@@ -919,16 +954,14 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         for (Object entityDescriptor : entityDescs) {
             if (entityDescriptor instanceof EntitiesDescriptorType) {
                 idpSSO = getIDPSSODescriptor(entities);
-            } else
+            } else {
                 idpSSO = handleMetadata((EntityDescriptorType) entityDescriptor);
-            if (idpSSO != null)
+            }
+            if (idpSSO != null) {
                 break;
+            }
         }
         return idpSSO;
-    }
-
-    protected IDPSSODescriptorType handleMetadata(EntityDescriptorType entityDescriptor) {
-        return CoreConfigUtil.getIDPDescriptor(entityDescriptor);
     }
 
     protected IDPSSODescriptorType getIDPSSODescriptor(EntitiesDescriptorType entities) {
@@ -941,6 +974,10 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
             return CoreConfigUtil.getIDPDescriptor((EntityDescriptorType) entityDescriptor);
         }
         return null;
+    }
+
+    protected IDPSSODescriptorType handleMetadata(EntityDescriptorType entityDescriptor) {
+        return CoreConfigUtil.getIDPDescriptor(entityDescriptor);
     }
 
     protected void initializeHandlerChain() throws ConfigurationException, ProcessingException {
