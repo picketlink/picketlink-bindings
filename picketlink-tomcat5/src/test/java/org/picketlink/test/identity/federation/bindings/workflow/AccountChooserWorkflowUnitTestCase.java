@@ -17,22 +17,6 @@
  */
 package org.picketlink.test.identity.federation.bindings.workflow;
 
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionEvent;
-
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.deploy.LoginConfig;
@@ -51,6 +35,21 @@ import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRealm;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaRequest;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaResponse;
 import org.picketlink.test.identity.federation.bindings.mock.MockCatalinaSession;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionEvent;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
+
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
  * PLINK-344: Account Chooser at the SP
@@ -95,6 +94,7 @@ public class AccountChooserWorkflowUnitTestCase{
 
         accountChooserValve.setContainer(context);
         accountChooserValve.setNext(spEmpl);
+        accountChooserValve.start();
 
         MockCatalinaRequest catalinaRequest = new MockCatalinaRequest();
         catalinaRequest.setSession(mockCatalinaSession);
@@ -177,6 +177,7 @@ public class AccountChooserWorkflowUnitTestCase{
 
         accountChooserValve.setContainer(context);
         accountChooserValve.setNext(spEmpl);
+        accountChooserValve.start();
 
         MockCatalinaRequest catalinaRequest = new MockCatalinaRequest();
         catalinaRequest.setSession(mockCatalinaSession);

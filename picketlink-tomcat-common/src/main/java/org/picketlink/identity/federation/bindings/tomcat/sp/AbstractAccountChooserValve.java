@@ -18,10 +18,13 @@
 package org.picketlink.identity.federation.bindings.tomcat.sp;
 
 import org.apache.catalina.Context;
+import org.apache.catalina.Lifecycle;
+import org.apache.catalina.LifecycleException;
+import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.Session;
-import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
+import org.apache.catalina.util.LifecycleSupport;
 import org.apache.catalina.valves.ValveBase;
 import org.picketlink.common.PicketLinkLogger;
 import org.picketlink.common.PicketLinkLoggerFactory;
@@ -43,8 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Anil Saldhana
  * @since January 21, 2014
  */
-public abstract class AbstractAccountChooserValve extends ValveBase {
-
+public abstract class AbstractAccountChooserValve extends ValveBase implements Lifecycle {
     protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
 
     public static final String ACCOUNT_CHOOSER_COOKIE_NAME = "picketlink.account.name";
@@ -64,16 +66,62 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
 
     protected ConcurrentHashMap<String, String> idpMap = new ConcurrentHashMap<String, String>();
 
-    protected AccountIDPMapProvider accountIDPMapProvider = new PropertiesAccountMapProvider();
+    private String accountIDPMapProviderName = PropertiesAccountMapProvider.class.getName();
+    protected AccountIDPMapProvider accountIDPMapProvider;
 
     /**
-     * Sets the account chooser cookie expiry. By default, we choose -1 which means cookie exists for the remainder of the browser
-     * session.
+     * Sets the account chooser cookie expiry. By default, we choose -1 which means
+     * cookie exists for the remainder of the browser session.
      */
     protected int cookieExpiry = -1;
 
     /**
-     * Set the domain name for the cookie to be sent to the browser There is no default.
+     * The lifecycle event support for this component.
+     */
+    protected LifecycleSupport lifecycle = new LifecycleSupport(this);
+
+    @Override
+    public void start() throws LifecycleException {
+        try {
+            Class<?> clazz = SecurityActions.loadClass(getClass(), this.accountIDPMapProviderName);
+
+            if (clazz == null) {
+                throw logger.classNotLoadedError(this.accountIDPMapProviderName);
+            }
+
+            accountIDPMapProvider = (AccountIDPMapProvider) clazz.newInstance();
+
+            Context context = (Context) getContainer();
+            accountIDPMapProvider.setServletContext(context.getServletContext());
+            idpMap.putAll(accountIDPMapProvider.getIDPMap());
+        } catch (Exception e) {
+            throw new LifecycleException("Could not start " + getClass().getName() + ".", e);
+        }
+    }
+
+    @Override
+    public void stop() throws LifecycleException {
+
+    }
+
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+        lifecycle.removeLifecycleListener(listener);
+    }
+
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return lifecycle.findLifecycleListeners();
+    }
+
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+        lifecycle.addLifecycleListener(listener);
+    }
+
+    /**
+     * Set the domain name for the cookie to be sent to the browser
+     * There is no default.
      *
      * Setting the domain name for the cookie is optional.
      *
@@ -84,41 +132,33 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
     }
 
     /**
-     * Set the cookie expiry in seconds. Default value is -1
-     *
+     * Set the cookie expiry in seconds.
+     * Default value is -1
      * @param value
      */
-    public void setCookieExpiry(String value) {
-        try {
+    public void setCookieExpiry(String value){
+        try{
             int expiry = Integer.parseInt(value);
             cookieExpiry = expiry;
-        } catch (NumberFormatException nfe) {
+        }catch(NumberFormatException nfe){
             logger.processingError(nfe);
         }
     }
-
     /**
-     * Set the fully qualified name of the implementation of {@link org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve.AccountIDPMapProvider}
+     * Set the fully qualified name of the implementation of
+     * {@link org.picketlink.identity.federation.bindings.tomcat.sp.AbstractAccountChooserValve.AccountIDPMapProvider}
      *
      * Default: {@link org.picketlink.identity.federation.bindings.tomcat.sp.plugins.PropertiesAccountMapProvider}
-     *
      * @param idpMapProviderName
      */
-    public void setAccountIDPMapProvider(String idpMapProviderName) {
-        if (StringUtil.isNotNull(idpMapProviderName)) {
-            Class<?> clazz = SecurityActions.loadClass(getClass(), idpMapProviderName);
-            try {
-                accountIDPMapProvider = (AccountIDPMapProvider) clazz.newInstance();
-            } catch (InstantiationException e) {
-                logger.processingError(e);
-            } catch (IllegalAccessException e) {
-                logger.processingError(e);
-            }
-        }
+    public void setAccountIDPMapProvider(String idpMapProviderName){
+        this.accountIDPMapProviderName = idpMapProviderName;
     }
 
     /**
-     * Set the name of the html or jsp page that has the accounts for the user to choose. Default: "/accountChooser.html" is used
+     * Set the name of the html or jsp page that has the accounts for the
+     * user to choose.
+     * Default: "/accountChooser.html" is used
      *
      * @param pageName
      */
@@ -127,23 +167,10 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
     }
 
     @Override
-    public void setNext(Valve valve) {
-        super.setNext(valve);
-        //Let us populate the IDP Provider Map
-        try {
-            Context context = (Context) getContainer();
-            accountIDPMapProvider.setServletContext(context.getServletContext());
-            idpMap.putAll(accountIDPMapProvider.getIDPMap());
-        } catch (IOException e) {
-            logger.processingError(e);
-        }
-    }
-
-    @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
         Session session = request.getSessionInternal();
 
-        if (idpMap.isEmpty()) {
+        if(idpMap.isEmpty()){
             idpMap.putAll(accountIDPMapProvider.getIDPMap());
         }
 
@@ -152,14 +179,13 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         String idpChosenKey = request.getParameter(ACCOUNT_PARAMETER);
         String cookieValue = cookieValue(request);
         if (cookieValue != null || AUTHENTICATING.equals(sessionState)) {
-            if (idpChosenKey != null) {
+            if(idpChosenKey != null){
                 String chosenIDP = idpMap.get(idpChosenKey);
                 request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
             }
 
             // Case when user is directed to IDP and wants to change the IDP. So he enters the URL again
-            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null
-                    && idpChosenKey == null) {
+            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null) {
                 session.removeNote(STATE);
                 redirectToChosenPage(accountChooserPage, request, response);
                 return;
@@ -172,7 +198,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
                     request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
                     session.setNote(STATE, AUTHENTICATING);
                     proceedToAuthentication(request, response, idpChosenKey);
-                } else {
+                }else {
                     logger.configurationFileMissing(":IDP Mapping");
                     throw new ServletException();
                 }
@@ -197,6 +223,13 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
         ServletException {
         Session session = request.getSessionInternal(false);
         try {
+            /*String sessionState = (String) session.getNote(STATE);
+            // Case when user is directed to IDP and wants to change the IDP. So he enters the URL again
+            if (AUTHENTICATING.equals(sessionState) && request.getParameter(GeneralConstants.SAML_RESPONSE_KEY) == null) {
+                session.removeNote(STATE);
+                redirectToChosenPage(accountConfirmationPage, request, response);
+                return;
+            }*/
             getNext().invoke(request, response);
         } finally {
             String state = session != null ? (String) session.getNote(STATE) : null;
@@ -208,14 +241,14 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
                 Context context = (Context) getContainer();
                 String contextpath = context.getPath();
 
-                if (cookieValue == null) {
+                if(cookieValue == null){
                     cookieValue = request.getParameter(AbstractAccountChooserValve.ACCOUNT_PARAMETER);
                 }
 
                 Cookie cookie = new Cookie(ACCOUNT_CHOOSER_COOKIE_NAME, cookieValue);
                 cookie.setPath(contextpath);
                 cookie.setMaxAge(cookieExpiry);
-                if (domainName != null) {
+                if(domainName != null){
                     cookie.setDomain(domainName);
                 }
                 response.addCookie(cookie);
@@ -256,7 +289,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
                             return cookieValue;
                         }
                     }
-                } else {
+                }else{
                     if (ACCOUNT_CHOOSER_COOKIE_NAME.equals(cookieName)) {
                         // Found cookie
                         String cookieValue = cookie.getValue();
@@ -273,29 +306,41 @@ public abstract class AbstractAccountChooserValve extends ValveBase {
     }
 
     /**
+     * Save the original request information into our session.
+     *
+     * @param request The request to be saved
+     * @param session The session to contain the saved information
+     * @throws IOException
+     */
+    protected abstract void saveRequest(Request request, Session session) throws IOException;
+
+    /**
+     * Restore the original request from information stored in our session. If the original request is no longer present
+     * (because the session timed out), return <code>false</code>; otherwise, return <code>true</code>.
+     *
+     * @param request The request to be restored
+     * @param session The session containing the saved information
+     */
+    protected abstract boolean restoreRequest(Request request, Session session) throws IOException;
+
+    /**
      * Interface for obtaining the Identity Provider Mapping
      */
-    public interface AccountIDPMapProvider {
-
+    public interface AccountIDPMapProvider{
         /**
          * Set the servlet context for resources on web classpath
-         *
          * @param servletContext
          */
         void setServletContext(ServletContext servletContext);
-
         /**
          * Set a {@link java.lang.ClassLoader} for the Provider
-         *
          * @param classLoader
          */
         void setClassLoader(ClassLoader classLoader);
-
         /**
          * Get a map of AccountName versus IDP URLs
-         *
          * @return
          */
-        Map<String, String> getIDPMap() throws IOException;
+        Map<String,String> getIDPMap() throws IOException;
     }
 }
