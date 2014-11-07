@@ -7,7 +7,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>picketlink-wildlfy-common</artifactId>
+  <artifactId>picketlink-wildfly-common</artifactId>
   <packaging>jar</packaging>
   <name>PicketLink Common Server Bindings for WildFly</name>
 
