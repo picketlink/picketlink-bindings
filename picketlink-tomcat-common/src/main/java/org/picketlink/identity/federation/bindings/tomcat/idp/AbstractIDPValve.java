@@ -1541,11 +1541,17 @@ public abstract class AbstractIDPValve extends ValveBase {
                     throw new RuntimeException(logger.classNotLoadedError(attributeManager));
                 }
                 AttributeManager delegate = (AttributeManager) clazz.newInstance();
-                // Add some keys to the attibutes
+                // Add some keys to the attributes
                 String[] ak = new String[]{"mail", "cn", "commonname", "givenname", "surname", "employeeType", "employeeNumber",
                     "facsimileTelephoneNumber"};
+ 
+                ArrayList<String> attrList = new ArrayList<String>();
+                attrList.addAll(Arrays.asList(ak));
+                if(this.attributeKeys != null) {
+                    attrList.addAll(this.attributeKeys);
+                }
 
-                this.attribManager = new DelegatedAttributeManager(delegate, Arrays.asList(ak));
+                this.attribManager = new DelegatedAttributeManager(delegate, attrList);
             }
 
             // Get the role generator
