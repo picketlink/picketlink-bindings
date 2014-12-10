@@ -1544,7 +1544,7 @@ public abstract class AbstractIDPValve extends ValveBase {
                 // Add some keys to the attributes
                 String[] ak = new String[]{"mail", "cn", "commonname", "givenname", "surname", "employeeType", "employeeNumber",
                     "facsimileTelephoneNumber"};
- 
+
                 ArrayList<String> attrList = new ArrayList<String>();
                 attrList.addAll(Arrays.asList(ak));
                 if(this.attributeKeys != null) {
