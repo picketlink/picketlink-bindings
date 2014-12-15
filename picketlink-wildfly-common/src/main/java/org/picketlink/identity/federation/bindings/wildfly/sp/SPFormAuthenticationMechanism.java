@@ -126,6 +126,7 @@ import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMechanism {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
+    public static final String INITIAL_LOCATION_STORED = "org.picketlink.federation.saml.initial_location";
 
     protected transient String samlHandlerChainClass = null;
 
@@ -250,6 +251,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
         // General User Request
         if (!isNotNull(samlRequest) && !isNotNull(samlResponse)) {
+            session.setAttribute(INITIAL_LOCATION_STORED, true);
             storeInitialLocation(exchange);
             return generalUserRequest(exchange,securityContext);
         }
@@ -569,12 +571,14 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                     // Store the authenticated principal in the session.
                     session.setAttribute(FORM_ACCOUNT_NOTE, account);
 
-                    // Redirect to the original URL.  Note that this will trigger the
-                    // authenticator again, but on resubmission we will look in the
-                    // session notes to retrieve the authenticated principal and
-                    // prevent reauthentication
-                    handleRedirectBack(httpServerExchange);
-                    httpServerExchange.endExchange();
+                    if (session.getAttribute(INITIAL_LOCATION_STORED) != null) {
+                        // Redirect to the original URL.  Note that this will trigger the
+                        // authenticator again, but on resubmission we will look in the
+                        // session notes to retrieve the authenticated principal and
+                        // prevent reauthentication
+                        handleRedirectBack(httpServerExchange);
+                        httpServerExchange.endExchange();
+                    }
                 }
                 return AuthenticationMechanismOutcome.AUTHENTICATED;
             }
@@ -1062,7 +1066,14 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         // See if we got a response from IDP
         if (isNotNull(samlResponse)) {
             try {
-                InputStream base64DecodedResponse = RedirectBindingUtil.base64DeflateDecode(samlResponse);
+                InputStream base64DecodedResponse = null;
+
+                if ("GET".equalsIgnoreCase(request.getMethod())) {
+                    base64DecodedResponse = RedirectBindingUtil.base64DeflateDecode(samlResponse);
+                } else {
+                    base64DecodedResponse = PostBindingUtil.base64DecodeAsStream(samlResponse);
+                }
+
                 SAMLParser parser = new SAMLParser();
                 SAML11ResponseType saml11Response = (SAML11ResponseType) parser.parse(base64DecodedResponse);
 
