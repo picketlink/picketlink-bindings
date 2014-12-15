@@ -957,10 +957,16 @@ public abstract class AbstractIDPValve extends ValveBase {
         try {
             // if the destination is null, probably because some error occur during authentication, use the AuthnRequest
             // AssertionConsumerServiceURL as the destination
-            if (destination == null && samlObject instanceof AuthnRequestType) {
+            boolean forceAuthn = false;
+
+            if (samlObject instanceof AuthnRequestType) {
                 AuthnRequestType authRequest = (AuthnRequestType) samlObject;
 
-                destination = authRequest.getSenderURL().toASCIIString();
+                if (destination == null) {
+                    destination = authRequest.getSenderURL().toASCIIString();
+                }
+
+                forceAuthn = authRequest.isForceAuthn();
             }
 
             // if destination is still empty redirect the user to the identity url. If the user is already authenticated he
@@ -996,6 +1002,10 @@ public abstract class AbstractIDPValve extends ValveBase {
                     auditEvent.setDestination(destination);
                     auditEvent.setWhoIsAuditing(contextPath);
                     auditHelper.audit(auditEvent);
+                }
+
+                if (forceAuthn) {
+                    session.expire();
                 }
 
                 webRequestUtil.send(holder);
