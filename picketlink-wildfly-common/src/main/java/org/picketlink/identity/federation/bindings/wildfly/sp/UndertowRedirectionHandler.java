@@ -102,12 +102,14 @@ public class UndertowRedirectionHandler extends ServiceProviderSAMLWorkflow.Redi
     public void sendRedirectForRequestor(String destination, HttpServletResponse response) throws IOException {
         commonForRedirect(destination);
         httpServerExchange.getResponseHeaders().put(Headers.CACHE_CONTROL, "no-cache, no-store");
+        response.sendRedirect(destination);
     }
 
     @Override
     public void sendRedirectForResponder(String destination, HttpServletResponse response) throws IOException {
         commonForRedirect(destination);
         httpServerExchange.getResponseHeaders().put(Headers.CACHE_CONTROL, "no-cache, no-store, must-revalidate,private");
+        response.sendRedirect(destination);
     }
 
     private void commonForRedirect(String destination) throws IOException{

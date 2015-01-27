@@ -190,21 +190,35 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
     @Override
     public ChallengeResult sendChallenge(HttpServerExchange exchange, SecurityContext securityContext) {
-        if (exchange.isResponseComplete()) {
+        ServletRequestContext servletRequestContext = exchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
+        HttpServletRequest request = (HttpServletRequest) servletRequestContext.getServletRequest();
+        HttpServletResponse response = (HttpServletResponse) servletRequestContext.getServletResponse();
+        String samlRequest = request.getParameter(GeneralConstants.SAML_REQUEST_KEY);
+        HttpSession session = request.getSession(true);
+
+        try {
+            // General User Request
+            if (!isNotNull(samlRequest) && !response.isCommitted()) {
+                session.setAttribute(INITIAL_LOCATION_STORED, true);
+                storeInitialLocation(exchange);
+                return generalUserRequest(exchange, securityContext);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Could not send authn request to identity provider.", e);
+        }
+
+        if (response.isCommitted()) {
             return new ChallengeResult(true);
         }
 
-        return new ChallengeResult(true, HttpServletResponse.SC_FOUND);
+        return new ChallengeResult(false);
     }
 
     @Override
     public AuthenticationMechanismOutcome authenticate(HttpServerExchange exchange, SecurityContext securityContext) {
         // TODO: Deal with character encoding
         // request.setCharacterEncoding(xyz)
-
-        // Get the session
-
-        final ServletRequestContext servletRequestContext = exchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
+        ServletRequestContext servletRequestContext = exchange.getAttachment(ServletRequestContext.ATTACHMENT_KEY);
         ServletContext servletContext = servletRequestContext.getCurrentServletContext();
         HttpServletRequest request = (HttpServletRequest) servletRequestContext.getServletRequest();
         HttpServletResponse response = (HttpServletResponse) servletRequestContext.getServletResponse();
@@ -244,17 +258,10 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         Principal principal = request.getUserPrincipal();
 
         try {
-        // If we have already authenticated the user and there is no request from IDP or logout from user
+            // If we have already authenticated the user and there is no request from IDP or logout from user
             if (principal != null
                     && !(serviceProviderSAMLWorkflow.isLocalLogoutRequest(request) || isGlobalLogout(request) || isNotNull(samlRequest) || isNotNull(samlResponse)))
                 return AuthenticationMechanismOutcome.AUTHENTICATED;
-
-        // General User Request
-        if (!isNotNull(samlRequest) && !isNotNull(samlResponse)) {
-            session.setAttribute(INITIAL_LOCATION_STORED, true);
-            storeInitialLocation(exchange);
-            return generalUserRequest(exchange,securityContext);
-        }
 
             // Handle a SAML Response from IDP
             if (isNotNull(samlResponse)) {
@@ -307,7 +314,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
      * @return
      * @throws IOException
      */
-    private AuthenticationMechanismOutcome generalUserRequest(HttpServerExchange httpServerExchange, SecurityContext securityContext) throws IOException{
+    private ChallengeResult generalUserRequest(HttpServerExchange httpServerExchange, SecurityContext securityContext) throws IOException{
         ServiceProviderSAMLWorkflow serviceProviderSAMLWorkflow = new ServiceProviderSAMLWorkflow();
         serviceProviderSAMLWorkflow.setRedirectionHandler(new UndertowRedirectionHandler(httpServerExchange));
 
@@ -369,14 +376,14 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                 }
                 serviceProviderSAMLWorkflow.sendRequestToIDP(destination, samlResponseDocument, relayState, response, willSendRequest,
                         destinationQueryStringWithSignature, isHttpPostBinding());
-                return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
+                return new ChallengeResult(true);
             } catch (Exception e) {
                 logger.samlSPHandleRequestError(e);
                 throw logger.samlSPProcessingExceptionError(e);
             }
         }
 
-        return localAuthentication(httpServerExchange, securityContext);
+        return super.sendChallenge(httpServerExchange, securityContext);
     }
 
     protected boolean matchRequest(HttpServletRequest request) {
@@ -593,7 +600,8 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
                     auditHelper.audit(auditEvent);
                 }
                 // Just issue a fresh request back to IDP
-                return generalUserRequest(httpServerExchange,securityContext);
+                generalUserRequest(httpServerExchange,securityContext);
+                return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
             }
             logger.samlSPHandleRequestError(pe);
             throw logger.samlSPProcessingExceptionError(pe);
