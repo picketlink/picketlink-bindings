@@ -388,6 +388,11 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
         }
 
+        if (isAjaxRequest(request) && userPrincipal == null) {
+            response.sendError(Response.SC_FORBIDDEN);
+            return;
+        }
+
         invokeNextValve(request, response);
 
         userPrincipal = request.getUserPrincipal();
@@ -1782,4 +1787,8 @@ public abstract class AbstractIDPValve extends ValveBase {
         return this.sslAuthenticator;
     }
 
+    private boolean isAjaxRequest(Request request) {
+        String requestedWithHeader = request.getHeader(GeneralConstants.HTTP_HEADER_X_REQUESTED_WITH);
+        return requestedWithHeader != null && "XMLHttpRequest".equalsIgnoreCase(requestedWithHeader);
+    }
 }
