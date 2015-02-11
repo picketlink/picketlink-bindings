@@ -26,6 +26,7 @@ import org.apache.catalina.Globals;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Session;
 import org.apache.catalina.Valve;
+import org.apache.catalina.authenticator.Constants;
 import org.apache.catalina.authenticator.SSLAuthenticator;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
@@ -116,6 +117,7 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -155,6 +157,7 @@ import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
 public abstract class AbstractIDPValve extends ValveBase {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
+    public static final String IDP_SESSION_USER = "org.picketlink.idp.session.user";
 
     protected PicketLinkAuditHelper auditHelper = null;
 
@@ -388,8 +391,10 @@ public abstract class AbstractIDPValve extends ValveBase {
             }
         }
 
-        if (isAjaxRequest(request) && userPrincipal == null) {
-            response.sendError(Response.SC_FORBIDDEN);
+        HttpSession session = request.getSession();
+
+        if (isAjaxRequest(request) && session.getAttribute(IDP_SESSION_USER) == null) {
+            response.sendError(403);
             return;
         }
 
@@ -399,12 +404,22 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         // we only handle SAML messages for authenticated users.
         if (userPrincipal != null) {
+            if (session.getAttribute(IDP_SESSION_USER) == null) {
+                session.setAttribute(IDP_SESSION_USER, userPrincipal);
+            }
+
             if (isGlobalLogout(request) && request.getParameter(SAML_REQUEST_KEY) == null) {
                 prepareLocalGlobalLogoutRequest(request, userPrincipal);
             }
 
             handleSAMLMessage(request, response);
         }
+    }
+
+    private boolean isUserAuthenticated(Request request) {
+        Session sessionInternal = request.getSessionInternal(false);
+        String authMethod = getContext().getLoginConfig().getAuthMethod();
+        return (authMethod != null && "FORM".equals(authMethod)) && sessionInternal != null && sessionInternal.getNote(Constants.FORM_PRINCIPAL_NOTE) != null;
     }
 
     private IDPType getIdpConfiguration() {
