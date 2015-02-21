@@ -39,7 +39,6 @@ import javax.security.auth.login.LoginException;
 import javax.xml.crypto.dsig.XMLSignatureException;
 import javax.xml.stream.Location;
 import javax.xml.ws.WebServiceException;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
@@ -1634,5 +1633,10 @@ public final class PicketLinkLoggerImpl implements PicketLinkLogger {
     @Override
     public RuntimeException parserFeatureNotSupported(String feature) {
         return MESSAGES.parserFeatureNotSupported(feature);
+    }
+
+    @Override
+    public ProcessingException samlAssertionWrongAudience(String serviceURL) {
+        return MESSAGES.samlAssertionWrongAudience(serviceURL);
     }
 }
