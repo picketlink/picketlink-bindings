@@ -538,4 +538,7 @@ public interface PicketLinkMessages {
 
     @Message(id = 189, value = "KeyStoreKeyManager : Encryption Key Pass is null")
     RuntimeException keyStoreNullEncryptionKeyPass();
+
+    @Message(id = 190, value = "Wrong audience [%s]")
+    ProcessingException samlAssertionWrongAudience(String serviceURL);
 }
