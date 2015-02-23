@@ -788,7 +788,7 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         try {
             AuthnRequestType authn = samlRequest
-                .createAuthnRequestType(id, assertionConsumerURL, assertionConsumerURL, assertionConsumerURL);
+                .createAuthnRequestType(id, assertionConsumerURL, getIdentityURL(), assertionConsumerURL);
 
             String requestedBinding = request.getParameter(JBossSAMLConstants.UNSOLICITED_RESPONSE_SAML_BINDING.get());
 
