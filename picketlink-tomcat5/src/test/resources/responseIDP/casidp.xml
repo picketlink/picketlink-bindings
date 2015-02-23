@@ -1,6 +1,6 @@
 <samlp:Response ID="pmilcfianoapejannhabalcfdlmlpbhbhifalhph"
 	IssueInstant="2011-11-04T09:42:04Z" InResponseTo="ID_8b7b580b-592a-49ba-b55e-b2ef2bbefb51"
-	Destination="http://localhost:8080/sales/" Version="2.0"
+	Destination="https://201.000.000.00/gctxyz" Version="2.0"
 	xmlns="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
 	xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">
 	<Issuer>https://localhost:8443</Issuer>
