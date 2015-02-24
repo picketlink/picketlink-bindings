@@ -181,7 +181,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase implements L
         if (cookieValue != null || AUTHENTICATING.equals(sessionState)) {
             if(idpChosenKey != null){
                 String chosenIDP = idpMap.get(idpChosenKey);
-                request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+                request.setAttribute(org.picketlink.identity.federation.web.constants.GeneralConstants.DESIRED_IDP, chosenIDP);
             }
 
             // Case when user is directed to IDP and wants to change the IDP. So he enters the URL again
@@ -195,7 +195,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase implements L
             if (idpChosenKey != null) {
                 String chosenIDP = idpMap.get(idpChosenKey);
                 if (chosenIDP != null) {
-                    request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+                    request.setAttribute(org.picketlink.identity.federation.web.constants.GeneralConstants.DESIRED_IDP, chosenIDP);
                     session.setNote(STATE, AUTHENTICATING);
                     proceedToAuthentication(request, response, idpChosenKey);
                 }else {
@@ -285,7 +285,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase implements L
                         String cookieValue = cookie.getValue();
                         String chosenIDP = idpMap.get(cookieValue);
                         if (chosenIDP != null) {
-                            request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+                            request.setAttribute(org.picketlink.identity.federation.web.constants.GeneralConstants.DESIRED_IDP, chosenIDP);
                             return cookieValue;
                         }
                     }
@@ -295,7 +295,7 @@ public abstract class AbstractAccountChooserValve extends ValveBase implements L
                         String cookieValue = cookie.getValue();
                         String chosenIDP = idpMap.get(cookieValue);
                         if (chosenIDP != null) {
-                            request.setAttribute(BaseFormAuthenticator.DESIRED_IDP, chosenIDP);
+                            request.setAttribute(org.picketlink.identity.federation.web.constants.GeneralConstants.DESIRED_IDP, chosenIDP);
                             return cookieValue;
                         }
                     }

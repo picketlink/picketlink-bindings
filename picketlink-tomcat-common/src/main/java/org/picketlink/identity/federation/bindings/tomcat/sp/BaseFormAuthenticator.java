@@ -101,8 +101,6 @@ public abstract class BaseFormAuthenticator extends FormAuthenticator {
 
     protected static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
 
-    public static final String DESIRED_IDP = "picketlink.desired.idp";
-
     protected volatile PicketLinkAuditHelper auditHelper = null;
 
     protected volatile TrustKeyManager keyManager;
