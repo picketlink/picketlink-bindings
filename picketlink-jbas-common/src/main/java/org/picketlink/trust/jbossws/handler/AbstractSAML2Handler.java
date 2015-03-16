@@ -23,6 +23,7 @@ package org.picketlink.trust.jbossws.handler;
 
 import org.jboss.security.SecurityContext;
 import org.picketlink.common.constants.JBossSAMLURIConstants;
+import org.picketlink.common.exceptions.ConfigurationException;
 import org.picketlink.common.util.StringUtil;
 import org.picketlink.identity.federation.bindings.jboss.subject.PicketLinkPrincipal;
 import org.picketlink.identity.federation.core.saml.v2.util.AssertionUtil;
@@ -39,6 +40,7 @@ import javax.xml.namespace.QName;
 import javax.xml.soap.SOAPMessage;
 import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
+
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.ArrayList;
@@ -80,11 +82,15 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
             AssertionType assertionType = null;
             try {
                 assertionType = SAMLUtil.fromElement(assertion);
+            } catch (Exception e) {
+                throw new RuntimeException("SAML assertion parsing failed", e);
+            }
+            try {
                 if (AssertionUtil.hasExpired(assertionType)) {
                     throw new RuntimeException(logger.samlAssertionExpiredError());
                 }
-            } catch (Exception e) {
-                logger.samlAssertionPasingFailed(e);
+            } catch (ConfigurationException e) {
+                throw new RuntimeException(e);
             }
             SamlCredential credential = new SamlCredential(assertion);
             if (logger.isTraceEnabled()) {
