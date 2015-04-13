@@ -799,6 +799,8 @@ public abstract class AbstractIDPValve extends ValveBase {
                 authn.setProtocolBinding(URI.create(JBossSAMLURIConstants.SAML_HTTP_REDIRECT_BINDING.get()));
             }
 
+            authn.setUnsolicitedResponse(true);
+
             processSAMLRequestMessage(request, response, authn, true);
         } catch (Exception e) {
             throw new ServletException("Could not handle SAML 2.0 Unsolicited Response.", e);
