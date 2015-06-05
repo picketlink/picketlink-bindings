@@ -116,8 +116,8 @@ public abstract class SAMLTokenFromHttpRequestAbstractLoginModule extends
         }
 
         String samlToken = null;
-        if (tokenEncoding.equals(NONE_TOKEN_ENCODING)
-            || tokenEncoding == null) {
+        if (tokenEncoding == null
+            || tokenEncoding.equals(NONE_TOKEN_ENCODING)) {
             samlToken = encodedSamlToken;
         } else {
             // gzip and base64 encodings are handled in this Base64.decode call
