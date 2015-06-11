@@ -400,6 +400,10 @@ public abstract class AbstractIDPValve extends ValveBase {
 
         invokeNextValve(request, response);
 
+        if (isUnauthorized(response)) {
+            return;
+        }
+
         userPrincipal = request.getUserPrincipal();
 
         // we only handle SAML messages for authenticated users.
