@@ -49,7 +49,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @Message(id = 200, value = "[PicketLink Audit] %s")
     void auditEvent(String auditEvent);
 
-    @LogMessage(level = Level.INFO)
+    @LogMessage(level = Level.DEBUG)
     @Message(id = 201, value = "Keystore is null. so setting it up")
     void keyStoreSetup();
 
@@ -229,7 +229,7 @@ public interface PicketLinkLoggerMessages extends BasicLogger {
     @Message(id = 243, value = "Exception in parsing saml message")
     void samlParsingError(@Cause Throwable t);
 
-    @LogMessage(level = Level.ERROR)
+    @LogMessage(level = Level.DEBUG)
     @Message(id = 244, value = "Mapping Context returned is null")
     void attributeManagerMappingContextNull();
 
