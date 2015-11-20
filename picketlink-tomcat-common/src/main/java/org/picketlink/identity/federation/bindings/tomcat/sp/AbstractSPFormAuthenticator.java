@@ -578,6 +578,7 @@ public abstract class AbstractSPFormAuthenticator extends BaseFormAuthenticator 
                     if (requestURI != null) {
                         logger.trace("Redirecting back to original Request URI: " + requestURI);
                         response.sendRedirect(response.encodeRedirectURL(requestURI));
+                        return false;
                     }
                 }
 
