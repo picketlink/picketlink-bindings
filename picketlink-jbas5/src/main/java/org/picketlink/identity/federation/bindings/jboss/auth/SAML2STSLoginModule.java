@@ -69,6 +69,22 @@ import java.security.cert.Certificate;
  */
 public class SAML2STSLoginModule extends SAML2STSCommonLoginModule {
 
+    private static final String CLOCK_SKEW = "clockSkew";
+
+    // Default to no clock skew as that is how it worked before the clock skew option was added
+    protected int clockSkew = 0;
+
+    @SuppressWarnings("unchecked")
+    public void initialize(Subject subject, CallbackHandler callbackHandler, Map sharedState, Map options)
+    {
+        super.initialize(subject, callbackHandler, sharedState, options);
+
+        String clockSkewValue = (String) options.get(CLOCK_SKEW);
+        if( clockSkewValue != null ) {
+            this.clockSkew = Integer.parseInt(clockSkewValue);
+        }
+    }
+
     protected boolean localValidation(Element assertionElement) throws Exception {
         // For unit tests
         if (localTestingOnly) {
@@ -106,7 +122,7 @@ public class SAML2STSLoginModule extends SAML2STSCommonLoginModule {
 
             AssertionType assertion = SAMLUtil.fromElement(assertionElement);
 
-            if (AssertionUtil.hasExpired(assertion)) {
+            if (AssertionUtil.hasExpired(assertion, this.clockSkew)) {
                 throw logger.authSAMLAssertionExpiredError();
             }
         } catch (NamingException e) {
