@@ -77,15 +77,8 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
         Element soapHeader = Util.findOrCreateSoapHeader(document.getDocumentElement());
         Element assertion = Util.findElement(soapHeader, new QName(assertionNS, "Assertion"));
         if (assertion != null) {
-            AssertionType assertionType = null;
-            try {
-                assertionType = SAMLUtil.fromElement(assertion);
-                if (AssertionUtil.hasExpired(assertionType)) {
-                    throw new RuntimeException(logger.samlAssertionExpiredError());
-                }
-            } catch (Exception e) {
-                logger.samlAssertionPasingFailed(e);
-            }
+            AssertionType assertionType = hasExpired(extractAssertionType(assertion));
+
             SamlCredential credential = new SamlCredential(assertion);
             if (logger.isTraceEnabled()) {
                 logger.trace("Assertion included in SOAP payload: " + credential.getAssertionAsString());
@@ -122,6 +115,26 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
             logger.trace("We did not find any assertion");
         }
         return true;
+    }
+
+    private static AssertionType extractAssertionType(Element assertion) {
+        AssertionType assertionType = null;
+        try {
+            assertionType = SAMLUtil.fromElement(assertion);
+        } catch (Exception e) {
+            throw new RuntimeException("SAML assertion parsing failed", e);
+        }
+        return assertionType;
+    }
+
+    private static AssertionType hasExpired(final AssertionType assertionType) {
+        try {
+            if (AssertionUtil.hasExpired(assertionType))
+                throw new RuntimeException(logger.samlAssertionExpiredError());
+        } catch ( Exception e ) {
+            throw new RuntimeException("SAML assertion parsing failed", e);
+        }
+        return assertionType;
     }
 
     /**
