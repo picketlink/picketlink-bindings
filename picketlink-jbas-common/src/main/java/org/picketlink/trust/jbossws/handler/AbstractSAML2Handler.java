@@ -81,7 +81,8 @@ public abstract class AbstractSAML2Handler extends AbstractPicketLinkTrustHandle
             try {
                 assertionType = SAMLUtil.fromElement(assertion);
                 if (AssertionUtil.hasExpired(assertionType)) {
-                    throw new RuntimeException(logger.samlAssertionExpiredError());
+                    // check the expiration but do not log any error message if it is expired, SAML2STSLoginModule might be configured with clockSkew which we are not aware of here, see PLINK-742
+                    // note that AssertionUtil.hasExpired() implementation log an info message if the assertion is expired
                 }
             } catch (Exception e) {
                 logger.samlAssertionPasingFailed(e);
