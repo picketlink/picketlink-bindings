@@ -260,8 +260,16 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
         try {
             // If we have already authenticated the user and there is no request from IDP or logout from user
             if (principal != null
-                    && !(serviceProviderSAMLWorkflow.isLocalLogoutRequest(request) || isGlobalLogout(request) || isNotNull(samlRequest) || isNotNull(samlResponse)))
+                    && !(serviceProviderSAMLWorkflow.isLocalLogoutRequest(request) || isGlobalLogout(request) || isNotNull(samlRequest) || isNotNull(samlResponse))) {
+
+                IdentityManager identityManager = securityContext.getIdentityManager();
+
+                // Call back into the security subsystem to establish the security context
+                Account account = new AccountImpl(principal, new HashSet<String>(), EMPTY_PASSWORD);
+                account = identityManager.verify(account);
+
                 return AuthenticationMechanismOutcome.AUTHENTICATED;
+            }
 
             // Handle a SAML Response from IDP
             if (isNotNull(samlResponse)) {
@@ -391,7 +399,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     }
 
     protected void register(final SecurityContext securityContext, Account account) {
-        securityContext.authenticationComplete(account, "FORM", false);
+        securityContext.authenticationComplete(account, "FORM", true);
     }
 
     /**
