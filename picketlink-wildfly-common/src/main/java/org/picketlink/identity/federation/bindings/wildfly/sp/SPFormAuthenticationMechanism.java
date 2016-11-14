@@ -399,7 +399,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
     }
 
     protected void register(final SecurityContext securityContext, Account account) {
-        securityContext.authenticationComplete(account, "FORM", true);
+        securityContext.authenticationComplete(account, "FORM", false);
     }
 
     /**
