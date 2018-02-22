@@ -87,7 +87,6 @@ import org.wildfly.extension.undertow.security.AccountImpl;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -122,7 +121,6 @@ import static org.picketlink.common.util.StringUtil.isNullOrEmpty;
  * @author Anil Saldhana
  * @since November 04, 2013
  */
-@WebListener
 public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMechanism {
 
     private static final PicketLinkLogger logger = PicketLinkLoggerFactory.getLogger();
@@ -178,7 +176,7 @@ public class SPFormAuthenticationMechanism extends ServletFormAuthenticationMech
 
     protected PicketLinkAuditHelper auditHelper;
     protected TrustKeyManager keyManager;
-    private IDPSSODescriptorType idpMetadata;
+    protected IDPSSODescriptorType idpMetadata;
 
     public SPFormAuthenticationMechanism(FormParserFactory parserFactory, String name, String loginPage, String errorPage, ServletContext servletContext, SAMLConfigurationProvider configProvider, PicketLinkAuditHelper auditHelper) {
         super(parserFactory, name, loginPage, errorPage);
